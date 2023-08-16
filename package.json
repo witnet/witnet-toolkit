@@ -1,0 +1,36 @@
+{
+  "name": "witnet-utils",
+  "version": "1.0.0",
+  "description": "Witnet utils module for building and deploying Witnet-provided artifacts",
+  "main": "dist/index.js",
+  "repository": "",
+  "author": "",
+  "license": "MIT",
+  "files": [
+    "dist"
+  ],
+  "type": "commonjs",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "compile": "npm run build",
+    "postinstall": "npx witnet-toolkit update",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "web3-jsonrpc-gateway": "^1.7.24",
+    "witnet-requests": "^0.9.11"
+  },
+  "devDependencies": {
+    "@babel/cli": "^7.5.5",
+    "@babel/core": "^7.5.5",
+    "@babel/preset-env": "^7.15.0",
+    "@types/node": "^20.4.9",
+    "@types/jest": "latest",
+    "cbor": "^8.0.0",
+    "dotenv": "^16.3.1",
+    "jest": "latest",
+    "graphql-query-compress": "^1.2.4",
+    "ts-jest": "latest",
+    "typescript": "latest"
+  }
+}

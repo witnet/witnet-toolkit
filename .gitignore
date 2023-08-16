@@ -1,0 +1,10 @@
+# Dependency directories
+node_modules
+yarn.lock
+
+# Build artifacts
+dist/
+
+# Environmental configuration files
+.env
+
