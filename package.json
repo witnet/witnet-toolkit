@@ -1,13 +1,15 @@
 {
   "name": "witnet-utils",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Witnet utils module for building and deploying Witnet-provided artifacts",
   "main": "dist/index.js",
   "repository": "",
   "author": "",
   "license": "MIT",
   "files": [
-    "dist"
+    "dist",
+    "LICENSE",
+    "README.md"
   ],
   "type": "commonjs",
   "scripts": {
