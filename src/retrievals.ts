@@ -1,6 +1,6 @@
 import graphQlCompress from "graphql-query-compress"
 
-import { Script, String as ScriptString } from "./types"
+import { Script, RadonString } from "./types"
 import { getMaxArgsIndexFromString } from "./utils"
 
 export enum Methods {
@@ -67,8 +67,19 @@ export class Class {
 }
 
 export const RNG = (script?: any) => new Class(Methods.RNG, { script })
-export const HttpGet = (specs?: Specs) => new Class(Methods.HttpGet, specs)
-export const HttpPost = (specs?: Specs) => new Class(Methods.HttpPost, specs)
+export const HttpGet = (specs: {
+    url: string,
+    headers?: Map<string, string>,
+    script?: Script,
+    tuples?: Map<string, string[]>
+}) => new Class(Methods.HttpGet, { url: specs.url, headers: specs.headers, script: specs.script, tuples: specs.tuples });
+export const HttpPost = (specs?: {
+    url: string,
+    body: string,
+    headers?: Map<string, string>,
+    script?: Script,
+    tuples?: Map<string, string[]>   
+}) => new Class(Methods.HttpPost, { url: specs?.url, headers: specs?.headers, body: specs?.body, script: specs?.script, tuples: specs?.tuples })
 export const GraphQLQuery = (specs: { 
     url: string, 
     query: string, 
@@ -78,7 +89,7 @@ export const GraphQLQuery = (specs: {
     return new Class(Methods.HttpPost, {
         url: specs.url, 
         body: `{\"query\":\"${graphQlCompress(specs.query).replaceAll('"', '\\"')}\"}`,
-        script: specs?.script || new ScriptString(),
+        script: specs?.script || new RadonString(),
         tuples: specs?.tuples
     })
 }
