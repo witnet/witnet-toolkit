@@ -8,7 +8,7 @@ import * as Types from "./types"
 
 export { Artifacts, Filters, Reducers, Retrievals, Types }
 
-export const Script = () => InnerScript(Types.String);
+export const Script = () => InnerScript(Types.RadonString);
 export function InnerScript<T extends Types.Script>(t: { new(): T; }): T { return new t(); }
 
 export function Dictionary<T>(t: { new(): T; }, dict: Object): Object {
