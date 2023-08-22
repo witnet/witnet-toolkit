@@ -7,15 +7,14 @@
   "author": "",
   "license": "MIT",
   "files": [
-    "dist",
-    "LICENSE",
-    "README.md"
+    "dist"
   ],
   "type": "commonjs",
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "compile": "npm run build",
     "postinstall": "npx witnet-toolkit update",
+    "prepare": "npm run build",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {

@@ -373,7 +373,7 @@ function processDryRunJson(dryrun) {
     itWorks: itWorks,
     nokRetrievals,
     totalRetrievals,
-    runningTime: `${nanos.reduce((a, b) => a + b) / 1000} ms`,
+    runningTime: nanos.reduce((a, b) => a + b) / 1000,
     status,
     tally: dryrun?.tally.result
   }
@@ -461,11 +461,11 @@ function stringifyWitnetFilterOperator(opcode) {
 
 function stringifyWitnetRequestMethod(method) {
   if (method === Witnet.Types.RETRIEVAL_METHODS.HttpGet) {
-    return "HTTP/GET"
+    return "HTTP-GET"
   } else if (method === Witnet.Types.RETRIEVAL_METHODS.HttpPost) {
-    return "HTTP/POST"
+    return "HTTP-POST"
   } else if (method === Witnet.Types.RETRIEVAL_METHODS.Rng) {
-    return "RNG"
+    return "WITNET-RNG"
   } else {
     return method
   }
