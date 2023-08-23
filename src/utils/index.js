@@ -3,7 +3,7 @@ const { execSync } = require("child_process")
 require("dotenv").config()
 const fs = require("fs")
 const readline = require("readline")
-const Witnet = require("../index")
+const Witnet = require("witnet-requests")
 
 module.exports = {
   deployWitnetRequest,
@@ -12,7 +12,6 @@ module.exports = {
   dryRunBytecodeVerbose,
   extractErc2362CaptionFromKey,
   findKeyInObject,
-  findRadonRetrievalSpecs,
   findTemplateArtifact,
   fromAscii,
   getChainFromProcessArgv,
@@ -124,33 +123,6 @@ function findKeyInObject(dict, tag) {
               if (found) return found
           }
       }
-  }
-}
-
-function findRadonRetrievalSpecs(retrievals, tag, headers) {
-  if (!headers) headers = []
-  for (const key in retrievals) {
-    if (typeof retrievals[key] === 'object') {
-      var retrieval = retrievals[key]
-      if (key === tag || key === retrieval?.alias) {
-        if (retrieval.requestMethod) {
-          if (retrieval?.requestMethod !== 2) {
-            if (!retrieval?.requestAuthority) {
-              retrieval.requestAuthority = headers[headers.length - 1]
-              if (!retrieval?.requestPath) {
-                retrieval.requestPath = tag
-              }
-            }
-          }
-        }
-        return retrieval
-      } else {
-        retrieval = findRadonRetrievalSpecs(retrievals[key], tag, [...headers, key])
-        if (retrieval) {
-          return retrieval
-        }
-      }
-    }
   }
 }
 
@@ -535,8 +507,8 @@ async function web3VerifyWitnetRadonReducer(from, registry, reducer) {
     } catch {
       // register new reducer, otherwise:
       traceHeader(`Verifying Radon Reducer ...`)
-      console.info(`   > Hash:        \x1b[1;35m${hash}\x1b[0m`)
-      console.info(`   > Reducer:     \x1b[35m${reducer.toString()}\x1b[0m`)
+      console.info(`   > Hash:        \x1b[35m${hash}\x1b[0m`)
+      console.info(`   > Reducer:     \x1b[1;35m${reducer.toString()}\x1b[0m`)
       const tx = await registry.verifyRadonReducer(web3Encode(reducer), { from })
       traceTx(tx.receipt)
     }
@@ -561,19 +533,19 @@ async function web3VerifyWitnetRadonRetrieval(from, registry, retrieval) {
     } catch {
       // register new retrieval, otherwise:
       traceHeader(`Verifying Radon Retrieval ...`)
-      console.info(`   > Hash:      \x1b[1;32m${hash}\x1b[0m`)
+      console.info(`   > Hash:      \x1b[32m${hash}\x1b[0m`)
       if (retrieval?.url) {
-        console.info(`   > URL:       \x1b[32m${retrieval.url}\x1b[0m`)
+        console.info(`   > URL:       \x1b[1;32m${retrieval.url}\x1b[0m`)
       } 
-      console.info(`   > Method:    \x1b[32m${getRequestMethodString(retrieval?.method)}\x1b[0m`)
+      console.info(`   > Method:    \x1b[1;32m${getRequestMethodString(retrieval?.method)}\x1b[0m`)
       if (retrieval?.body) {
-        console.info(`   > Body:      \x1b[32m${retrieval.body}\x1b[0m`)
+        console.info(`   > Body:      \x1b[1;32m${retrieval.body}\x1b[0m`)
       }
       if (retrieval?.headers && retrieval?.headers[0] && retrieval?.headers[0][0] !== "") {
-        console.info(`   > Headers:   \x1b[32m${retrieval.headers}\x1b[0m`)
+        console.info(`   > Headers:   \x1b[1;32m${retrieval.headers}\x1b[0m`)
       }
       if (retrieval?.script) {
-        console.info(`   > Script:    \x1b[32m${retrieval.script.toString()}\x1b[0m`)
+        console.info(`   > Script:    \x1b[1;33m${retrieval.script.toString()}\x1b[0m`)
       }
       const tx = await registry.verifyRadonRetrieval(...web3Encode(retrieval), { from })
       traceTx(tx.receipt)
