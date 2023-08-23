@@ -3,7 +3,7 @@ const { execSync } = require("child_process")
 require("dotenv").config()
 const fs = require("fs")
 const readline = require("readline")
-const Witnet = require("witnet-requests")
+const Witnet = require("../")
 
 module.exports = {
   deployWitnetRequest,
@@ -30,9 +30,6 @@ module.exports = {
   saveAddresses,
   saveHashes,
   splitSelectionFromProcessArgv,
-  stringifyWitnetFilterOperator,
-  stringifyWitnetReducerOperator,
-  stringifyWitnetReducerFilter,
   stringifyWitnetRequestMethod,  
   traceHeader,
   traceTx,
@@ -401,48 +398,13 @@ function splitSelectionFromProcessArgv(operand) {
   return selection
 }
 
-function stringifyWitnetReducerOperator(opcode) {
-  if (opcode === Witnet.Types.REDUCERS.mode) {
-      return "Mode"
-  } else if (opcode === Witnet.Types.REDUCERS.averageMean) {
-      return "MeanAverage"
-  } else if (opcode === Witnet.Types.REDUCERS.averageMedian) {
-      return "MedianAverage"
-  } else if (opcode === Witnet.Types.REDUCERS.deviationStandard) {
-      return "StandardDeviation"
-  } else if (opcode === Witnet.Types.REDUCERS.concatenateAndHash) {
-      return "ConcatHash"
-  } else {
-      return opcode
-  }
-}
-
-function stringifyWitnetReducerFilter(filter) {
-  return `${stringifyWitnetFilterOperator(filter?.opcode)}${filter?.args ? `( ${cbor.decode(filter.args)} )` : ""}`
-}
-
-function stringifyWitnetFilterOperator(opcode) {
-  if (opcode === Witnet.Types.FILTERS.mode) {
-      return "Mode"
-  } else if (opcode === Witnet.Types.FILTERS.deviationStandard) {
-      return "StandardDeviation"
-  } else {
-      return opcode
-  }
-}
-
 function stringifyWitnetRequestMethod(method) {
-  if (method === Witnet.Types.RETRIEVAL_METHODS.HttpGet) {
-    return "HTTP-GET"
-  } else if (method === Witnet.Types.RETRIEVAL_METHODS.HttpPost) {
-    return "HTTP-POST"
-  } else if (method === Witnet.Types.RETRIEVAL_METHODS.Rng) {
-    return "WITNET-RNG"
-  } else {
-    return method
+  switch (method) {
+    case Witnet.Retrievals.Methods.HttpGet: return "HTTP-GET";
+    case Witnet.Retrievals.Methods.HttpPost: return "HTTP-POST";
+    case Witnet.Retrievals.Methods.RNG: return "WITNET-RNG";
+    default: return "UNKNOWN"
   }
-
-  
 }
 
 function traceHeader(header) {
