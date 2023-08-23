@@ -18,7 +18,10 @@ export class Script {
         }})
     }
     public _countArgs(): number {
-        return getMaxArgsIndexFromString(this._key) + (this._prev?._countArgs() || 0)
+        return Math.max(
+            getMaxArgsIndexFromString(this._key),
+            this._prev?._countArgs() || 0
+        );
     }
     public _encodeArray(): any[] {
         let _result = this._bytecode ? [ this._bytecode ] : []

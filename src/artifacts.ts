@@ -41,7 +41,7 @@ export class Template extends Class {
             aggregate: specs?.aggregate || Mode(),
             tally: specs?.tally || Mode(),
         })
-        this.argsCount = specs.retrieve.map(retrieval => retrieval?.argsCount).reduce((prev, curr) => prev + curr) || 0
+        this.argsCount = specs.retrieve.map(retrieval => retrieval?.argsCount).reduce((prev, curr) => Math.max(prev, curr), 0) || 0
         if (this.argsCount == 0) {
             throw EvalError("\x1b[1;33mCannot build Template if provided retrievals require no arguments\x1b[0m")
         }
