@@ -1,6 +1,6 @@
 {
   "name": "witnet-utils",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "Witnet utils module for building and deploying Witnet-provided artifacts",
   "main": "dist/index.js",
   "repository": "",
@@ -29,8 +29,8 @@
     "@babel/cli": "^7.5.5",
     "@babel/core": "^7.5.5",
     "@babel/preset-env": "^7.15.0",
-    "@types/node": "^20.4.9",
     "@types/jest": "latest",
+    "@types/node": "^20.4.9",
     "jest": "latest",
     "ts-jest": "latest",
     "typescript": "latest"
