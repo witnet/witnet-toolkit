@@ -29,10 +29,7 @@
     "@babel/cli": "^7.5.5",
     "@babel/core": "^7.5.5",
     "@babel/preset-env": "^7.15.0",
-    "@types/jest": "latest",
-    "@types/node": "^20.4.9",
-    "jest": "latest",
-    "ts-jest": "latest",
+    "@types/node": "^18.17.9",
     "typescript": "latest"
   }
 }
