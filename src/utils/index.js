@@ -98,18 +98,20 @@ async function dryRunBytecodeVerbose (bytecode) {
   return (await execSync(`npx witnet-toolkit try-query --hex ${bytecode}`)).toString()
 }
 
-function extractErc2362CaptionFromKey (prefix, key) {
-  const decimals = key.match(/\d+$/)[0]
-  const camels = key
-    .replace(/([A-Z])/g, " $1")
-    .replace(/^./, function (str) { return str.toUpperCase() })
-    .split(" ")
-  return `${prefix}-${
-    camels[camels.length - 2].toUpperCase()
-  }/${
-    camels[camels.length - 1].replace(/\d$/, "").toUpperCase()
-  }-${decimals}`
-}
+  function extractErc2362CaptionFromKey (prefix, key) {
+    const decimals = key.match(/\d+$/)
+    if (decimals) {
+      const camels = key
+        .replace(/([A-Z])/g, " $1")
+        .replace(/^./, function (str) { return str.toUpperCase() })
+        .split(" ")
+      return `${prefix}-${
+        camels[camels.length - 2].toUpperCase()
+      }/${
+        camels[camels.length - 1].replace(/\d$/, "").toUpperCase()
+      }-${decimals[0]}`
+    } else return null;
+  } 
 
 function findKeyInObject(dict, tag) {
   for (const key in dict) {
