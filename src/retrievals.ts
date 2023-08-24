@@ -1,7 +1,7 @@
 import graphQlCompress from "graphql-query-compress"
 
 import { Script, RadonString } from "./types"
-import { getMaxArgsIndexFromString } from "./utils"
+import { getMaxArgsIndexFromString, parseURL } from "./utils"
 
 export enum Methods {
     None = 0x0,
@@ -46,15 +46,12 @@ export class Class {
         this.body = specs?.body
         this.script = specs?.script
         if (specs?.url) {
-            let url 
-            try {
-                url = new URL(specs?.url || "")
-                this.schema = url?.protocol + "//"
-                this.authority = url.hostname
-                if (url.search !== "") this.query = url.search.slice(1)
-                if (url.pathname !== "") this.path = url.pathname.slice(1)
-            } catch {}
             this.url = specs.url
+            let parts = parseURL(specs.url)
+            this.schema = parts[0]
+            if (parts[1] !== "") this.authority = parts[1]
+            if (parts[2] !== "") this.path = parts[2]
+            if (parts[3] !== "") this.query = parts[3]
         }
         this.argsCount = Math.max(
             getMaxArgsIndexFromString(specs?.url),

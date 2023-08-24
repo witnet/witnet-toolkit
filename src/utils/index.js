@@ -25,6 +25,7 @@ module.exports = {
   getWitnetRequestTemplateArtifactsFromArgs,
   isNullAddress,
   padLeft,
+  parseURL,
   processDryRunJson,
   prompt,
   saveAddresses,
@@ -313,6 +314,29 @@ function padLeft(str, char, size) {
     return char.repeat((size - str.length) / char.length) + str
   } else {
     return str
+  }
+}
+
+export function parseURL(url) {
+  if (url && typeof url === 'string' && url.indexOf("://") > -1) {
+    const hostIndex = url.indexOf("://") + 3
+    const schema = url.slice(0, hostIndex)
+    let host = url.slice(hostIndex)
+    let path = ""
+    let query = ""
+    const pathIndex = host.indexOf("/")
+    if (pathIndex > -1) {
+      path = host.slice(pathIndex + 1)
+      host = host.slice(0, pathIndex)
+      const queryIndex = path.indexOf("?")
+      if (queryIndex > -1) {
+        query = path.slice(queryIndex + 1)
+        path = path.slice(0, queryIndex)
+      }
+    }
+    return [ schema, host, path, query ];
+  } else {
+    throw new EvalError(`Invalid URL was provided: ${url}`)
   }
 }
 
