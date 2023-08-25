@@ -290,12 +290,14 @@ export class RadonMap extends Script {
         this._params = `'${key}'`
         return new RadonBoolean(this, key)
     }
-    public getBytes(key: string) {
-        this._bytecode = [ 0x63, key ]
-        this._method = "getBytes"
-        this._params = `'${key}'`
-        return new RadonBytes(this, key)
-    }
+    // TODO: witnet-rust should be able to deserialize an hex string 
+    // into a buffer in order to this method to work:
+        // public getBytes(key: string) {
+        //     this._bytecode = [ 0x63, key ]
+        //     this._method = "getBytes"
+        //     this._params = `'${key}'`
+        //     return new RadonBytes(this, key)
+        // }
     public getFloat(key: string) {
         this._bytecode = [ 0x64, key ]
         this._method = "getFloat"
