@@ -53,7 +53,7 @@ export const PriceTickerRequest = (dict: any, tags: Map<string, string | string[
         aggregate: Reducers.PriceAggregate(), 
         tally: Reducers.PriceTally()
     })
-}
+};
 
 export const PriceTickerTemplate = (specs: {
     retrieve: Retrievals.Class[],
@@ -64,7 +64,7 @@ export const PriceTickerTemplate = (specs: {
         tally: Reducers.PriceTally() 
     }, 
     specs?.tests
-)
+);
  
 export const RequestFromDictionary = (specs: {
     retrieve: {
@@ -94,18 +94,21 @@ export const RequestFromDictionary = (specs: {
         new Artifacts.Template({ retrieve: retrievals, aggregate: specs.aggregate, tally: specs.tally }),
         args
     )
-}
+};
 
-export const RequestFromTemplate = (template: Artifacts.Template, args: string[][]) => new Artifacts.Parameterized(template, args)
+export const RequestFromTemplate = (template: Artifacts.Template, args: string[][]) => new Artifacts.Parameterized(template, args);
 
-export const RequestTemplate = (
-    specs: { 
+export const RequestTemplate = (specs: {
         retrieve: Retrievals.Class[], 
         aggregate?: Reducers.Class, 
         tally?: Reducers.Class,
-    }, 
-    tests?: Map<string, string[][]>
-) => new Artifacts.Template(specs, tests)
+        tests?: Map<string, string[][]>,   
+}) => new Artifacts.Template({
+        retrieve: specs.retrieve,
+        aggregate: specs?.aggregate,
+        tally: specs?.tally
+    }, specs.tests
+);
 
 export const RequestTemplateSingleSource = (
     retrieval: Retrievals.Class,
@@ -115,6 +118,6 @@ export const RequestTemplateSingleSource = (
         aggregate: Reducers.Mode(),
         tally: Reducers.Mode(Filters.Mode()),
     }, tests
-)
+);
 
 export const StaticRequest = (specs: { retrieve: Retrievals.Class[], aggregate?: Reducers.Class, tally?: Reducers.Class }) => new Artifacts.Precompiled(specs)
