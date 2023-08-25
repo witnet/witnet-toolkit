@@ -22,7 +22,7 @@
     "dotenv": "^16.3.1",
     "graphql-query-compress": "^1.2.4",
     "lodash": "^4.17.21",
-    "web3-jsonrpc-gateway": "^1.7.24",
+    "web3-jsonrpc-gateway": "^1.7.25",
     "witnet-requests": "^0.9.11"
   },
   "devDependencies": {
