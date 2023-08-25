@@ -320,17 +320,15 @@ export class RadonMap extends Script {
         this._params = `'${key}'`
         return new RadonString(this, key)
     }
-    public keys(key: string) {
-        this._bytecode = [ 0x68, key ]
+    public keys() {
+        this._bytecode = 0x68
         this._method = "keys"
-        this._params = `'${key}'`
-        return new RadonArray(this, key)
+        return new RadonArray(this)
     }
-    public valuesAsArray(key: string) {
-        this._bytecode = [ 0x69, key ]
+    public valuesAsArray() {
+        this._bytecode = 0x69
         this._method = "values"
-        this._params = `'${key}'`
-        return new RadonArray(this, key)
+        return new RadonArray(this)
     }
 }
 export class RadonString extends Script {
