@@ -8,7 +8,20 @@ import * as Types from "./types"
 
 export { Artifacts, Filters, Reducers, Retrievals, Types }
 
+/**
+ * Creates a Radon script that can be used to specify 
+ * how to crawl into the String result retrieved from some external
+ * data source. All involved computation will take place on the Witnet Oracle
+ * layer-1 side-chain, not in the EVM context. 
+ */
 export const Script = () => InnerScript(Types.RadonString);
+
+/**
+ * Creates a Radon sub-script that can be passed to certain Radon
+ * operators (e.g. `RadonString.filter(..)`, `RadonArray.map(..)`, ...)
+ * as to internally process some input value of the specified kind.
+ * @param t Radon type of the input data to be processed by the subscript.
+ */
 export function InnerScript<T extends Types.Script>(t: { new(): T; }): T { return new t(); }
 
 export function Dictionary<T>(t: { new(): T; }, dict: Object): Object {
