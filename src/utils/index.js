@@ -356,7 +356,7 @@ function processDryRunJson(dryrun) {
     dryrun?.retrieve.filter((retrieval, index) => {
       const nok = "RadonError" in retrieval.result
       if (nok && !error) {
-        error = `Retrieval #${index + 1}: ${uescape(retrieval.result?.RadonError)}`
+        error = `Retrieval #${index + 1}: ${unescape(retrieval.result?.RadonError)}`
       }
       return nok
     })
