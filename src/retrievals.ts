@@ -1,7 +1,9 @@
 import graphQlCompress from "graphql-query-compress"
 
 import { Script, RadonString } from "./types"
-import { getMaxArgsIndexFromString, parseURL } from "./utils"
+import * as RPC from "./web3"
+
+export { RPC }
 
 export enum Methods {
     None = 0x0,
@@ -130,3 +132,20 @@ export const GraphQLQuery = (specs: {
         tuples: specs?.tuples
     })
 }
+
+export const CrossChainCall = (specs: {
+    url: string,
+    rpc: RPC.Call,
+    script?: Script,
+    tuples?: Map<string, string[]>
+}) => new Class(Methods.HttpPost, {
+    url: specs.url,
+    body: JSON.stringify({
+        jsonrpc: "2.0",
+        method: specs.rpc.method,
+        params: specs.rpc?.params,
+        id: 1,
+    }).replaceAll('\\\\', '\\'),
+    script: specs?.script || new RadonString(),
+    tuples: specs?.tuples
+});
