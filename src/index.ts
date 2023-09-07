@@ -96,7 +96,7 @@ export const RequestFromDictionary = (specs: {
             if (retrieval?.tuples) {
                 args.push((retrieval.tuples as any)[value] || [])
             } else {
-                throw EvalError(`\x1b[1;33mNo tuple \x1b[1;31m'${value}'\x1b[1;33m was declared for retrieval \x1b[1;37m['${key}']\x1b[0m`)
+                throw EvalError(`\x1b[1;33mRequestFromDictionary: No tuple \x1b[1;31m'${value}'\x1b[1;33m was declared for retrieval \x1b[1;37m['${key}']\x1b[0m`)
             }
         } else {
             args.push(value || [])
@@ -109,13 +109,13 @@ export const RequestFromDictionary = (specs: {
     )
 };
 
-export const RequestFromTemplate = (template: Artifacts.Template, args: string[][]) => new Artifacts.Parameterized(template, args);
+export const RequestFromTemplate = (template: Artifacts.Template, args: string[] | string[][]) => new Artifacts.Parameterized(template, args);
 
 export const RequestTemplate = (specs: {
         retrieve: Retrievals.Class[], 
         aggregate?: Reducers.Class, 
         tally?: Reducers.Class,
-        tests?: Map<string, string[][]>,   
+        tests?: Map<string, string[] | string[][]>,   
 }) => new Artifacts.Template({
         retrieve: specs.retrieve,
         aggregate: specs?.aggregate,
@@ -125,7 +125,7 @@ export const RequestTemplate = (specs: {
 
 export const RequestTemplateSingleSource = (
     retrieval: Retrievals.Class,
-    tests?: Map<string, string[][]>
+    tests?: Map<string, string[] | string[][]>
 ) => new Artifacts.Template({
         retrieve: [ retrieval ],
         aggregate: Reducers.Mode(),
