@@ -61,6 +61,41 @@ export class Class {
         )
         this.tuples = specs?.tuples
     }
+    public spawn(argIndex: number, values: string[]): Class[] {
+        let spawned: Class[] = []
+        if (this.argsCount == 0) {
+            throw new EvalError(`\x1b[1;33mWitnet.Retrievals: cannot spawn over unparameterized retrieval\x1b[0m`);
+        } else if (argIndex > this.argsCount) {
+            throw new EvalError(`\x1b[1;33mWitnet.Retrievals: spawning parameter index out of range: ${argIndex} > ${this.argsCount}\x1b[0m`);
+        }
+        values.map(value => {
+            let headers: any 
+            if (this.headers) {
+                this.headers?.map(header => headers[this.spliceWildcards(header[0], argIndex, value)] = this.spliceWildcards(header[1], argIndex, value))
+            }
+            spawned.push(new Class(this.method, {
+                url: this.spliceWildcards(this.url, argIndex, value),
+                body: this.spliceWildcards(this.body, argIndex, value),
+                headers, 
+                script: this.script, // TODO: replace wildcards on scripts
+                
+            }))
+        })
+        return spawned
+    }
+    protected spliceWildcards(str: string | undefined, argIndex: number, argValue: string): string {
+        if (str) return spliceWildcards(str, argIndex, argValue, this.argsCount)
+        else return "";
+    }
+}
+
+function spliceWildcards(str: string, argIndex: number, argValue: string, argsCount: number) {
+    const wildcard = `\\${argIndex}\\`
+    str = str.replaceAll(wildcard, argValue)
+    for (var j = argIndex + 1; j < argsCount; j ++) {
+        str =str.replaceAll(`\\${j}\\`, `\\${j - 1}\\`)
+    }
+    return str;
 }
 
 export const RNG = (script?: any) => new Class(Methods.RNG, { script })
