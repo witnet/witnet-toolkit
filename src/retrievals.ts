@@ -47,11 +47,13 @@ export class Class {
         this.script = specs?.script
         if (specs?.url) {
             this.url = specs.url
-            let parts = parseURL(specs.url)
-            this.schema = parts[0]
-            if (parts[1] !== "") this.authority = parts[1]
-            if (parts[2] !== "") this.path = parts[2]
-            if (parts[3] !== "") this.query = parts[3]
+            if (!isWildcard(specs.url)) {
+                let parts = parseURL(specs.url)
+                this.schema = parts[0]
+                if (parts[1] !== "") this.authority = parts[1]
+                if (parts[2] !== "") this.path = parts[2]
+                if (parts[3] !== "") this.query = parts[3]
+            }
         }
         this.argsCount = Math.max(
             getMaxArgsIndexFromString(specs?.url),
@@ -99,12 +101,14 @@ function spliceWildcards(str: string, argIndex: number, argValue: string, argsCo
 }
 
 export const RNG = (script?: any) => new Class(Methods.RNG, { script })
+
 export const HttpGet = (specs: {
     url: string,
     headers?: Map<string, string>,
     script?: Script,
     tuples?: Map<string, string[]>
 }) => new Class(Methods.HttpGet, { url: specs.url, headers: specs.headers, script: specs.script, tuples: specs.tuples });
+
 export const HttpPost = (specs?: {
     url: string,
     body: string,
@@ -112,6 +116,7 @@ export const HttpPost = (specs?: {
     script?: Script,
     tuples?: Map<string, string[]>   
 }) => new Class(Methods.HttpPost, { url: specs?.url, headers: specs?.headers, body: specs?.body, script: specs?.script, tuples: specs?.tuples })
+
 export const GraphQLQuery = (specs: { 
     url: string, 
     query: string, 
