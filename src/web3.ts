@@ -89,7 +89,7 @@ export const EthGasPrice = () => new Call(Methods.eth_gasPrice);
  */
 export const EthGetBalance = (address: Address, block?: BlockHead) => {
     if (!utils.isHexStringOfLength(address, 20) && !utils.isWildcard(address)) {
-        throw new EvalError("invalid Web3 address format");
+        throw new EvalError("RPC: EthGetBalance: invalid Web3 address format");
     } else {
         return new Call(Methods.eth_getBalance, [ address, block ]);
     }
@@ -101,7 +101,7 @@ export const EthGetBalance = (address: Address, block?: BlockHead) => {
  */
 export const EthSendRawTransaction = (data: Bytes) => {
     if (!utils.isHexString(data) && !utils.isWildcard(data)) {
-        throw new EvalError("invalid signed transaction data");
+        throw new EvalError("RPC: EthSendRawTransaction: invalid signed transaction data");
     } else {
         return new Call(Methods.eth_sendRawTransaction, [ data ]);
     }
@@ -114,10 +114,10 @@ export const EthSendRawTransaction = (data: Bytes) => {
  */
 export const EthGetStorageAt = (address: Address, offset: Bytes32) => {
     if (!utils.isHexStringOfLength(address, 20) && !utils.isWildcard(address)) {
-        throw new EvalError("invalid Web3 address format");
+        throw new EvalError("RPC: EthGetStorageAt: invalid Web3 address format");
     } 
     if (!utils.isHexStringOfLength(offset, 32) && !utils.isWildcard(offset)) {
-        throw new EvalError("invalid storage offset value");
+        throw new EvalError("RPC: EthGetStorageAt: invalid storage offset value");
     }
     return new Call(Methods.eth_getStorageAt, [ address, offset ]);
 };
@@ -128,7 +128,7 @@ export const EthGetStorageAt = (address: Address, offset: Bytes32) => {
  */
 export const EthGetTransactionCount = (address: Address) => {
     if (!utils.isHexStringOfLength(address, 20) && !utils.isWildcard(address)) {
-        throw new EvalError("invalid Web3 address format");
+        throw new EvalError("RPC: EthGetTransactionCount: invalid Web3 address format");
     } else {
         return new Call(Methods.eth_getTransactionCount, [ address ]);
     }
@@ -140,7 +140,7 @@ export const EthGetTransactionCount = (address: Address) => {
  */
 export const EthGetCode = (address: Address) => {
     if (!utils.isHexStringOfLength(address, 20) && !utils.isWildcard(address)) {
-        throw new EvalError("invalid Web3 address format");
+        throw new EvalError("RPC: EthGetCode: invalid Web3 address format");
     } else {
         return new Call(Methods.eth_getCode, [ address ]);
     }
@@ -161,19 +161,19 @@ export const EthCall = (tx: {
     data?: HexString
 }) => {
     if (tx?.from && !utils.isHexStringOfLength(tx?.from, 20) && !utils.isWildcard(tx?.from)) {
-        throw new EvalError("invalid 'from' address");
+        throw new EvalError("RPC: EthCall: invalid 'from' address");
     }
     if (tx?.gas && !Number.isInteger(tx.gas) && !utils.isHexStringOfLength(tx.gas, 32) && !utils.isWildcard(tx.gas)) {
-        throw new EvalError("invalid 'gas' value")
+        throw new EvalError("RPC: EthCall: invalid 'gas' value")
     }
     if (tx?.gasPrice && !Number.isInteger(tx.gasPrice) && !utils.isHexStringOfLength(tx.gasPrice, 32) && !utils.isWildcard(tx.gasPrice)) {
-        throw new EvalError("invalid 'gasPrice' value")
+        throw new EvalError("RPC: EthCall: invalid 'gasPrice' value")
     }
     if (tx?.value && !Number.isInteger(tx.value) && !utils.isHexStringOfLength(tx.value, 32) && !utils.isWildcard(tx.value)) {
-        throw new EvalError("invalid transaction 'value'")
+        throw new EvalError("RPC: EthCall: invalid transaction 'value'")
     }
     if (tx?.data && !utils.isHexString(tx.data) && !utils.isWildcard(tx.data)) {
-        throw new EvalError("invalid transaction 'data'")
+        throw new EvalError("RPC: EthCall: invalid transaction 'data'")
     }
     return new Call(Methods.eth_call, [ tx ]);
 };
@@ -195,23 +195,22 @@ export const EthEstimateGas = (tx: {
     data?: HexString
 }) => {
     if (tx?.from && !utils.isHexStringOfLength(tx?.from, 20) && !utils.isWildcard(tx?.from)) {
-        throw new EvalError("invalid 'from' address");
+        throw new EvalError("RPC: EthEstimateGas: invalid 'from' address");
     }
     if (tx?.gas && !Number.isInteger(tx.gas) && !utils.isHexStringOfLength(tx.gas, 32) && !utils.isWildcard(tx.gas)) {
-        throw new EvalError("invalid 'gas' value")
+        throw new EvalError("RPC: EthEstimateGas: invalid 'gas' value")
     }
     if (tx?.gasPrice && !Number.isInteger(tx.gasPrice) && !utils.isHexStringOfLength(tx.gasPrice, 32) && !utils.isWildcard(tx.gasPrice)) {
-        throw new EvalError("invalid 'gasPrice' value")
+        throw new EvalError("RPC: EthEstimateGas: invalid 'gasPrice' value")
     }
     if (tx?.value && !Number.isInteger(tx.value) && !utils.isHexStringOfLength(tx.value, 32) && !utils.isWildcard(tx.value)) {
-        throw new EvalError("invalid transaction 'value'")
+        throw new EvalError("RPC: EthEstimateGas: invalid transaction 'value'")
     }
     if (tx?.data && !utils.isHexString(tx.data) && !utils.isWildcard(tx.data)) {
-        throw new EvalError("invalid transaction 'data'")
+        throw new EvalError("RPC: EthEstimateGas: invalid transaction 'data'")
     }
     return new Call(Methods.eth_estimateGas, [ tx ]);
 };
-
 
 /**
  * Retrieve an array of all logs matching a given filter object.
@@ -225,20 +224,20 @@ export const EthGetLogs = (filter: {
     blockHash?: Bytes32,
 }) => {
     if (filter?.blockHash && (filter?.fromBlock || filter?.toBlock)) {
-        throw new EvalError("uncompliant use of 'blockHash'")
+        throw new EvalError("RPC: EthGetLogs: uncompliant use of 'blockHash'")
     }
     if (filter?.fromBlock && !isBlockHead(filter?.fromBlock)) {
-        throw new EvalError("invalid 'fromBlock' value");
+        throw new EvalError("RPC: EthGetLogs: invalid 'fromBlock' value");
     }
     if (filter?.toBlock && !isBlockHead(filter?.toBlock)) {
-        throw new EvalError("invalid 'toBlock' value");
+        throw new EvalError("RPC: EthGetLogs: invalid 'toBlock' value");
     }
     if (filter?.blockHash && !utils.isHexStringOfLength(filter.blockHash, 32) && !utils.isWildcard(filter.blockHash)) {
-        throw new EvalError("invalid 'blockHash' value");
+        throw new EvalError("RPC: EthGetLogs: invalid 'blockHash' value");
     }
     filter.topics.map((value: Bytes32, index: number) => {
         if (!utils.isHexStringOfLength(value, 32) && !utils.isWildcard(value)) {
-            throw new EvalError(`topic #${index}: invalid topic hash`)
+            throw new EvalError(`RPC: EthGetLogs: topic #${index}: invalid hash`)
         }
     })
     return new Call(Methods.eth_getLogs, [ filter ]);
@@ -250,7 +249,7 @@ export const EthGetLogs = (filter: {
  */
 export const EthGetTransactionByHash = (txHash: Bytes32) => {
     if (!utils.isHexStringOfLength(txHash, 32) && !utils.isWildcard(txHash)) {
-        throw new EvalError("invalid transaction hash value");
+        throw new EvalError("RPC: EthGetTransactionByHash: invalid transaction hash value");
     } else {
         return new Call(Methods.eth_getTransactionByHash, [ txHash ]);
     }
@@ -262,10 +261,10 @@ export const EthGetTransactionByHash = (txHash: Bytes32) => {
  */
 export const EthGetTransactionByBlockHashAndIndex = (blockHash: Bytes32, txIndex: number | Bytes32) => {
     if (!utils.isHexStringOfLength(blockHash, 32) && !utils.isWildcard(blockHash)) {
-        throw new EvalError("invalid block hash value");
+        throw new EvalError("RPC: EthGetTransactionByBlockHashAndIndex: invalid block hash value");
     }
     if (!Number.isInteger(txIndex) && !utils.isHexStringOfLength(txIndex, 32) && !utils.isWildcard(txIndex)) {
-        throw new EvalError("invalid transaction index value")
+        throw new EvalError("RPC: EthGetTransactionByBlockHashAndIndex: invalid transaction index value")
     }
     return new Call(Methods.eth_getTransactionByBlockHashAndIndex, [ blockHash, txIndex ]);
 };
@@ -279,10 +278,10 @@ export const EthGetTransactionByBlockNumberAndIndex = (
     txIndex: number | Bytes32
 ) => {
     if (!isBlockHead(blockNumber)) {
-        throw new EvalError("invalid block number value");
+        throw new EvalError("RPC: EthGetTransactionByBlockNumberAndIndex: invalid block number value");
     }
     if (!Number.isInteger(txIndex) && !utils.isHexStringOfLength(txIndex, 32) && !utils.isWildcard(txIndex)) {
-        throw new EvalError("invalid transaction index value")
+        throw new EvalError("RPC: EthGetTransactionByBlockNumberAndIndex: invalid transaction index value")
     }
     return new Call(Methods.eth_getTransactionByBlockHashAndIndex, [ blockNumber, txIndex ]);
 };
@@ -293,7 +292,7 @@ export const EthGetTransactionByBlockNumberAndIndex = (
  */
 export const EthGetTransactionReceipt = (txHash: Bytes32) => {
     if (!utils.isHexStringOfLength(txHash, 32) && !utils.isWildcard(txHash)) {
-        throw new EvalError("invalid transaction hash value");
+        throw new EvalError("RPC: EthGetTransactionReceipt: invalid transaction hash value");
     } else {
         return new Call(Methods.eth_getTransactionReceipt, [ txHash ]);
     }

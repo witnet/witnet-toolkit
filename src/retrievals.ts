@@ -35,9 +35,9 @@ export class Class {
     public tuples?: Map<string, string[]>;
     constructor(method: Methods, specs?: Specs) {
         if (method === Methods.RNG && (specs?.url || specs?.headers || specs?.body)) {
-            throw EvalError("\x1b[1;33mWitnet.Retrievals: badly specified RNG\x1b[0m");
+            throw EvalError("\x1b[1;33mRetrieval: badly specified RNG\x1b[0m");
         } else if (!specs?.url && (method == Methods.HttpPost || method == Methods.HttpGet)) {
-            throw EvalError("\x1b[1;33mWitnet.Retrievals: URL must be specified\x1b[0m");
+            throw EvalError("\x1b[1;33mRetrieval: URL must be specified\x1b[0m");
         } else if (specs?.body && method == Methods.HttpGet) {
             throw EvalError("\x1b[1;33mWitnet.Retrievals: body cannot be specified here\x1b[0m")
         }
@@ -69,9 +69,9 @@ export class Class {
     public spawn(argIndex: number, values: string[]): Class[] {
         let spawned: Class[] = []
         if (this.argsCount == 0) {
-            throw new EvalError(`\x1b[1;33mWitnet.Retrievals: cannot spawn over unparameterized retrieval\x1b[0m`);
+            throw new EvalError(`\x1b[1;33mRetrieval: cannot spawn over unparameterized retrieval\x1b[0m`);
         } else if (argIndex > this.argsCount) {
-            throw new EvalError(`\x1b[1;33mWitnet.Retrievals: spawning parameter index out of range: ${argIndex} > ${this.argsCount}\x1b[0m`);
+            throw new EvalError(`\x1b[1;33mRetrieval: spawning parameter index out of range: ${argIndex} > ${this.argsCount}\x1b[0m`);
         }
         values.map(value => {
             let headers: any 
