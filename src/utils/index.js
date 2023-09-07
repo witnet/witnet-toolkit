@@ -23,7 +23,10 @@ module.exports = {
   getWitnetArtifactsFromArgs,
   getWitnetRequestArtifactsFromArgs,
   getWitnetRequestTemplateArtifactsFromArgs,
+  isHexString,
+  isHexStringOfLength,
   isNullAddress,
+  isWildcard,
   padLeft,
   parseURL,
   processDryRunJson,
@@ -98,20 +101,20 @@ async function dryRunBytecodeVerbose (bytecode) {
   return (await execSync(`npx witnet-toolkit try-query --hex ${bytecode}`)).toString()
 }
 
-  function extractErc2362CaptionFromKey (prefix, key) {
-    const decimals = key.match(/\d+$/)
-    if (decimals) {
-      const camels = key
-        .replace(/([A-Z])/g, " $1")
-        .replace(/^./, function (str) { return str.toUpperCase() })
-        .split(" ")
-      return `${prefix}-${
-        camels[camels.length - 2].toUpperCase()
-      }/${
-        camels[camels.length - 1].replace(/\d$/, "").toUpperCase()
-      }-${decimals[0]}`
-    } else return null;
-  } 
+function extractErc2362CaptionFromKey (prefix, key) {
+  const decimals = key.match(/\d+$/)
+  if (decimals) {
+    const camels = key
+      .replace(/([A-Z])/g, " $1")
+      .replace(/^./, function (str) { return str.toUpperCase() })
+      .split(" ")
+    return `${prefix}-${
+      camels[camels.length - 2].toUpperCase()
+    }/${
+      camels[camels.length - 1].replace(/\d$/, "").toUpperCase()
+    }-${decimals[0]}`
+  } else return null;
+} 
 
 function findKeyInObject(dict, tag) {
   for (const key in dict) {
@@ -291,10 +294,28 @@ function getRequestResultDataTypeString(type) {
   }
 }
 
+export function isHexString(str) {
+  return (
+    !Number.isInteger(str)
+      && str.startsWith("0x")
+      && /^[a-fA-F0-9]+$/i.test(str.slice(2))
+  );
+}
+
+export function isHexStringOfLength(str, max) {
+  return (isHexString(str)
+    && str.slice(2).length <= max * 2
+  );
+}
+
 function isNullAddress(addr) {
   return !addr ||
     addr === "" ||
     addr === "0x0000000000000000000000000000000000000000"
+}
+
+export function isWildcard(str) {
+  return str.length == 3 && /\\\d\\/g.test(str)  
 }
 
 function mapObjectRecursively(obj, callback) {
@@ -472,10 +493,7 @@ export function web3Encode(T) {
   } else if (T instanceof Witnet.Retrievals.Class) {
       return [
           T.method,
-          T.schema || "",
-          T.authority || "",
-          T.path || "",
-          T.query || "",
+          T.url || "",
           T.body || "",
           T.headers || "",
           web3Encode(T.script) || "0x80"
@@ -511,7 +529,7 @@ async function web3VerifyWitnetRadonRetrieval(from, registry, retrieval) {
   var hash
   if (retrieval) {
     try {
-      hash = await registry.verifyRadonRetrieval.call(...web3Encode(retrieval), { from })
+      hash = await registry.methods['verifyRadonRetrieval(uint8,string,string,string[2][],bytes)'].call(...web3Encode(retrieval), { from })
     } catch (e) {
       throw `Cannot check if Witnet Radon Retrieval is already verified: ${e}`
     }
@@ -521,21 +539,24 @@ async function web3VerifyWitnetRadonRetrieval(from, registry, retrieval) {
     } catch {
       // register new retrieval, otherwise:
       traceHeader(`Verifying Radon Retrieval ...`)
-      console.info(`   > Hash:      \x1b[32m${hash}\x1b[0m`)
+      console.info(`   > Hash:       \x1b[32m${hash}\x1b[0m`)
       if (retrieval?.url) {
-        console.info(`   > URL:       \x1b[1;32m${retrieval.url}\x1b[0m`)
+        console.info(`   > URL:        \x1b[1;32m${retrieval.url}\x1b[0m`)
       } 
-      console.info(`   > Method:    \x1b[1;32m${getRequestMethodString(retrieval?.method)}\x1b[0m`)
+      console.info(`   > Method:     \x1b[1;32m${getRequestMethodString(retrieval?.method)}\x1b[0m`)
       if (retrieval?.body) {
-        console.info(`   > Body:      \x1b[1;32m${retrieval.body}\x1b[0m`)
+        console.info(`   > Body:       \x1b[1;32m${retrieval.body}\x1b[0m`)
       }
       if (retrieval?.headers && retrieval?.headers[0] && retrieval?.headers[0][0] !== "") {
-        console.info(`   > Headers:   \x1b[1;32m${retrieval.headers}\x1b[0m`)
+        console.info(`   > Headers:    \x1b[1;32m${retrieval.headers}\x1b[0m`)
       }
       if (retrieval?.script) {
-        console.info(`   > Script:    \x1b[1;33m${retrieval.script.toString()}\x1b[0m`)
+        console.info(`   > Script:     \x1b[1;33m${retrieval.script.toString()}\x1b[0m`)
       }
-      const tx = await registry.verifyRadonRetrieval(...web3Encode(retrieval), { from })
+      if (retrieval?.argsCount) {
+        console.info(`   > Total args: \x1b[1;33m${retrieval.argsCount}\x1b[0m`)
+      }
+      const tx = await registry.methods['verifyRadonRetrieval(uint8,string,string,string[2][],bytes)'].sendTransaction(...web3Encode(retrieval), { from })
       traceTx(tx.receipt)
     }
   } else {
