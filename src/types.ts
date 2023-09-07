@@ -1,5 +1,6 @@
+const utils = require('./utils')
+
 import * as Reducers from './reducers'
-import { getMaxArgsIndexFromString } from './utils'
 
 export class Script {
     protected _bytecode?: any; 
@@ -19,7 +20,7 @@ export class Script {
     }
     public _countArgs(): number {
         return Math.max(
-            getMaxArgsIndexFromString(this._key),
+            utils.getMaxArgsIndexFromString(this._key),
             this._prev?._countArgs() || 0
         );
     }
@@ -27,6 +28,39 @@ export class Script {
         let _result = this._bytecode ? [ this._bytecode ] : []
         if (this._prev !== undefined) _result = this._prev._encodeArray().concat(_result)
         return _result
+    }
+    protected _set(bytecode?: any, method?: string, params?: any) {
+        this._bytecode = bytecode
+        this._method = method
+        this._params = params
+    }
+    public _spliceWildcards(argIndex: number, argValue: string, argsCount: number): Script {
+        let spliced: Script
+        if (this instanceof RadonAny) {
+            spliced = new RadonAny(this._prev?._spliceWildcards(argIndex, argValue, argsCount), this._key)
+        } else if (this instanceof RadonArray) {
+            spliced = new RadonArray(this._prev?._spliceWildcards(argIndex, argValue, argsCount), this._key)
+        } else if (this instanceof RadonBoolean) {
+            spliced = new RadonBoolean(this._prev?._spliceWildcards(argIndex, argValue, argsCount), this._key)
+        } else if (this instanceof RadonBytes) {
+            spliced = new RadonBytes(this._prev?._spliceWildcards(argIndex, argValue, argsCount), this._key)
+        } else if (this instanceof RadonFloat) {
+            spliced = new RadonFloat(this._prev?._spliceWildcards(argIndex, argValue, argsCount), this._key)
+        } else if (this instanceof RadonInteger) {
+            spliced = new RadonInteger(this._prev?._spliceWildcards(argIndex, argValue, argsCount), this._key)
+        } else if (this instanceof RadonMap) {
+            spliced = new RadonMap(this._prev?._spliceWildcards(argIndex, argValue, argsCount), this._key)
+        } else if (this instanceof RadonString) {
+            spliced = new RadonString(this._prev?._spliceWildcards(argIndex, argValue, argsCount), this._key)
+        } else {
+            spliced = new Script(this._prev?._spliceWildcards(argIndex, argValue, argsCount), this._key)
+        }
+        spliced._set(
+            utils.spliceWildcards(this._bytecode, argIndex, argValue, argsCount), 
+            this._method, 
+            utils.spliceWildcards(this._params, argIndex, argValue, argsCount)
+        )
+        return spliced
     }
 }
 export class RadonAny extends Script {

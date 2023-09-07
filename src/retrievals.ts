@@ -1,5 +1,6 @@
-import graphQlCompress from "graphql-query-compress"
+const utils = require("./utils")
 
+import graphQlCompress from "graphql-query-compress"
 import { Script, RadonString } from "./types"
 import * as RPC from "./web3"
 
@@ -49,8 +50,8 @@ export class Class {
         this.script = specs?.script
         if (specs?.url) {
             this.url = specs.url
-            if (!isWildcard(specs.url)) {
-                let parts = parseURL(specs.url)
+            if (!utils.isWildcard(specs.url)) {
+                let parts = utils.parseURL(specs.url)
                 this.schema = parts[0]
                 if (parts[1] !== "") this.authority = parts[1]
                 if (parts[2] !== "") this.path = parts[2]
@@ -58,9 +59,9 @@ export class Class {
             }
         }
         this.argsCount = Math.max(
-            getMaxArgsIndexFromString(specs?.url),
-            getMaxArgsIndexFromString(specs?.body),
-            ...this.headers.map(header => getMaxArgsIndexFromString(header[1])),
+            utils.getMaxArgsIndexFromString(specs?.url),
+            utils.getMaxArgsIndexFromString(specs?.body),
+            ...this.headers.map(header => utils.getMaxArgsIndexFromString(header[1])),
             specs?.script?._countArgs() || 0,
         )
         this.tuples = specs?.tuples
@@ -75,31 +76,21 @@ export class Class {
         values.map(value => {
             let headers: any 
             if (this.headers) {
-                this.headers?.map(header => headers[this.spliceWildcards(header[0], argIndex, value)] = this.spliceWildcards(header[1], argIndex, value))
+                this.headers?.map(header => {
+                    headers[
+                        utils.spliceWildcards(header[0], argIndex, value, this.argsCount)
+                    ] = utils.spliceWildcards(header[1], argIndex, value, this.argsCount)
+                })
             }
+            const script: Script | undefined = this.script?._spliceWildcards(argIndex, value, this.argsCount);
             spawned.push(new Class(this.method, {
-                url: this.spliceWildcards(this.url, argIndex, value),
-                body: this.spliceWildcards(this.body, argIndex, value),
-                headers, 
-                script: this.script, // TODO: replace wildcards on scripts
-                
+                url: utils.spliceWildcards(this.url, argIndex, value, this.argsCount),
+                body: utils.spliceWildcards(this.body, argIndex, value, this.argsCount),
+                headers, script,
             }))
         })
         return spawned
     }
-    protected spliceWildcards(str: string | undefined, argIndex: number, argValue: string): string {
-        if (str) return spliceWildcards(str, argIndex, argValue, this.argsCount)
-        else return "";
-    }
-}
-
-function spliceWildcards(str: string, argIndex: number, argValue: string, argsCount: number) {
-    const wildcard = `\\${argIndex}\\`
-    str = str.replaceAll(wildcard, argValue)
-    for (var j = argIndex + 1; j < argsCount; j ++) {
-        str =str.replaceAll(`\\${j}\\`, `\\${j - 1}\\`)
-    }
-    return str;
 }
 
 export const RNG = (script?: any) => new Class(Methods.RNG, { script })

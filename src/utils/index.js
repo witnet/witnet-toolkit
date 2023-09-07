@@ -33,6 +33,7 @@ module.exports = {
   prompt,
   saveAddresses,
   saveHashes,
+  spliceWildcards,
   splitSelectionFromProcessArgv,
   stringifyWitnetRequestMethod,  
   traceHeader,
@@ -166,7 +167,7 @@ function getChainFromProcessArgv() {
   }
 }
 
-export function getMaxArgsIndexFromString(str) {
+function getMaxArgsIndexFromString(str) {
   let maxArgsIndex = 0
   if (str) {
     let match
@@ -294,7 +295,7 @@ function getRequestResultDataTypeString(type) {
   }
 }
 
-export function isHexString(str) {
+function isHexString(str) {
   return (
     !Number.isInteger(str)
       && str.startsWith("0x")
@@ -302,7 +303,7 @@ export function isHexString(str) {
   );
 }
 
-export function isHexStringOfLength(str, max) {
+function isHexStringOfLength(str, max) {
   return (isHexString(str)
     && str.slice(2).length <= max * 2
   );
@@ -314,7 +315,7 @@ function isNullAddress(addr) {
     addr === "0x0000000000000000000000000000000000000000"
 }
 
-export function isWildcard(str) {
+function isWildcard(str) {
   return str.length == 3 && /\\\d\\/g.test(str)  
 }
 
@@ -340,7 +341,7 @@ function padLeft(str, char, size) {
   }
 }
 
-export function parseURL(url) {
+function parseURL(url) {
   if (url && typeof url === 'string' && url.indexOf("://") > -1) {
     const hostIndex = url.indexOf("://") + 3
     const schema = url.slice(0, hostIndex)
@@ -431,6 +432,22 @@ function saveHashes(hashes, path) {
   )
 }
 
+function spliceWildcards(obj, argIndex, argValue, argsCount) {
+  if (obj && typeof obj === "string") {
+    const wildcard = `\\${argIndex}\\`
+    obj = obj.replaceAll(wildcard, argValue)
+    for (var j = argIndex + 1; j < argsCount; j ++) {
+        obj = obj.replaceAll(`\\${j}\\`, `\\${j - 1}\\`)
+    }
+  } else if (obj && Array.isArray(obj)) {
+    obj = obj.map(value => typeof value === "string" || Array.isArray(value) 
+      ? spliceWildcards(value, argIndex, argValue, argsCount)
+      : value
+    )
+  }
+  return obj;
+}
+
 function splitSelectionFromProcessArgv(operand) {
   let selection = []
   if (process.argv.includes(operand)) {
@@ -478,7 +495,7 @@ async function web3BuildWitnetRequestFromTemplate(web3, from, templateContract, 
   return requestAddr
 }
 
-export function web3Encode(T) {
+function web3Encode(T) {
   if (T instanceof Witnet.Reducers.Class) {
       return [
           T.opcode,
