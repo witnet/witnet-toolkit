@@ -342,7 +342,7 @@ export class RadonMap extends RadonType {
         this._method = "keys"
         return new RadonArray(this)
     }
-    public valuesAsArray() {
+    public values() {
         this._bytecode = 0x69
         this._method = "values"
         return new RadonArray(this)
