@@ -22,7 +22,7 @@ export const Script = () => InnerScript(Types.RadonString);
  * as to internally process some input value of the specified kind.
  * @param t Radon type of the input data to be processed by the subscript.
  */
-export function InnerScript<T extends Types.Script>(t: { new(): T; }): T { return new t(); }
+export function InnerScript<T extends Types.RadonType>(t: { new(): T; }): T { return new t(); }
 
 export function Dictionary<T>(t: { new(): T; }, dict: Object): Object {
     return new Proxy(dict, proxyHandler<T>(t))

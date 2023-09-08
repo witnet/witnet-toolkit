@@ -1,7 +1,7 @@
 const utils = require("./utils")
 
 import graphQlCompress from "graphql-query-compress"
-import { Script, RadonString } from "./types"
+import { RadonType as Script, RadonString as DefaultScript} from "./types"
 import * as RPC from "./web3"
 
 export { RPC }
@@ -82,7 +82,7 @@ export class Class {
                     ] = utils.spliceWildcards(header[1], argIndex, value, this.argsCount)
                 })
             }
-            const script: Script | undefined = this.script?._spliceWildcards(argIndex, value, this.argsCount);
+            const script: Script | undefined = this.script?._spliceWildcards(argIndex, value);
             spawned.push(new Class(this.method, {
                 url: utils.spliceWildcards(this.url, argIndex, value, this.argsCount),
                 body: utils.spliceWildcards(this.body, argIndex, value, this.argsCount),
@@ -119,7 +119,7 @@ export const GraphQLQuery = (specs: {
     return new Class(Methods.HttpPost, {
         url: specs.url, 
         body: `{\"query\":\"${graphQlCompress(specs.query).replaceAll('"', '\\"')}\"}`,
-        script: specs?.script || new RadonString(),
+        script: specs?.script || new DefaultScript(),
         tuples: specs?.tuples
     })
 }
@@ -137,6 +137,6 @@ export const CrossChainCall = (specs: {
         params: specs.rpc?.params,
         id: 1,
     }).replaceAll('\\\\', '\\'),
-    script: specs?.script || new RadonString(),
+    script: specs?.script || new DefaultScript(),
     tuples: specs?.tuples
 });

@@ -2,13 +2,13 @@ const utils = require('./utils')
 
 import * as Reducers from './reducers'
 
-export class Script {
+export class RadonType {
     protected _bytecode?: any; 
     protected _key?: string;
-    protected _prev?: Script;
+    protected _prev?: RadonType;
     protected _method?: string;
     protected _params?: any;
-    constructor (prev?: Script, key?: string) {
+    constructor (prev?: RadonType, key?: string) {
         this._key = key
         this._prev = prev
         Object.defineProperty(this, "toString", { value: () => {
@@ -29,17 +29,8 @@ export class Script {
         if (this._prev !== undefined) _result = this._prev._encodeArray().concat(_result)
         return _result
     }
-    protected _set(bytecode?: any, method?: string, params?: any) {
-        this._bytecode = bytecode
-        this._method = method
-        this._params = params
-    }
-    public _spliceWildcards(argIndex: number, argValue: string, argsCount: number): Script {
-        let spliced: Script
-        if (this instanceof RadonAny) {
-            spliced = new RadonAny(this._prev?._spliceWildcards(argIndex, argValue, argsCount), this._key)
-        } else if (this instanceof RadonArray) {
-            spliced = new RadonArray(this._prev?._spliceWildcards(argIndex, argValue, argsCount), this._key)
+    public _spliceWildcards(argIndex: number, argValue: string): RadonType {
+        let spliced: RadonType
         } else if (this instanceof RadonBoolean) {
             spliced = new RadonBoolean(this._prev?._spliceWildcards(argIndex, argValue, argsCount), this._key)
         } else if (this instanceof RadonBytes) {
@@ -53,7 +44,7 @@ export class Script {
         } else if (this instanceof RadonString) {
             spliced = new RadonString(this._prev?._spliceWildcards(argIndex, argValue, argsCount), this._key)
         } else {
-            spliced = new Script(this._prev?._spliceWildcards(argIndex, argValue, argsCount), this._key)
+            spliced = new RadonType(this._prev?._spliceWildcards(argIndex, argValue), this._key)
         }
         spliced._set(
             utils.spliceWildcards(this._bytecode, argIndex, argValue, argsCount), 
@@ -63,16 +54,8 @@ export class Script {
         return spliced
     }
 }
-export class RadonAny extends Script {
-    public identity() {
-        this._bytecode = 0x00
-        this._method = "identity"
-        return new RadonAny(this)
-    }
-}
-export class RadonArray extends Script {
-    public filter(subscript: Script) {
-        this._bytecode = [ 0x11, subscript._encodeArray() ]
+export class RadonArray extends RadonType {
+    public filter(innerScript: RadonType) {
         this._method = "filter"
         this._params = subscript.toString()
         return new RadonArray(this)
@@ -124,8 +107,7 @@ export class RadonArray extends Script {
         this._method = "length"
         return new RadonInteger(this)
     }
-    public map(subscript: Script) {
-        this._bytecode = [ 0x1A, subscript._encodeArray() ]
+    public map(innerScript: RadonType) {
         this._method = "map"
         this._params = subscript.toString()
         return new RadonArray(this)
@@ -136,13 +118,12 @@ export class RadonArray extends Script {
         this._params = Reducers.Opcodes[reductor]
         return new RadonFloat(this)
     }
-    public sort() {
-        this._bytecode = 0x1d
+    public sort(innerScript?: RadonType) {
         this._method = "sort"
         return new RadonArray(this)
     }
 }
-export class RadonBoolean extends Script {
+export class RadonBoolean extends RadonType {
     public asString() {
         this._bytecode = 0x20
         this._method = "asString"
@@ -167,7 +148,7 @@ export class RadonBoolean extends Script {
         return new RadonBoolean(this)
     }
 }
-export class RadonBytes extends Script {
+export class RadonBytes extends RadonType {
     public asString() {
         this._bytecode = 0x30
         this._method = "asString"
@@ -179,7 +160,7 @@ export class RadonBytes extends Script {
         return new RadonBytes(this)
     }
 }
-export class RadonFloat extends Script {
+export class RadonFloat extends RadonType {
     public absolute() {
         this._bytecode = 0x50
         this._method = "absolute"
@@ -246,7 +227,7 @@ export class RadonFloat extends Script {
         return new RadonInteger(this)
     }
 }
-export class RadonInteger extends Script {
+export class RadonInteger extends RadonType {
     public absolute() {
         this._bytecode = 0x40
         this._method = "absolute"
@@ -311,7 +292,7 @@ export class RadonInteger extends Script {
         return new RadonInteger(this); 
     }
 }
-export class RadonMap extends Script {
+export class RadonMap extends RadonType {
     public getArray(key: string) {
         this._bytecode = [ 0x61, key ]
         this._method = "getArray"
@@ -367,7 +348,7 @@ export class RadonMap extends Script {
         return new RadonArray(this)
     }
 }
-export class RadonString extends Script {
+export class RadonString extends RadonType {
     public asBoolean() {
         this._bytecode = 0x70
         this._method = "asBoolean"
