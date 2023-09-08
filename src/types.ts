@@ -123,6 +123,15 @@ export class RadonArray extends RadonType {
         return new RadonFloat(this)
     }
     public sort(innerScript?: RadonType) {
+        if (!(innerScript instanceof RadonInteger) && !(innerScript instanceof RadonString)) {
+            throw new EvalError(`\x1b[1;33mRadonArray::sort: inner script returns neither a RadonInteger nor a RadonString object\x1b[0m`)
+        }
+        if (innerScript) {
+            this._bytecode = [ 0x1d, innerScript._encodeArray() ]
+            this._params = innerScript.toString()
+        } else {
+            this._bytecode = [ 0x1d, [] ]
+        }
         this._method = "sort"
         return new RadonArray(this)
     }
