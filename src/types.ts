@@ -206,10 +206,10 @@ export class RadonFloat extends RadonType {
         this._params = typeof value === 'string' ? `'${value}'` : value
         return new RadonBoolean(this)
     }
-    public module(value: number | string) {
-        this._bytecode = [ 0x56, value ]
-        this._method = "module"
-        this._params = typeof value === 'string' ? `'${value}'` : value
+    public modulo(integer: number | string) {
+        this._bytecode = [ 0x56, integer ]
+        this._method = "modulo"
+        this._params = typeof integer === 'string' ? `'${integer}'` : integer
         return new RadonFloat(this)
     }
     public multiply(value: number | string) {
@@ -268,23 +268,10 @@ export class RadonInteger extends RadonType {
         this._params = typeof value === 'string' ? `'${value}'` : value
         return new RadonBoolean(this)
     }
-    public match(entries: Map<number, boolean>, match: boolean) {
-        this._bytecode = [ 
-            0x45, [ 
-                Object.entries(entries).map((entry: [string, any]) => { [ entry[0], entry[1] ]}), 
-            ],
-            match 
-        ]
-        this._method = "match"
-        this._params = `{ ${Object.entries(entries).map((entry: [string, any]) => `\"${entry[0]}\": ${entry[1]}, `)} }, ${match}`
-        let keys: string = ""
-        Object.keys(entries).map((key: string) => keys += key + ";")
-        return new RadonBoolean(this, keys)
-    }
-    public modulo(value: number | string) {
-        this._bytecode = [ 0x46, value ]
+    public modulo(integer: number | string) {
+        this._bytecode = [ 0x46, integer ]
         this._method = "modulo"
-        this._params = typeof value === 'string' ? `'${value}'` : value
+        this._params = typeof integer === 'string' ? `'${integer}'` : integer
         return new RadonInteger(this)
     }
     public multiply(value: number | string) {
