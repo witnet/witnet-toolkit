@@ -364,17 +364,21 @@ export class RadonString extends RadonType {
         this._method = "length"
         return new RadonInteger(this)
     }
-    public match(entries: Map<string, boolean>, match: boolean) {
+    public match<T extends RadonType>(
+        outputType: { new(prev?: RadonType, key?: string): T; }, 
+        matchingMap: Map<string, any>, 
+        defaultValue: any
+    ) {
         this._bytecode = [ 
             0x75,  
-            entries,
-            match 
+            matchingMap,
+            defaultValue
         ]
         this._method = "match"
-        this._params = `{ ${Object.entries(entries).map((entry: [string, any]) => `\"${entry[0]}\": ${entry[1]}, `)}}, ${match}`
+        this._params = `{ ${Object.entries(matchingMap).map((entry: [string, any]) => `\"${entry[0]}\": ${entry[1]}, `)}}, ${defaultValue}`
         let keys: string = ""
-        Object.keys(entries).map((key: string) => keys += key + ";")
-        return new RadonBoolean(this, keys)
+        Object.keys(matchingMap).map((key: string) => keys += key + ";")
+        return new outputType(this, keys)
     }
     public parseJSONArray() {
         this._bytecode = 0x76
