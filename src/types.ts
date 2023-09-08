@@ -56,8 +56,12 @@ export class RadonType {
 }
 export class RadonArray extends RadonType {
     public filter(innerScript: RadonType) {
+        if (!(innerScript instanceof RadonBoolean)) {
+            throw new EvalError(`\x1b[1;33mRadonArray::filter: inner script returns no RadonBoolean object\x1b[0m`)
+        }
+        this._bytecode = [ 0x11, innerScript._encodeArray() ]
         this._method = "filter"
-        this._params = subscript.toString()
+        this._params = innerScript.toString()
         return new RadonArray(this)
     }
     public getArray(index: number) {
