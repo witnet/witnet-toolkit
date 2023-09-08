@@ -18,31 +18,53 @@ export class RadonType {
             return _result
         }})
     }
+    protected _set(bytecode?: any, method?: string, params?: any) {
+        this._bytecode = bytecode
+        this._method = method
+        this._params = params
+    }
+    /**
+     * (Compilation time only) Returns the maximum index from all wildcarded arguments refered at any step of the script, plus 1.
+     * @returns 0 if the script refers no wildcarded argument at all.
+     */
     public _countArgs(): number {
         return Math.max(
             utils.getMaxArgsIndexFromString(this._key),
             this._prev?._countArgs() || 0
         );
     }
+    /**
+     * (Compilation time only) Encodes the script into an array of array of opcodes and values.
+     */
     public _encodeArray(): any[] {
         let _result = this._bytecode ? [ this._bytecode ] : []
         if (this._prev !== undefined) _result = this._prev._encodeArray().concat(_result)
         return _result
     }
+    /**
+     * (Compilation time only) Clone the script where all occurences of the specified argument 
+     * will be replaced by the given value, and all wildcarded arguments with a higher 
+     * index will be decreased by one.
+     * @param argIndex Index of the wildcarded argument whose value is to be replaced.
+     * @param argValue Value used to replace given argument.
+     */
     public _spliceWildcards(argIndex: number, argValue: string): RadonType {
+        const argsCount: number = this._countArgs()
         let spliced: RadonType
+        if (this instanceof RadonArray) {
+            spliced = new RadonArray(this._prev?._spliceWildcards(argIndex, argValue), this._key)
         } else if (this instanceof RadonBoolean) {
-            spliced = new RadonBoolean(this._prev?._spliceWildcards(argIndex, argValue, argsCount), this._key)
+            spliced = new RadonBoolean(this._prev?._spliceWildcards(argIndex, argValue), this._key)
         } else if (this instanceof RadonBytes) {
-            spliced = new RadonBytes(this._prev?._spliceWildcards(argIndex, argValue, argsCount), this._key)
+            spliced = new RadonBytes(this._prev?._spliceWildcards(argIndex, argValue), this._key)
         } else if (this instanceof RadonFloat) {
-            spliced = new RadonFloat(this._prev?._spliceWildcards(argIndex, argValue, argsCount), this._key)
+            spliced = new RadonFloat(this._prev?._spliceWildcards(argIndex, argValue), this._key)
         } else if (this instanceof RadonInteger) {
-            spliced = new RadonInteger(this._prev?._spliceWildcards(argIndex, argValue, argsCount), this._key)
+            spliced = new RadonInteger(this._prev?._spliceWildcards(argIndex, argValue), this._key)
         } else if (this instanceof RadonMap) {
-            spliced = new RadonMap(this._prev?._spliceWildcards(argIndex, argValue, argsCount), this._key)
+            spliced = new RadonMap(this._prev?._spliceWildcards(argIndex, argValue), this._key)
         } else if (this instanceof RadonString) {
-            spliced = new RadonString(this._prev?._spliceWildcards(argIndex, argValue, argsCount), this._key)
+            spliced = new RadonString(this._prev?._spliceWildcards(argIndex, argValue), this._key)
         } else {
             spliced = new RadonType(this._prev?._spliceWildcards(argIndex, argValue), this._key)
         }
