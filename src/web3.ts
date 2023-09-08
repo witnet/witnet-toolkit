@@ -45,10 +45,10 @@ enum Methods {
     // ===============================================
     // --- HISTORY methods ---------------------------
     
-    //eth_getBlockTransactionCountByHash,
-    //eth_getBlockTransactionCountByNumber,
-    //eth_getBlockByHash,
-    //eth_getBlockByNumber,
+    eth_getBlockTransactionCountByHash,
+    eth_getBlockTransactionCountByNumber,
+    eth_getBlockByHash,
+    eth_getBlockByNumber,
     eth_getLogs,
     eth_getTransactionByHash,
     eth_getTransactionByBlockHashAndIndex,
