@@ -49,25 +49,17 @@ export class RadonType {
      * @param argValue Value used to replace given argument.
      */
     public _spliceWildcards(argIndex: number, argValue: string): RadonType {
+        const RadonClass = [ 
+            RadonArray,
+            RadonBoolean,
+            RadonBytes,
+            RadonFloat,
+            RadonInteger,
+            RadonMap,
+            RadonString
+        ].find(RadonClass => this instanceof RadonClass) || RadonType;
         const argsCount: number = this._countArgs()
-        let spliced: RadonType
-        if (this instanceof RadonArray) {
-            spliced = new RadonArray(this._prev?._spliceWildcards(argIndex, argValue), this._key)
-        } else if (this instanceof RadonBoolean) {
-            spliced = new RadonBoolean(this._prev?._spliceWildcards(argIndex, argValue), this._key)
-        } else if (this instanceof RadonBytes) {
-            spliced = new RadonBytes(this._prev?._spliceWildcards(argIndex, argValue), this._key)
-        } else if (this instanceof RadonFloat) {
-            spliced = new RadonFloat(this._prev?._spliceWildcards(argIndex, argValue), this._key)
-        } else if (this instanceof RadonInteger) {
-            spliced = new RadonInteger(this._prev?._spliceWildcards(argIndex, argValue), this._key)
-        } else if (this instanceof RadonMap) {
-            spliced = new RadonMap(this._prev?._spliceWildcards(argIndex, argValue), this._key)
-        } else if (this instanceof RadonString) {
-            spliced = new RadonString(this._prev?._spliceWildcards(argIndex, argValue), this._key)
-        } else {
-            spliced = new RadonType(this._prev?._spliceWildcards(argIndex, argValue), this._key)
-        }
+        const spliced = new RadonClass(this._prev?._spliceWildcards(argIndex, argValue), this._key);   
         spliced._set(
             utils.spliceWildcards(this._bytecode, argIndex, argValue, argsCount), 
             this._method, 

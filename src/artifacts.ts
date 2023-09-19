@@ -1,6 +1,8 @@
 import { Class as Retrieval } from "./retrievals"
 import { Class as Reducer, Mode } from "./reducers"
 
+export type Args = string[] | string[][];
+
 export interface Specs {
     retrieve: Retrieval[];
     aggregate: Reducer;
@@ -28,13 +30,13 @@ export class Class {
 
 export class Template extends Class {
     public argsCount: number;
-    public tests?: Map<string, string[] | string[][]>;
+    public tests?: Map<string, Args>;
     constructor(specs: { 
             retrieve: Retrieval[], 
             aggregate?: Reducer, 
             tally?: Reducer,
         },
-        tests?: Map<string, string[] | string[][]>
+        tests?: Map<string, Args>
     ) {
         super({
             retrieve: specs.retrieve,
@@ -46,8 +48,8 @@ export class Template extends Class {
             throw EvalError("\x1b[1;33mTemplate: cannot build w/ unparameterized retrievals\x1b[0m")
         }
         if (tests) {
-            Object.keys(tests).map(test => {
-                let testArgs: string[] | string[][] | undefined = Object(tests)[test]
+            Object.keys(tests).forEach(test => {
+                let testArgs: Args | undefined = Object(tests)[test]
                 if (Array.isArray(testArgs) && testArgs.length > 0) {
                     if (!Array.isArray(testArgs[0])) {
                         Object(tests)[test] = Array(specs.retrieve.length).fill(testArgs)
@@ -55,7 +57,7 @@ export class Template extends Class {
                     } else if (testArgs?.length != specs.retrieve.length) {
                         throw EvalError(`\x1b[1;33mTemplate: arguments mismatch in test \x1b[1;31m'${test}'\x1b[1;33m: ${testArgs?.length} tuples given vs. ${specs.retrieve.length} expected\x1b[0m`)
                     }
-                    testArgs?.map((subargs, index)=> {
+                    testArgs?.forEach((subargs, index)=> {
                         if (subargs.length < specs.retrieve[index].argsCount) {
                             throw EvalError(`\x1b[1;33mTemplate: arguments mismatch in test \x1b[1;31m'${test}'\x1b[1;33m: \x1b[1;37mRetrieval #${index}\x1b[1;33m: ${subargs?.length} parameters given vs. ${specs.retrieve[index].argsCount} expected\x1b[0m`)
                         }

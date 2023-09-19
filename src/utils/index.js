@@ -515,7 +515,7 @@ function web3Encode(T) {
           T.headers || "",
           web3Encode(T.script) || "0x80"
       ];
-  } else if (T instanceof Witnet.Types.Script) {
+  } else if (T instanceof Witnet.Types.RadonType) {
       return cbor.encode(T._encodeArray())
   }
   return T;

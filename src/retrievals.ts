@@ -75,13 +75,13 @@ export class Class {
      * @returns An array with as many retrievals as spawning values were specified.
      */
     public spawn(argIndex: number, values: string[]): Class[] {
-        let spawned: Class[] = []
+        const spawned: Class[] = []
         if (this.argsCount == 0) {
             throw new EvalError(`\x1b[1;33mRetrieval: cannot spawn over unparameterized retrieval\x1b[0m`);
         } else if (argIndex > this.argsCount) {
             throw new EvalError(`\x1b[1;33mRetrieval: spawning parameter index out of range: ${argIndex} > ${this.argsCount}\x1b[0m`);
         }
-        values.map(value => {
+        values.forEach(value => {
             let headers: any 
             if (this.headers) {
                 this.headers?.map(header => {
