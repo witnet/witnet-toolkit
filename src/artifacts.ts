@@ -13,17 +13,17 @@ export interface Specs {
 export class Class {
     public specs: Specs
     constructor(specs: Specs) {
-        this.specs = specs
-        if (!specs.retrieve || specs.retrieve.length == 0) {
+        if (!specs.retrieve || !Array.isArray(specs.retrieve) || specs.retrieve.length == 0) {
             throw EvalError("\x1b[1;33mArtifact: cannot build if no retrievals are specified\x1b[0m")
         }
-        specs.retrieve.map((retrieval, index) => {
+        specs.retrieve?.forEach((retrieval, index) => {
             if (retrieval === undefined) {
                 throw EvalError(`\x1b[1;31mArtifact: Retrieval #${index}\x1b[1;33m: undefined\x1b[0m`)
             } else if (!(retrieval instanceof Retrieval)) {
                 throw EvalError(`\x1b[1;31mArtifact: Retrieval #${index}\x1b[1;33m: invalid type\x1b[0m`)
             }
         })
+        this.specs = specs
         this.specs.maxSize = specs?.maxSize || 0
     }
 }
@@ -32,33 +32,37 @@ export class Template extends Class {
     public argsCount: number;
     public tests?: Map<string, Args>;
     constructor(specs: { 
-            retrieve: Retrieval[], 
+            retrieve: Retrieval | Retrieval[], 
             aggregate?: Reducer, 
             tally?: Reducer,
         },
         tests?: Map<string, Args>
     ) {
+        const retrieve = Array.isArray(specs.retrieve) ? specs.retrieve as Retrieval[] : [ specs.retrieve ]
         super({
-            retrieve: specs.retrieve,
+            retrieve,
             aggregate: specs?.aggregate || Mode(),
             tally: specs?.tally || Mode(),
         })
-        this.argsCount = specs.retrieve.map(retrieval => retrieval?.argsCount).reduce((prev, curr) => Math.max(prev, curr), 0)
+        this.argsCount = retrieve.map(retrieval => retrieval?.argsCount).reduce((prev, curr) => Math.max(prev, curr), 0)
         if (this.argsCount == 0) {
             throw EvalError("\x1b[1;33mTemplate: cannot build w/ unparameterized retrievals\x1b[0m")
         }
         if (tests) {
             Object.keys(tests).forEach(test => {
-                let testArgs: Args | undefined = Object(tests)[test]
-                if (Array.isArray(testArgs) && testArgs.length > 0) {
+                let testArgs: Args = Object(tests)[test]
+                if (typeof testArgs === "string") {
+                    testArgs =  [ testArgs ] 
+                }
+                if (testArgs.length > 0) {
                     if (!Array.isArray(testArgs[0])) {
-                        Object(tests)[test] = Array(specs.retrieve.length).fill(testArgs)
+                        Object(tests)[test] = Array(retrieve.length).fill(testArgs)
                         testArgs = Object(tests)[test]
-                    } else if (testArgs?.length != specs.retrieve.length) {
+                    } else if (testArgs?.length != retrieve.length) {
                         throw EvalError(`\x1b[1;33mTemplate: arguments mismatch in test \x1b[1;31m'${test}'\x1b[1;33m: ${testArgs?.length} tuples given vs. ${specs.retrieve.length} expected\x1b[0m`)
                     }
                     testArgs?.forEach((subargs, index)=> {
-                        if (subargs.length < specs.retrieve[index].argsCount) {
+                        if (subargs.length < retrieve[index].argsCount) {
                             throw EvalError(`\x1b[1;33mTemplate: arguments mismatch in test \x1b[1;31m'${test}'\x1b[1;33m: \x1b[1;37mRetrieval #${index}\x1b[1;33m: ${subargs?.length} parameters given vs. ${specs.retrieve[index].argsCount} expected\x1b[0m`)
                         }
                     })
@@ -71,7 +75,7 @@ export class Template extends Class {
 
 export class Parameterized extends Class {
     public args: string[][]
-    constructor(template: Template, args: string[] | string[][]) {
+    constructor(template: Template, args: Args) {
         super(template.specs)
         if (!args || !Array.isArray(args) || args.length == 0) {
             throw EvalError(`\x1b[1;31mParameterized: no valid args were provided.\x1b[0m`);
@@ -89,13 +93,18 @@ export class Parameterized extends Class {
 }
 
 export class Precompiled extends Class {
-    constructor(specs: { retrieve: Retrieval[], aggregate?: Reducer, tally?: Reducer }) {
+    constructor(specs: { 
+        retrieve: Retrieval | Retrieval[], 
+        aggregate?: Reducer, 
+        tally?: Reducer 
+    }) {
+        const retrieve = Array.isArray(specs.retrieve) ? specs.retrieve as Retrieval[] : [ specs.retrieve ]
         super({
-            retrieve: specs.retrieve,
+            retrieve,
             aggregate: specs?.aggregate || Mode(),
             tally: specs?.tally || Mode(),
         })
-        let argsCount = specs.retrieve.map(retrieval => retrieval.argsCount).reduce((prev, curr) => prev + curr)
+        let argsCount = retrieve.map(retrieval => retrieval.argsCount).reduce((prev, curr) => prev + curr)
         if (argsCount > 0) {
             throw EvalError("\x1b[1;33mPrecompiled: static requests cannot be built w/ parameterized retrievals\x1b[0m")
         }
