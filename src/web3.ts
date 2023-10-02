@@ -9,14 +9,15 @@ type HexString = string & {
     readonly HexString: unique symbol
 };
 
-export type Address = HexStringOfLength<40>;
 export type Bytes32 = HexStringOfLength<64>;
 export type Bytes = HexString;
 export type BlockNumber = Bytes32;
-export type BlockHead = BlockNumber | BlockTag;
-export type BlockTag = "latest" | "earliest" | "pending" | "finalized" 
 
-function isBlockHead(block: BlockHead): boolean {
+export type EthAddress = HexStringOfLength<40>;
+export type EthBlockHead = BlockNumber | EthBlockTag;
+export type EthBlockTag = "latest" | "earliest" | "pending" | "finalized" 
+
+function isBlockHead(block: EthBlockHead): boolean {
     return (
         block === "latest" || block === "earliest" || block === "finalized" || block === "pending"
             || utils.isHexStringOfLength(block, 32)
@@ -87,7 +88,7 @@ export const EthGasPrice = () => new Call(Methods.eth_gasPrice);
  * Retrieve the balance of the account of given address.
  * @param address Web3 address on remote EVM chain.
  */
-export const EthGetBalance = (address: Address, block?: BlockHead) => {
+export const EthGetBalance = (address: EthAddress, block?: EthBlockHead) => {
     if (!utils.isHexStringOfLength(address, 20) && !utils.isWildcard(address)) {
         throw new EvalError("RPC: EthGetBalance: invalid Web3 address format");
     } else {
@@ -112,7 +113,7 @@ export const EthSendRawTransaction = (data: Bytes) => {
  * @param address Address of the storage.
  * @param offset Offset within storage address.
  */
-export const EthGetStorageAt = (address: Address, offset: Bytes32) => {
+export const EthGetStorageAt = (address: EthAddress, offset: Bytes32) => {
     if (!utils.isHexStringOfLength(address, 20) && !utils.isWildcard(address)) {
         throw new EvalError("RPC: EthGetStorageAt: invalid Web3 address format");
     } 
@@ -126,7 +127,7 @@ export const EthGetStorageAt = (address: Address, offset: Bytes32) => {
  * Retrieve the number of transactions sent from an address.
  * @param address Address from where to get transaction count.
  */
-export const EthGetTransactionCount = (address: Address) => {
+export const EthGetTransactionCount = (address: EthAddress) => {
     if (!utils.isHexStringOfLength(address, 20) && !utils.isWildcard(address)) {
         throw new EvalError("RPC: EthGetTransactionCount: invalid Web3 address format");
     } else {
@@ -138,7 +139,7 @@ export const EthGetTransactionCount = (address: Address) => {
  * Retrieve code at a given address.
  * @param address Address from where to get the code.
  */
-export const EthGetCode = (address: Address) => {
+export const EthGetCode = (address: EthAddress) => {
     if (!utils.isHexStringOfLength(address, 20) && !utils.isWildcard(address)) {
         throw new EvalError("RPC: EthGetCode: invalid Web3 address format");
     } else {
@@ -153,8 +154,8 @@ export const EthGetCode = (address: Address) => {
  * @param tx The transaction call object.
  */
 export const EthCall = (tx: {
-    from?: Address,
-    to: Address,
+    from?: EthAddress,
+    to: EthAddress,
     gas?: number | HexString,
     gasPrice?: number | HexString,
     value?: number | HexString,
@@ -187,8 +188,8 @@ export const EthCall = (tx: {
  * @param tx The transaction call object.
  */
 export const EthEstimateGas = (tx: {
-    from?: Address,
-    to: Address,
+    from?: EthAddress,
+    to: EthAddress,
     gas?: number | HexString,
     gasPrice?: number | HexString,
     value?: number | HexString,
@@ -217,9 +218,9 @@ export const EthEstimateGas = (tx: {
  * @param filter The filter options.
  */
 export const EthGetLogs = (filter: {
-    fromBlock?: BlockHead,
-    toBlock?: BlockHead,
-    address?: Address | Address[],
+    fromBlock?: EthBlockHead,
+    toBlock?: EthBlockHead,
+    address?: EthAddress | EthAddress[],
     topics: Bytes32[],
     blockHash?: Bytes32,
 }) => {
@@ -274,7 +275,7 @@ export const EthGetTransactionByBlockHashAndIndex = (blockHash: Bytes32, txIndex
  * @param txHash Hash of the remote transaction.
  */
 export const EthGetTransactionByBlockNumberAndIndex = (
-    blockNumber: BlockHead,
+    blockNumber: EthBlockHead,
     txIndex: number | Bytes32
 ) => {
     if (!isBlockHead(blockNumber)) {
