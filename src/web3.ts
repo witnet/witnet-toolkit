@@ -17,6 +17,10 @@ export type EthAddress = HexStringOfLength<40>;
 export type EthBlockHead = BlockNumber | EthBlockTag;
 export type EthBlockTag = "latest" | "earliest" | "pending" | "finalized" 
 
+export type WitAddress = string & {
+    readonly WitAddress: unique symbol
+}
+
 function isBlockHead(block: EthBlockHead): boolean {
     return (
         block === "latest" || block === "earliest" || block === "finalized" || block === "pending"
@@ -25,37 +29,61 @@ function isBlockHead(block: EthBlockHead): boolean {
     );
 }
 
-enum Methods {
-    // ===============================================
-    // --- GOSSIP methods ----------------------------
-    
-    eth_blockNumber,
-    eth_gasPrice,
-    eth_sendRawTransaction,
-    
-    // ===============================================
-    // --- STATE methods -----------------------------
-    
-    eth_getBalance,
-    eth_getStorageAt,
-    eth_getTransactionCount,
-    eth_getCode,
-    eth_call,
-    eth_estimateGas,
+// enum Methods {
 
-    // ===============================================
-    // --- HISTORY methods ---------------------------
+//     /*********************************************** */
+//     /** ETHEREUM RPC METHODS *********************** */
+
+//     // ===============================================
+//     // --- GOSSIP methods ----------------------------
     
-    eth_getBlockTransactionCountByHash,
-    eth_getBlockTransactionCountByNumber,
-    eth_getBlockByHash,
-    eth_getBlockByNumber,
-    eth_getLogs,
-    eth_getTransactionByHash,
-    eth_getTransactionByBlockHashAndIndex,
-    eth_getTransactionByBlockNumberAndIndex,
-    eth_getTransactionReceipt,
-}
+//     eth_blockNumber,
+//     eth_gasPrice,
+//     eth_sendRawTransaction,
+    
+//     // ===============================================
+//     // --- STATE methods -----------------------------
+    
+//     eth_getBalance,
+//     eth_getStorageAt,
+//     eth_getTransactionCount,
+//     eth_getCode,
+//     eth_call,
+//     eth_estimateGas,
+
+//     // ===============================================
+//     // --- HISTORY methods ---------------------------
+    
+//     eth_getBlockTransactionCountByHash,
+//     eth_getBlockTransactionCountByNumber,
+//     eth_getBlockByHash,
+//     eth_getBlockByNumber,
+//     eth_getLogs,
+//     eth_getTransactionByHash,
+//     eth_getTransactionByBlockHashAndIndex,
+//     eth_getTransactionByBlockNumberAndIndex,
+//     eth_getTransactionReceipt,
+
+//     /*********************************************** */
+//     /** WITNET RPC METHODS ************************* */
+
+//     // ===============================================
+//     // --- GOSSIP methods ----------------------------
+    
+//     wit_getBalance = "getBalance",
+//     wit_getSupplyInfo = "getSupplyInfo",
+//     wit_getSyncStatus = "syncStatus",
+
+//     // ===============================================
+//     // --- STATE methods -----------------------------
+    
+//     wit_getDataRequestReport = "dataRequestReport",
+
+//     // ===============================================
+//     // --- HISTORY methods ---------------------------
+//     wit_getBlockByHash = "getBlock",
+//     wit_getTransactionByHash = "getTransaction",
+// }
 
 /**
  * Base container class for Web3 Remote Procedure Calls.
@@ -110,7 +138,7 @@ export const EthSendRawTransaction = (data: Bytes) => {
 
 /**
  * Retrieve the value from a storage position at a given address.
- * @param address Address of the storage.
+ * @param address EthAddress of the storage.
  * @param offset Offset within storage address.
  */
 export const EthGetStorageAt = (address: EthAddress, offset: Bytes32) => {
@@ -125,7 +153,7 @@ export const EthGetStorageAt = (address: EthAddress, offset: Bytes32) => {
 
 /**
  * Retrieve the number of transactions sent from an address.
- * @param address Address from where to get transaction count.
+ * @param address EthAddress from where to get transaction count.
  */
 export const EthGetTransactionCount = (address: EthAddress) => {
     if (!utils.isHexStringOfLength(address, 20) && !utils.isWildcard(address)) {
@@ -137,7 +165,7 @@ export const EthGetTransactionCount = (address: EthAddress) => {
 
 /**
  * Retrieve code at a given address.
- * @param address Address from where to get the code.
+ * @param address EthAddress from where to get the code.
  */
 export const EthGetCode = (address: EthAddress) => {
     if (!utils.isHexStringOfLength(address, 20) && !utils.isWildcard(address)) {
@@ -298,3 +326,58 @@ export const EthGetTransactionReceipt = (txHash: Bytes32) => {
         return new Call("eth_getTransactionReceipt", [ txHash ]);
     }
 };
+
+/**
+ * Get latest supply info about Witnet.
+ * @param txHash Hash of the remote transaction.
+ */
+export const WitGetSupplyInfo = () => {
+    return new Call("getSupplyInfo");
+}
+
+/**
+ * Get Witnet node syncrhonization status.
+ */
+export const WitSyncStatus = () => {
+    return new Call("syncStatus");
+}
+
+/**
+ * Retrieve the balance in $nanoWIT of some account in Witnet.
+ * @param address Address of the account within the Witnet blockchain.
+ */
+export const WitGetBalance = (address: WitAddress, simple?: boolean) => {
+    if (
+        !utils.isWildcard(address) && (
+            !address || typeof address !== "string" || address.length != 43 || !address.startsWith("wit")
+        ) 
+    ) {
+        throw new EvalError("RPC: WitGetBalance: invalid Witnet address");
+    } else {
+        return new Call("getBalance", [ address, simple ]);
+    }
+};
+
+/**
+ * Retrieve detailed informatinon about a mined block in the Witnet blockchain.
+ * @param blockHash The hash of the block to retrieve.
+ */
+export const WitGetBlockByHash = (blockHash: Bytes32) => {
+    if (!utils.isHexStringOfLength(blockHash, 32) && !utils.isWildcard(blockHash)) {
+        throw new EvalError("RPC: WitGetBlockByHash: invalid block hash value");
+    } else {
+        return new Call("getBlock", [ blockHash ])
+    }
+}
+
+/**
+ * Retrieve detailed informatinon about a mined transaction in the Witnet blockchain.
+ * @param txHash The hash of the transaction to retrieve.
+ */
+export const WitGetTransactionByHash = (txHash: Bytes32) => {
+    if (!utils.isHexStringOfLength(txHash, 32) && !utils.isWildcard(txHash)) {
+        throw new EvalError("RPC: WitGetTransactionByHash: invalid transaction hash value");
+    } else {
+        return new Call("getTransaction", [ txHash ])
+    }
+}
