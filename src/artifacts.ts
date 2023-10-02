@@ -59,11 +59,11 @@ export class Template extends Class {
                         Object(tests)[test] = Array(retrieve.length).fill(testArgs)
                         testArgs = Object(tests)[test]
                     } else if (testArgs?.length != retrieve.length) {
-                        throw EvalError(`\x1b[1;33mTemplate: arguments mismatch in test \x1b[1;31m'${test}'\x1b[1;33m: ${testArgs?.length} tuples given vs. ${specs.retrieve.length} expected\x1b[0m`)
+                        throw EvalError(`\x1b[1;33mTemplate: arguments mismatch in test \x1b[1;31m'${test}'\x1b[1;33m: ${testArgs?.length} tuples given vs. ${retrieve.length} expected\x1b[0m`)
                     }
                     testArgs?.forEach((subargs, index)=> {
                         if (subargs.length < retrieve[index].argsCount) {
-                            throw EvalError(`\x1b[1;33mTemplate: arguments mismatch in test \x1b[1;31m'${test}'\x1b[1;33m: \x1b[1;37mRetrieval #${index}\x1b[1;33m: ${subargs?.length} parameters given vs. ${specs.retrieve[index].argsCount} expected\x1b[0m`)
+                            throw EvalError(`\x1b[1;33mTemplate: arguments mismatch in test \x1b[1;31m'${test}'\x1b[1;33m: \x1b[1;37mRetrieval #${index}\x1b[1;33m: ${subargs?.length} parameters given vs. ${retrieve[index].argsCount} expected\x1b[0m`)
                         }
                     })
                 }
