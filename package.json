@@ -23,7 +23,7 @@
     "graphql-query-compress": "^1.2.4",
     "lodash.merge": "^4.6.2",
     "web3-jsonrpc-gateway": "^1.7.26",
-    "witnet-requests": "^0.9.11"
+    "witnet-requests": "^0.9.12"
   },
   "devDependencies": {
     "@babel/cli": "^7.5.5",
