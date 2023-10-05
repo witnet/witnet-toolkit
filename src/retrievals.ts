@@ -82,12 +82,13 @@ export class Class {
             throw new EvalError(`\x1b[1;33mRetrieval: spawning parameter index out of range: ${argIndex} > ${this.argsCount}\x1b[0m`);
         }
         values.forEach(value => {
-            let headers: any 
+            let headers: Map<string, string> = new Map()
             if (this.headers) {
-                this.headers?.map(header => {
-                    headers[
-                        utils.spliceWildcards(header[0], argIndex, value, this.argsCount)
-                    ] = utils.spliceWildcards(header[1], argIndex, value, this.argsCount)
+                this.headers.forEach(header => {
+                    headers.set(
+                        utils.spliceWildcards(header[0], argIndex, value, this.argsCount),
+                        utils.spliceWildcards(header[1], argIndex, value, this.argsCount),
+                    )
                 })
             }
             const script: Script | undefined = this.script?._spliceWildcards(argIndex, value);
@@ -170,6 +171,7 @@ export const CrossChainCall = (specs: {
         params: specs.rpc?.params,
         id: 1,
     }).replaceAll('\\\\', '\\'),
+    headers: new Map<string,string>().set("Content-Type", "application/json"),
     script: specs?.script || new DefaultScript(),
     tuples: specs?.tuples
 });

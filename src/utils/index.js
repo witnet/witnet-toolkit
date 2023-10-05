@@ -372,7 +372,7 @@ function processDryRunJson(dryrun) {
   })
   const itWorks = !("RadonError" in dryrun?.aggregate?.result)
   if (!itWorks) {
-    error = `Aggregatation failed: ${unescape(dryrun?.aggregate?.result?.RadonError)}`
+    error = `Aggregation failed: ${unescape(dryrun?.aggregate?.result?.RadonError)}`
   }
   const nokRetrievals = Object.values(
     dryrun?.retrieve.filter((retrieval, index) => {
