@@ -9,6 +9,7 @@ export { RPC }
 export enum Methods {
     None = 0x0,
     HttpGet = 0x01,
+    HttpHead = 0x04,
     HttpPost = 0x03,
     RNG = 0x02,
 }
@@ -120,6 +121,19 @@ export const HttpGet = (specs: {
     script?: Script,
     tuples?: Map<string, string[]>
 }) => new Class(Methods.HttpGet, { url: specs.url, headers: specs.headers, script: specs.script, tuples: specs.tuples });
+
+/**
+ * Creates a Witnet HTTP/HEAD Radon Retrieval.
+ * @param specs Retrieval parameters: URL, http headers (optional), Radon script (optional), 
+ * pre-set tuples (optional to parameterized retrievals, only).
+ */
+export const HttpHead = (specs: {
+    url: string,
+    headers?: Map<string, string>,
+    script?: Script,
+    tuples?: Map<string, string[]>
+}) => new Class(Methods.HttpHead, { url: specs.url, headers: specs.headers, script: specs.script, tuples: specs.tuples });
+
 
 /**
  * Creates a Witnet HTTP/POST Radon Retrieval.

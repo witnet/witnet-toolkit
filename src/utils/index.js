@@ -270,6 +270,8 @@ function getRequestMethodString(method) {
     return "RNG"
   } else if (method == 3) {
     return "HTTP-POST"
+  } else if (method == 4) {
+    return "HTTP-HEAD"
   } else {
     return method.toString()
   }
@@ -465,6 +467,7 @@ function splitSelectionFromProcessArgv(operand) {
 function stringifyWitnetRequestMethod(method) {
   switch (method) {
     case Witnet.Retrievals.Methods.HttpGet: return "HTTP-GET";
+    case Witnet.Retrievals.Methods.HttpHead: return "HTTP-HEAD";
     case Witnet.Retrievals.Methods.HttpPost: return "HTTP-POST";
     case Witnet.Retrievals.Methods.RNG: return "WITNET-RNG";
     default: return "UNKNOWN"
