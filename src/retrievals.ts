@@ -45,7 +45,7 @@ export class Class {
         this.method = method
         this.headers = []
         if (specs?.headers) {
-            specs.headers.forEach((value, key) => this.headers?.push([ key, value ]))
+            Object.entries(specs.headers).forEach(entry => this.headers?.push(entry))
         }
         this.body = specs?.body
         this.script = specs?.script
