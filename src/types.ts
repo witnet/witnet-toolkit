@@ -167,7 +167,7 @@ export class RadonArray extends RadonType {
     /**
      * Map all items in the array with the given `innerScript`. 
      * @param innerScript Mapping script returning some `RadonType` object.
-     * Must accept as input the same data types as the ones of the items being iterated. 
+     * Must accept as input the same data type as the one of the items being iterated. 
      * @returns A `RadonArray` object containing the mapped values. 
      */
     public map(innerScript: RadonType) {
@@ -242,11 +242,11 @@ export class RadonBytes extends RadonType {
         return new RadonString(this)
     }
     /**
-     * Apply the SHA-256 hash function.
+     * Apply the SHA2-256 hash function.
      * @returns A `RadonBytes` object.
      */
     public hash() {
-        this._bytecode = 0x31
+        this._bytecode = [ 0x31, 0x0A ]
         this._method = "hash"
         return new RadonBytes(this)
     }
