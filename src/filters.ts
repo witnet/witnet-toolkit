@@ -10,10 +10,10 @@ export class Class {
         this.opcode = opcode
         this.args = args
         Object.defineProperty(this, "toString", { value: () => {
-                switch(this.opcode) {
-                    case Opcodes.Mode: return "Filter(mode)";
-                    case Opcodes.StandardDeviation: return `Filter(stdev = ${args})`
-                }     
+            switch(this.opcode) {
+                case Opcodes.Mode: return "Filter(mode)";
+                case Opcodes.StandardDeviation: return `Filter(stdev = ${args})`
+            }
         }})
     }
 }
