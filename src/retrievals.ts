@@ -45,7 +45,11 @@ export class Class {
         this.method = method
         this.headers = []
         if (specs?.headers) {
-            Object.entries(specs.headers).forEach(entry => this.headers?.push(entry))
+            if (specs.headers instanceof Map) {
+                specs.headers.forEach((value: string, key: string) => this.headers?.push([key, value]))
+            } else {
+                Object.entries(specs.headers).forEach((entry: any) => this.headers?.push(entry))
+            }
         }
         this.body = specs?.body
         this.script = specs?.script
