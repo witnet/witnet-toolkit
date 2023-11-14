@@ -678,6 +678,25 @@ export class RadonString extends RadonType {
         return new RadonString(this)
     }
     /**
+     * Returns a slice extracted from the input string. 
+     * A `startIndex` of 0 refers to the beginning of the input string. If no `endIndex` is provided, it will be assumed 
+     * the length of the input string. Negative values will be relative to the end of the input string.
+     * @param startIndex Position within input string where the output string will start.
+     * @param endIndex Position within input string whre the output string will end
+     * @returns A `RadonString` object.
+     */
+    public slice(startIndex: number = 0, endIndex?: number) {
+        if (endIndex !== undefined) {
+            this._bytecode = [ 0x7c, startIndex, endIndex ]
+            this._params = `${startIndex}, ${endIndex}`
+        } else {
+            this._bytecode = [ 0x7c, startIndex ]
+            this._params = `${startIndex}`
+        }
+        this._method = "slice"
+        return new RadonString(this)
+    }
+    /**
      * Lower case all characters.
      * @returns A `RadonString` object.
      */
