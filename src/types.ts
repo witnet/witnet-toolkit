@@ -697,6 +697,17 @@ export class RadonString extends RadonType {
         return new RadonString(this)
     }
     /**
+     * Divides input string into an array of substrings, 
+     * @param regex The string or regular expression to use for splitting.
+     * @returns A `RadonArray` object.
+     */
+    public split(regex: string = "\r") {
+        this._bytecode = [ 0x7d, regex ]
+        this._params = `/${regex}/`
+        this._method = "split"
+        return new RadonArray(this)
+    }
+    /**
      * Lower case all characters.
      * @returns A `RadonString` object.
      */
