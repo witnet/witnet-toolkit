@@ -662,6 +662,22 @@ export class RadonString extends RadonType {
         return new RadonMap(this)
     }
     /**
+     * Replace with given `replacement` string, all parts of the input string that match with given regular expression. 
+     * @param regex Regular expression to be matched.
+     * @param replacement Text that will replace all occurences. 
+     * @returns A `RadonString` object.
+     */
+    public replace(regex: string = "", replacement: string = "") {
+        this._bytecode = [
+            0x7b,
+            regex,
+            replacement,
+        ]
+        this._method = "replace"
+        this._params = `/${regex}/, "${replacement}"`
+        return new RadonString(this)
+    }
+    /**
      * Lower case all characters.
      * @returns A `RadonString` object.
      */
