@@ -156,6 +156,26 @@ export class RadonArray extends RadonType {
         return new RadonString(this)
     }
     /**
+     * Join all items of the array into a value of the given type, optionally prefixing
+     * the result with some given constant. The array must be homogeneous, all items being
+     * of the same type as `outputType`. 
+     * @param outputType Radon type of the output value. 
+     * @param separator Separator to be used when joining strings. When joining RadonMaps, it can be used to settle base schema on resulting object.
+     */
+    public join<T extends RadonType>(
+        outputType: { new(prev?: RadonType, key?: string): T; }, 
+        separator?: string,
+    ) {
+        if (separator && typeof separator === 'string') {
+            this._bytecode = [ 0x12, separator, ]
+        } else {
+            this._bytecode = 0x12
+        }
+        this._method = "join"
+        this._params = `${separator && separator !== "" ? `"${separator}"`: `""`}`
+        return new outputType(this)
+    }
+    /**
      * Count the number of items. 
      * @returns A `RadonInteger` object.
      */
