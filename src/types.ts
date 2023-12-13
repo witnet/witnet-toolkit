@@ -232,15 +232,6 @@ export class RadonArray extends RadonType {
 
 export class RadonBoolean extends RadonType {
     /**
-     * Cast value into a string. 
-     * @returns A `RadonString` object.
-     */
-    public asString() {
-        this._bytecode = 0x20
-        this._method = "asString"
-        return new RadonString(this)
-    }
-    /**
      * Reverse value.
      * @returns A `RadonBoolean` object.
      */
@@ -248,6 +239,15 @@ export class RadonBoolean extends RadonType {
         this._bytecode = 0x22
         this._method = "negate"
         return new RadonBoolean(this)
+    }
+    /**
+     * Cast value into a string. 
+     * @returns A `RadonString` object.
+     */
+    public stringify() {
+            this._bytecode = 0x20
+        this._method = "stringify"
+        return new RadonString(this)
     }
 }
 
@@ -270,6 +270,51 @@ export class RadonBytes extends RadonType {
         this._method = "hash"
         return new RadonBytes(this)
     }
+    /**
+     * Count the number of bytes. 
+     * @returns A `RadonInteger` object.
+     */
+    public length() {
+        this._bytecode = 0x34
+        this._method = "length"
+        return new RadonInteger(this)
+    }
+    /**
+     * Returns a slice extracted from the input buffer. 
+     * A `startIndex` of 0 refers to the beginning of the input buffer. If no `endIndex` is provided, it will be assumed 
+     * the length of the input buffer. Negative values will be relative to the end of the input buffer.
+     * @param startIndex Position within input buffer where the output buffer will start.
+     * @param endIndex Position within input buffer where the output buffer will end
+     * @returns A `RadonBytes` object.
+     */
+    public slice(startIndex: number = 0, endIndex?: number) {
+        if (endIndex !== undefined) {
+            this._bytecode = [ 0x3c, startIndex, endIndex ]
+            this._params = `${startIndex}, ${endIndex}`
+        } else {
+            this._bytecode = [ 0x3c, startIndex ]
+            this._params = `${startIndex}`
+        }
+        this._method = "slice"
+        return new RadonBytes(this)
+    }
+    /**
+     * Convert the input buffer into a string.
+     * @param encoding Enum integer value specifying the encoding schema on the output string, standing:
+     *   0 -> Hex string (default, if none was specified)
+     *   1 -> Base64 string
+     * @returns A `RadonString` object.
+     */
+    public stringify(encoding?: RadonBytesEncoding) {
+        if (encoding) {
+            this._bytecode = [ 0x30, encoding ]
+            this._params = `${RadonBytesEncoding[encoding]}`
+        } else {
+            this._bytecode = 0x30
+        }
+        this._method = "stringify"
+        return new RadonString(this)
+    }
 }
 
 export class RadonFloat extends RadonType {
@@ -281,15 +326,6 @@ export class RadonFloat extends RadonType {
         this._bytecode = 0x50
         this._method = "absolute"
         return new RadonFloat(this)
-    }
-    /**
-     * Stringify the float value.
-     * @returns A `RadonString` object.
-     */
-    public asString() {
-        this._bytecode = 0x51
-        this._method = "asString"
-        return new RadonString(this)
     }
     /**
      * Compute the lowest integer greater than or equal to the float value.
@@ -383,6 +419,15 @@ export class RadonFloat extends RadonType {
         return new RadonInteger(this)
     }
     /**
+     * Stringify the float value.
+     * @returns A `RadonString` object.
+     */
+    public stringify() {
+        this._bytecode = 0x51
+        this._method = "stringify"
+        return new RadonString(this)
+    }
+    /**
      * Take the integer part of the float value. 
      * @returns A `RadonInteger` object.
      */
@@ -402,24 +447,6 @@ export class RadonInteger extends RadonType {
         this._bytecode = 0x40
         this._method = "absolute"
         return new RadonInteger(this)
-    }
-    /**
-     * Cast into a float value.
-     * @returns A `RadonFloat` object.
-     */
-    public asFloat() {
-        this._bytecode = 0x41
-        this._method = "asFloat"
-        return new RadonFloat(this)
-    }
-    /**
-     * Stringify the value.
-     * @returns A `RadonString` object.
-     */
-    public asString() {
-        this._bytecode = 0x42
-        this._method = "asString"
-        return new RadonString(this)
     }
     /**
      * Determine if the integer value is greater than the given `input`. 
@@ -484,6 +511,24 @@ export class RadonInteger extends RadonType {
         this._method = "power"
         this._params = typeof value === 'string' ? `'${value}'` : value
         return new RadonInteger(this); 
+    }
+    /**
+     * Stringify the value.
+     * @returns A `RadonString` object.
+     */
+    public stringify() {
+        this._bytecode = 0x42
+        this._method = "stringify"
+        return new RadonString(this)
+    }
+    /**
+     * Cast into a float value.
+     * @returns A `RadonFloat` object.
+     */
+    public toFloat() {
+        this._bytecode = 0x41
+        this._method = "toFloat"
+        return new RadonFloat(this)
     }
 }
 
@@ -602,7 +647,7 @@ export class RadonString extends RadonType {
         return new RadonFloat(this)
     }
     /**
-     * Count the number of items. 
+     * Count the number of chars. 
      * @returns A `RadonInteger` object.
      */
     public length() {
@@ -682,7 +727,7 @@ export class RadonString extends RadonType {
      * A `startIndex` of 0 refers to the beginning of the input string. If no `endIndex` is provided, it will be assumed 
      * the length of the input string. Negative values will be relative to the end of the input string.
      * @param startIndex Position within input string where the output string will start.
-     * @param endIndex Position within input string whre the output string will end
+     * @param endIndex Position within input string where the output string will end.
      * @returns A `RadonString` object.
      */
     public slice(startIndex: number = 0, endIndex?: number) {
