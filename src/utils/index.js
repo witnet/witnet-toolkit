@@ -1,4 +1,5 @@
 const cbor = require('cbor')
+const ethUtils = require("ethereumjs-util")
 const { execSync } = require("child_process")
 require("dotenv").config()
 const fs = require("fs")
@@ -39,6 +40,8 @@ module.exports = {
   traceHeader,
   traceTx,
   web3BuildWitnetRequestFromTemplate,
+  web3DeployWitnetCoreArtifact,
+  web3DetermineWitnetProxyAddr,
   web3Encode,
   web3VerifyWitnetRadonReducer,
   web3VerifyWitnetRadonRetrieval,
@@ -492,6 +495,59 @@ async function web3BuildWitnetRequestFromTemplate(web3, from, templateContract, 
     console.info("  ", "> Template settlement gas: ", tx.receipt.gasUsed)
   }
   return requestAddr
+}
+
+async function web3DeployWitnetCoreArtifact(web3, artifacts, specs) {
+    const { from, key, libs, intrinsics, immutables, targets, verbose } = specs;
+    const contract = artifacts.require(key)
+    const deployer = await artifacts.require("WitnetDeployer").deployed()
+    if (verbose) traceHeader(`Deploying '${key}'...`)
+    if (verbose) console.info("  ", "> account:          ", from)
+    if (verbose) console.info("  ", "> balance:          ", web3.utils.fromWei(await web3.eth.getBalance(from), 'ether'), "ETH")
+    let { types, values } = intrinsics
+    if (immutables?.types) types = [ ...types, ...immutables.types ]
+    if (immutables?.values) values = [ ...values, ...immutables.values ]
+    const constructorArgs = web3.eth.abi.encodeParameters(types, values)
+    if (constructorArgs.length > 2) {
+      if (verbose) console.info("  ", "> constructor types:", types)
+      if (verbose) console.info("  ", "> constructor args: ", constructorArgs.slice(2))
+    }
+    const coreBytecode = _linkBytecodeToLibs(artifacts, contract.toJSON().bytecode, libs, targets)
+    if (coreBytecode.indexOf("__") > -1) {
+        if (verbose) console.info(coreBytecode)
+        if (verbose) console.info("Error: Cannot deploy due to some missing libs")
+        process.exit(1)
+    }
+    const coreInitCode = coreBytecode + constructorArgs.slice(2)
+    const coreAddr = await deployer.determineAddr.call(coreInitCode, "0x0", { from })
+    const tx = await deployer.deploy(coreInitCode, "0x0", { from })
+    if (verbose) traceTx(tx)
+    if ((await web3.eth.getCode(coreAddr)).length <= 3) {
+        console.info(`Error: Contract was not deployed on expected address: ${coreAddr}`)
+        process.exit(1)
+    }
+    contract.address = coreAddr
+    if (verbose) console.info("  ", "> contract address: ", contract.address)
+    if (verbose) console.info("  ", "> contract codehash:", web3.utils.soliditySha3(await web3.eth.getCode(contract.address)))
+    if (verbose) console.info()
+    return contract
+}
+
+function _linkBytecodeToLibs(artifacts, bytecode, libs, targets, verbose) {
+    if (libs && Array.isArray(libs) && libs.length > 0) {
+        for (var ix in libs) {
+            const key = targets[libs[ix]]
+            const lib = artifacts.require(key)
+            bytecode = bytecode.replaceAll(`__${key}${"_".repeat(38-key.length)}`, lib.address.slice(2))
+            if (verbose) console.info("  ", `> linked library:    ${key} => ${lib.address}`)
+        }
+    }
+    return bytecode
+}
+
+async function web3DetermineWitnetProxyAddr(deployer, from, nonce) {
+    const salt = nonce ? "0x" + ethUtils.setLengthLeft(ethUtils.toBuffer(nonce), 32).toString("hex") : "0x0"
+    return await deployer.determineProxyAddr.call(salt, { from })
 }
 
 function web3Encode(T) {
