@@ -72,18 +72,14 @@ async function deployWitnetRequestTemplate (web3, from, registry, factory, templ
   }
   if (key) traceHeader(`Building '\x1b[1;37m${key}\x1b[0m'...`)
   let templateAddr = await factory.buildRequestTemplate.call(
-    retrievals,
-    aggregate,
-    tally,
-    template?.specs?.maxSize || 0,
+    retrievals, aggregate, tally,
+    template?.specs?.maxSize || 32,
     { from }
   )
   if (isNullAddress(templateAddr) || (await web3.eth.getCode(templateAddr)).length <= 3) {
     const tx = await factory.buildRequestTemplate(
-      retrievals,
-      aggregate,
-      tally,
-      template?.specs?.maxSize || 0,
+      retrievals, aggregate, tally,
+      template?.specs?.maxSize || 32,
       { from }
     )
     traceTx(tx.receipt)
@@ -503,7 +499,6 @@ function web3Encode(T) {
       return [
           T.opcode,
           T.filters?.map(filter => web3Encode(filter)) || [],
-          "0x", // TBD: reduction scripts
       ];
   } else if (T instanceof Witnet.Filters.Class) {
       return [
