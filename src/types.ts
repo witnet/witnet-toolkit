@@ -2,6 +2,11 @@ const utils = require('./utils')
 
 import * as Reducers from './reducers'
 
+export enum RadonBytesEncoding {
+    HexString = 0,
+    Base64 = 1,
+};
+
 export class RadonType {
     protected _bytecode?: any; 
     protected _key?: string;
@@ -29,7 +34,7 @@ export class RadonType {
      */
     public _countArgs(): number {
         return Math.max(
-            utils.getMaxArgsIndexFromString(this._key),
+            utils.getMaxArgsIndexFromString(this?._key),
             this._prev?._countArgs() || 0
         );
     }
@@ -253,13 +258,13 @@ export class RadonBoolean extends RadonType {
 
 export class RadonBytes extends RadonType {
     /**
-     * Serialize buffer as an hex string.
+     * Convert buffer into (big-endian) integer.
      * @returns A `RadonBytes` object.
      */
-    public asString() {
-        this._bytecode = 0x30
-        this._method = "asString"
-        return new RadonString(this)
+    public asInteger() {
+        this._bytecode = 0x32
+        this._method = "toInteger"
+        return new RadonInteger(this)
     }
     /**
      * Apply the SHA2-256 hash function.
@@ -522,6 +527,15 @@ export class RadonInteger extends RadonType {
         return new RadonString(this)
     }
     /**
+     * Cast into a big-endian bytes buffer.
+     * @returns A `RadonBytes` object.
+     */
+    public toBytes() {
+        this._bytecode = 0x4A
+        this._method = "toBytes"
+        return new RadonBytes(this)
+    }
+    /**
      * Cast into a float value.
      * @returns A `RadonFloat` object.
      */
@@ -636,6 +650,23 @@ export class RadonString extends RadonType {
         this._bytecode = 0x70
         this._method = "asBoolean"
         return new RadonBoolean(this)
+    }
+    /**
+     * Convert the input string into a bytes buffer.
+     * @param encoding Enum integer value specifying the encoding schema on the input string, standing:
+     *   0 -> Hex string (default, if none was specified)
+     *   1 -> Base64 string
+     * @returns A `RadonBytes` object.
+     */
+    public asBytes(encoding?: RadonBytesEncoding) {
+        if (encoding !== undefined) {
+            this._bytecode = [ 0x71, encoding ]
+            this._params = `${encoding} => \"${RadonBytesEncoding[encoding]}\"`
+        } else {
+            this._bytecode = 0x71
+        }
+        this._method = "asBytes"
+        return new RadonBytes(this)
     }
     /**
      * Cast into a float number.
