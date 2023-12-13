@@ -367,9 +367,9 @@ function parseURL(url) {
 
 function processDryRunJson(dryrun) {
   let error = ""
-  let nanos = []
-  mapObjectRecursively(dryrun, (key, value) => {
-    if (key === "nanos") nanos.push(value || 0);
+  let msecs = []
+  dryrun?.retrieve.map(retrieve => {
+    msecs.push(retrieve?.running_time?.secs * 1000 + retrieve?.running_time?.nanos / 1000000)
   })
   const itWorks = !("RadonError" in dryrun?.aggregate?.result)
   if (!itWorks) {
@@ -391,7 +391,7 @@ function processDryRunJson(dryrun) {
     itWorks: itWorks,
     nokRetrievals,
     totalRetrievals,
-    runningTime: nanos.reduce((a, b) => a + b) / 1000,
+    runningTime: Math.round(msecs.reduce((a, b) => a > b ? a : b)) / 1000,
     status,
     tally: dryrun?.tally.result
   }
