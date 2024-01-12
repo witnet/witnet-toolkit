@@ -780,11 +780,17 @@ export class RadonString extends RadonType {
     }
     /**
      * Parse string as a JSON-encoded map. 
-     * @returns A `RadonMap` object.
+     * @param jsonPath (optional) JSON path within input `RadonString` from where to extract the output `RadonMap`. 
+     * @returns A `RadonMap` object. 
      */
-    public parseJSONMap() {
-        this._bytecode = 0x77
-        this._method = "parseJSONMap"
+    public parseJSONMap(jsonPath?: string) {
+        if (jsonPath && jsonPath !== "") {
+            this._bytecode = [ 0x77, jsonPath ]
+            this._params = `${jsonPath}`
+        } else {
+            this._bytecode = 0x77
+        }
+        this._method = "parseJsonMap"
         return new RadonMap(this)
     }
     /**
