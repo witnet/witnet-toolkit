@@ -561,6 +561,31 @@ export class RadonInteger extends RadonType {
 
 export class RadonMap extends RadonType {
     /**
+     * Alter the value of the item(s) identified by `keys`, applying the given `innerScript` to each one of them.
+     * @param key 
+     * @param innerScript 
+     * @returns The same RadonMap upon which this operator is executed, with the specified item(s) altered
+     * by the given `innerScript`.
+     */
+    public alter(keys: string | string[], innerScript: RadonType) {
+        const RadonClass = [ 
+            RadonArray,
+            RadonBoolean,
+            RadonBytes,
+            RadonFloat,
+            RadonInteger,
+            RadonMap,
+            RadonString
+        ].find(RadonClass => innerScript instanceof RadonClass) || RadonType;
+        if (RadonClass instanceof RadonType) {
+            throw new EvalError(`\x1b[1;33mRadonMap::alter: inner script returns undetermined RadonType\x1b[0m`)
+        }
+        this._bytecode = [ 0x6b, keys, innerScript._encodeArray() ]
+        this._method = "alter"
+        this._params = `${JSON.stringify(keys)}, { ${innerScript.toString()} }`
+        return new RadonMap(this)
+    }
+    /**
      * Fetch the array within the specified `key` field.
      * @param key 
      * @returns A `RadonArray` object.
@@ -582,14 +607,6 @@ export class RadonMap extends RadonType {
         this._params = `'${key}'`
         return new RadonBoolean(this, key)
     }
-    // TODO: witnet-rust should be able to deserialize an hex string 
-    // into a buffer in order to this method to work:
-        // public getBytes(key: string) {
-        //     this._bytecode = [ 0x63, key ]
-        //     this._method = "getBytes"
-        //     this._params = `'${key}'`
-        //     return new RadonBytes(this, key)
-        // }
     /**
      * Fetch the float value within the specified `key` field.
      * @param key 
