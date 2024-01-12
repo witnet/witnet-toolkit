@@ -11,7 +11,7 @@ type HexString = string & {
 
 export type Bytes32 = HexStringOfLength<64>;
 export type Bytes = HexString;
-export type BlockNumber = Bytes32;
+export type BlockNumber = number | Bytes32;
 
 export type EthAddress = HexStringOfLength<40>;
 export type EthBlockHead = BlockNumber | EthBlockTag;
@@ -24,6 +24,7 @@ export type WitAddress = string & {
 function isBlockHead(block: EthBlockHead): boolean {
     return (
         block === "latest" || block === "earliest" || block === "finalized" || block === "pending"
+            || typeof block === 'number'
             || utils.isHexStringOfLength(block, 32)
             || utils.isWildcard(block)
     );
@@ -249,17 +250,25 @@ export const EthGetLogs = (filter: {
     fromBlock?: EthBlockHead,
     toBlock?: EthBlockHead,
     address?: EthAddress | EthAddress[],
-    topics: Bytes32[],
+    topics?: Bytes32[],
     blockHash?: Bytes32,
 }) => {
     if (filter?.blockHash && (filter?.fromBlock || filter?.toBlock)) {
         throw new EvalError("RPC: EthGetLogs: uncompliant use of 'blockHash'")
     }
-    if (filter?.fromBlock && !isBlockHead(filter?.fromBlock)) {
-        throw new EvalError("RPC: EthGetLogs: invalid 'fromBlock' value");
+    if (filter?.fromBlock) {
+        if (!isBlockHead(filter?.fromBlock)) {
+            throw new EvalError("RPC: EthGetLogs: invalid 'fromBlock' value");
+        } else if (typeof filter?.fromBlock === 'number') {
+            filter.fromBlock = `0x${(filter?.fromBlock as number).toString(16)}` as EthBlockHead
+        }
     }
-    if (filter?.toBlock && !isBlockHead(filter?.toBlock)) {
-        throw new EvalError("RPC: EthGetLogs: invalid 'toBlock' value");
+    if (filter?.toBlock) {
+        if (!isBlockHead(filter?.toBlock)) {
+            throw new EvalError("RPC: EthGetLogs: invalid 'toBlock' value");
+        } else if (typeof filter?.toBlock === 'number') {
+            filter.toBlock = `0x${(filter?.toBlock as number).toString(16)}` as EthBlockHead
+        }
     }
     if (filter?.blockHash && !utils.isHexStringOfLength(filter.blockHash, 32) && !utils.isWildcard(filter.blockHash)) {
         throw new EvalError("RPC: EthGetLogs: invalid 'blockHash' value");
@@ -308,6 +317,10 @@ export const EthGetTransactionByBlockNumberAndIndex = (
 ) => {
     if (!isBlockHead(blockNumber)) {
         throw new EvalError("RPC: EthGetTransactionByBlockNumberAndIndex: invalid block number value");
+    } else {
+        if (typeof blockNumber === 'number') {
+            blockNumber = `0x${(blockNumber as number).toString(16)}` as EthBlockHead
+        }
     }
     if (!Number.isInteger(txIndex) && !utils.isHexStringOfLength(txIndex, 32) && !utils.isWildcard(txIndex)) {
         throw new EvalError("RPC: EthGetTransactionByBlockNumberAndIndex: invalid transaction index value")
