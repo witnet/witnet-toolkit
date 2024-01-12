@@ -661,6 +661,20 @@ export class RadonMap extends RadonType {
         return new RadonArray(this)
     }
     /**
+     * Take a selection of items from the input map. Fails if unexistent items are referred.
+     * @param keys Key string of the input items to take into the output map. 
+     * @return A `RadonMap` object.
+     */
+    public pick(keys: string | string[]) {
+        if (!keys || Array(keys).length == 0) {
+            throw new EvalError(`\x1b[1;33mRadonMap::pick: a non-empty array of key strings must be provided\x1b[0m`)
+        }
+        this._bytecode = [ 0x6e, keys ]
+        this._params = JSON.stringify(keys)
+        this._method = "pick"
+        return new RadonMap(this)
+    }
+    /**
      * Extract the map values into an array.
      * @returns A `RadonArray` object.
      */
