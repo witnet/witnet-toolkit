@@ -683,6 +683,15 @@ export class RadonMap extends RadonType {
         this._method = "values"
         return new RadonArray(this)
     }
+    /**
+     * Stringify input `RadonMap` object into a JSON string.
+     * @return A `RadonString` object.
+     */
+    public stringify() {
+        this._bytecode = 0x60
+        this._method = "stringify"
+        return new RadonString(this)
+    }
 }
 
 export class RadonString extends RadonType {
@@ -705,7 +714,7 @@ export class RadonString extends RadonType {
     public asBytes(encoding?: RadonBytesEncoding) {
         if (encoding !== undefined) {
             this._bytecode = [ 0x71, encoding ]
-            this._params = `${encoding} => \"${RadonBytesEncoding[encoding]}\"`
+            this._params = `${RadonBytesEncoding[encoding]}`
         } else {
             this._bytecode = 0x71
         }
