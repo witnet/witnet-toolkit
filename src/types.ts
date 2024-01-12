@@ -161,9 +161,8 @@ export class RadonArray extends RadonType {
         return new RadonString(this)
     }
     /**
-     * Join all items of the array into a value of the given type, optionally prefixing
-     * the result with some given constant. The array must be homogeneous, all items being
-     * of the same type as `outputType`. 
+     * Join all items of the array into a value of the given type. The array must be homogeneous, 
+     * all items being of the same type as the expected `outputType`. 
      * @param outputType Radon type of the output value. 
      * @param separator Separator to be used when joining strings. When joining RadonMaps, it can be used to settle base schema on resulting object.
      */
@@ -231,6 +230,20 @@ export class RadonArray extends RadonType {
             this._bytecode = [ 0x1d, [] ]
         }
         this._method = "sort"
+        return new RadonArray(this)
+    }
+    /**
+     * Take a selection of items from the input array.
+     * @param indexes Indexes of the input items to take into the output array. 
+     * @return A `RadonArray` object.
+     */
+    public pick(indexes: number | number[]) {
+        if (!indexes || Array(indexes).length == 0) {
+            throw new EvalError(`\x1b[1;33mRadonArray::pick: a non-empty array of numbers must be provided\x1b[0m`)
+        }
+        this._bytecode = [ 0x1e, typeof indexes === 'number' ? indexes : indexes as number[] ]
+        this._params = JSON.stringify(indexes)
+        this._method = "pick"
         return new RadonArray(this)
     }
 }
