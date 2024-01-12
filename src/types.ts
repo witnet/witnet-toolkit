@@ -764,12 +764,18 @@ export class RadonString extends RadonType {
         return new outputType(this, keys)
     }
     /**
-     * Parse string as an array of items.
+     * Parse input string as an array of JSON items. 
+     * @param jsonPaths (optional) Array of JSON paths within input `RadonString` from where to fetch items that will be appended to the output `RadonArray`. 
      * @returns A `RadonArray` object.
      */
-    public parseJSONArray() {
-        this._bytecode = 0x76
-        this._method = "parseJSONArray"
+    public parseJSONArray(jsonPaths?: string | string[]) {
+        if (jsonPaths) {
+            this._bytecode = [ 0x76, jsonPaths ]
+            this._params = `${jsonPaths}`
+        } else {
+            this._bytecode = 0x76
+        }
+        this._method = "parseJsonArray"
         return new RadonArray(this)
     }
     /**
