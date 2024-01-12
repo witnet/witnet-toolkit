@@ -273,11 +273,13 @@ export const EthGetLogs = (filter: {
     if (filter?.blockHash && !utils.isHexStringOfLength(filter.blockHash, 32) && !utils.isWildcard(filter.blockHash)) {
         throw new EvalError("RPC: EthGetLogs: invalid 'blockHash' value");
     }
-    filter.topics.map((value: Bytes32, index: number) => {
-        if (!utils.isHexStringOfLength(value, 32) && !utils.isWildcard(value)) {
-            throw new EvalError(`RPC: EthGetLogs: topic #${index}: invalid hash`)
-        }
-    })
+    if (filter?.topics) {
+        filter.topics.map((value: Bytes32, index: number) => {
+            if (!utils.isHexStringOfLength(value, 32) && !utils.isWildcard(value)) {
+                throw new EvalError(`RPC: EthGetLogs: topic #${index}: invalid hash`)
+            }
+        })
+    }
     return new Call("eth_getLogs", [ filter ]);
 };
 
