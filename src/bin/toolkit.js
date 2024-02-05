@@ -249,10 +249,8 @@ Promise.all([
   }
 
   async function tasksFromArgs (args) {
-    let tasks = [args]
     // Ensure that no task contains arguments starting with `0x`
-    tasks = tasks.map(args => args.map(arg => arg.replace(/^0x/gm, '')))
-    return tasks
+    return [args.map(arg => arg.replace(/^0x/gm, ''))]
   }
 
   async function decodeQueryCommand (settings, args) {

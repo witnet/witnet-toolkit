@@ -1,6 +1,5 @@
 # Dependency directories
 node_modules
-*lock*
 
 # Build artifacts
 dist/

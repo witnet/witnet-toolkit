@@ -84,39 +84,31 @@ function getMaxArgsIndexFromString(str) {
 }
 
 function getRequestMethodString(method) {
-  if (method == 0) {
-    return "UNKNOWN"
-  } else if (method == 1 || !method) {
-    return "HTTP-GET"
-  } else if (method == 2) {
-    return "RNG"
-  } else if (method == 3) {
-    return "HTTP-POST"
-  } else if (method == 4) {
-    return "HTTP-HEAD"
+  if (!method) {
+    return "HTTP-GET";
   } else {
-    return method.toString()
+    const methodNameMap = {
+      0: "UNKNOWN",
+      1: "HTTP-GET",
+      2: "RNG",
+      3: "HTTP-POST",
+      4: "HTTP-HEAD",
+    };
+    return methodNameMap[method] || method.toString();
   }
 }
 
 function getRequestResultDataTypeString(type) {
-  if (type == 1) {
-    return "Array"
-  } else if (type == 2) {
-    return "Bool"
-  } else if (type == 3) {
-    return "Bytes"
-  } else if (type == 4) {
-    return "Integer"
-  } else if (type == 5) {
-    return "Float"
-  } else if (type == 6) {
-    return "Map"
-  } else if (type == 7) {
-    return "String"
-  } else {
-    return "(Undetermined)"
-  }
+  const typeMap = {
+    1: "Array",
+    2: "Bool",
+    3: "Bytes",
+    4: "Integer",
+    5: "Float",
+    6: "Map",
+    7: "String",
+  };
+  return typeMap[type] || "(Undetermined)";
 }
 
 function isHexString(str) {
@@ -228,12 +220,3 @@ function splitSelectionFromProcessArgv(operand) {
   return selection
 }
 
-// function stringifyWitnetRequestMethod(method) {
-//   switch (method) {
-//     case Witnet.retrievals.Methods.HttpGet: return "HTTP-GET";
-//     case Witnet.retrievals.Methods.HttpHead: return "HTTP-HEAD";
-//     case Witnet.retrievals.Methods.HttpPost: return "HTTP-POST";
-//     case Witnet.retrievals.Methods.RNG: return "WITNET-RNG";
-//     default: return "UNKNOWN"
-//   }
-// }
