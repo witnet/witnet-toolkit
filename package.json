@@ -14,7 +14,8 @@
     "dist"  
   ],
   "exports": {
-    ".": "./src/utils.js"
+    ".": "./src/utils.js",
+    "./utils": "./src/utils.js"
   }, 
   "scripts": {
     "test": "node ./src/bin/toolkit.js update"
