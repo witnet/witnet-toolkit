@@ -1,13 +1,13 @@
 import * as _Artifacts from "./artifacts"
 import * as _Filters from "./filters"
 import * as _Reducers from "./reducers"
-import * as _Retrievals from "./retrievals"
+import * as _Sources from "./sources"
 import * as _RPC from "./ccdr"
 import * as _Types from "./types"
 
 /**
  * Web3 deployable artifacts that can be declared within
- * Witnet resource files: 
+ * Witnet asset files: 
  * - data request templates,
  * - parameterized requests, 
  * - precompiled requests.
@@ -15,26 +15,25 @@ import * as _Types from "./types"
 export const Artifacts: typeof _Artifacts = _Artifacts;
 
 /**
- * Radon Filters that can be used within both
+ * Radon Filtering operators that can be used within both
  * the Aggregate and Tally scripts of a Data Request.
  */
 export const Filters: typeof _Filters = _Filters;
 
 /**
- * Radon Reducers that can be used within both
+ * Radon Reducing operators that can be used within both
  * the Aggregate and Tally scripts of a Data Request.
  */
 export const Reducers: typeof _Reducers = _Reducers;
 
 /**
- * Data retrieving methods that can be added as
- * part of a Data Request.
+ * Supported data source types that can be added as part of a Data Request.
  */
-export const Retrievals: typeof _Retrievals = _Retrievals;
+export const Sources: typeof _Sources = _Sources;
 
 /**
  * Precompiled Remote Procedure Calls that can be included within
- * Cross Chain Data Retrievals (i.e. `Witnet.Retrievals.CrossChainDataRetrieval({ .. })`, 
+ * Cross Chain Data Requests (i.e. `Witnet.Sources.CrossChainDataSource({ .. })`, 
  * grouped by JSON-RPC protocol:
  * - JSON ETH/RPC endpoints
  * - JSON WIT/RPC endpoints
@@ -120,7 +119,7 @@ export function PriceTickerRequest (dict: any, tags: Map<string, string | string
     })
 };
 
-export function PriceTickerTemplate (specs: { retrieve: _Retrievals.Class[], tests?: Map<string, string[][]> }) { 
+export function PriceTickerTemplate (specs: { retrieve: _Sources.Class[], tests?: Map<string, string[][]> }) { 
     return new _Artifacts.Template(
         {
             retrieve: specs.retrieve, 
@@ -136,10 +135,10 @@ export function RequestFromDictionary (specs: {
     aggregate?: _Reducers.Class, 
     tally?: _Reducers.Class
 }) {
-    const retrievals: _Retrievals.Class[] = []
+    const sources: _Sources.Class[] = []
     const args: string[][] = []
     Object.keys(specs.retrieve.tags).forEach(key => {    
-        const retrieval: _Retrievals.Class = specs.retrieve.dict[key]
+        const retrieval: _Sources.Class = specs.retrieve.dict[key]
         const value: any = (specs.retrieve.tags as any)[key]
         if (typeof value === 'string') {
             if (retrieval?.tuples) {
@@ -150,10 +149,10 @@ export function RequestFromDictionary (specs: {
         } else {
             args.push(value || [])
         }
-        retrievals.push(retrieval)
+        sources.push(retrieval)
     })
     return new _Artifacts.Parameterized(
-        new _Artifacts.Template({ retrieve: retrievals, aggregate: specs.aggregate, tally: specs.tally }),
+        new _Artifacts.Template({ retrieve: sources, aggregate: specs.aggregate, tally: specs.tally }),
         args
     )
 };
@@ -163,7 +162,7 @@ export function RequestFromTemplate (template: _Artifacts.Template, args: string
 };
 
 export function RequestTemplate (specs: {
-        retrieve: _Retrievals.Class[], 
+        retrieve: _Sources.Class[], 
         aggregate?: _Reducers.Class, 
         tally?: _Reducers.Class,
         tests?: Map<string, string[] | string[][]>,   
@@ -177,7 +176,7 @@ export function RequestTemplate (specs: {
     );
 };
 
-export function RequestTemplateSingleSource (retrieval: _Retrievals.Class, tests?: Map<string, string[] | string[][]>) {
+export function RequestTemplateSingleSource (retrieval: _Sources.Class, tests?: Map<string, string[] | string[][]>) {
     return new _Artifacts.Template(
         {
             retrieve: [ retrieval ],
@@ -189,7 +188,7 @@ export function RequestTemplateSingleSource (retrieval: _Retrievals.Class, tests
 };
 
 export function StaticRequest (specs: { 
-    retrieve: _Retrievals.Class[], 
+    retrieve: _Sources.Class[], 
     aggregate?: _Reducers.Class, 
     tally?: _Reducers.Class 
 }) {

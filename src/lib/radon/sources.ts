@@ -38,7 +38,7 @@ export class Class {
         } else if (!specs?.url && (method == Methods.HttpPost || method == Methods.HttpGet)) {
             throw EvalError("\x1b[1;33mRetrieval: URL must be specified\x1b[0m");
         } else if (specs?.body && method == Methods.HttpGet) {
-            throw EvalError("\x1b[1;33mWitnet.Retrievals: body cannot be specified here\x1b[0m")
+            throw EvalError("\x1b[1;33mWitnet.Sources: body cannot be specified here\x1b[0m")
         }
         this.method = method
         this.headers = []
@@ -74,8 +74,8 @@ export class Class {
      * are replaced by the given values. Fails if the retrieval refers no parameters,
      * or if the specified index is not referred by it. 
      * @param argIndex Index of the parameter upon which the new instances will be created.
-     * @param values Values used for the creation of the new retrievals. 
-     * @returns An array with as many retrievals as spawning values were specified.
+     * @param values Values used for the creation of the new sources. 
+     * @returns An array with as many sources as spawning values were specified.
      */
     public spawn(argIndex: number, values: string[]): Class[] {
         const spawned: Class[] = []
@@ -115,7 +115,7 @@ export function RNG (script?: any) { return new Class(Methods.RNG, { script }); 
 /**
  * Creates a Witnet HTTP/GET Radon Retrieval.
  * @param specs Retrieval parameters: URL, http headers (optional), Radon script (optional), 
- * pre-set tuples (optional to parameterized retrievals, only).
+ * pre-set tuples (optional to parameterized sources, only).
  */
 export function HttpGet (specs: {
     url: string,
@@ -136,7 +136,7 @@ export function HttpGet (specs: {
 /**
  * Creates a Witnet HTTP/HEAD Radon Retrieval.
  * @param specs Retrieval parameters: URL, http headers (optional), Radon script (optional), 
- * pre-set tuples (optional to parameterized retrievals, only).
+ * pre-set tuples (optional to parameterized sources, only).
  */
 export function HttpHead (specs: {
     url: string,
@@ -157,7 +157,7 @@ export function HttpHead (specs: {
 /**
  * Creates a Witnet HTTP/POST Radon Retrieval.
  * @param specs Retrieval parameters: URL, HTTP body (optional), HTTP headers (optional), Radon Script (optional), 
- * pre-set tuples (optional to parameterized retrievals, only).
+ * pre-set tuples (optional to parameterized sources, only).
  */
 export function HttpPost (specs?: {
     url: string,
@@ -180,7 +180,7 @@ export function HttpPost (specs?: {
 /**
  * Creates a Witnet GraphQL Radon Retrieval (built on top of an HTTP/POST request).
  * @param specs Retrieval parameters: URL, GraphQL query string, Radon Script (optional), 
- * pre-set tuples (optional to parameterized retrievals, only).
+ * pre-set tuples (optional to parameterized sources, only).
  */
 export function GraphQLQuery (specs: { 
     url: string, 
@@ -198,11 +198,11 @@ export function GraphQLQuery (specs: {
 };
 
 /**
- * Creates a Cross Chain Data Retrieval built on top of a HTTP/POST request.
+ * Creates a Cross Chain Data Source built on top of a HTTP/POST request.
  * @param specs Retrieval parameters: RPC provider URL, RPC object encapsulating method and parameters, 
- * Radon Script (optional) to apply to returned value, and pre-set tuples (optional to parameterized retrievals, only).
+ * Radon Script (optional) to apply to returned value, and pre-set tuples (optional to parameterized sources, only).
  */
-export function CrossChainDataRetrieval (specs: {
+export function CrossChainDataSource (specs: {
     url: string,
     rpc: RPC,
     script?: Script,

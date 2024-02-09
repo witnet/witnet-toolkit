@@ -1,4 +1,4 @@
-import { Class as Retrieval } from "./retrievals"
+import { Class as Retrieval } from "./sources"
 import { Class as Reducer, Mode } from "./reducers"
 
 export type Args = string[] | string[][];
@@ -14,7 +14,7 @@ export class Class {
     public specs: Specs
     constructor(specs: Specs) {
         if (!specs.retrieve || !Array.isArray(specs.retrieve) || specs.retrieve.length == 0) {
-            throw EvalError("\x1b[1;33mArtifact: cannot build if no retrievals are specified\x1b[0m")
+            throw EvalError("\x1b[1;33mArtifact: cannot build if no sources are specified\x1b[0m")
         }
         specs.retrieve?.forEach((retrieval, index) => {
             if (retrieval === undefined) {
@@ -48,7 +48,7 @@ export class Template extends Class {
         })
         this.argsCount = retrieve.map(retrieval => retrieval?.argsCount).reduce((prev, curr) => Math.max(prev, curr), 0)
         if (this.argsCount == 0) {
-            throw EvalError("\x1b[1;33mTemplate: cannot build w/ unparameterized retrievals\x1b[0m")
+            throw EvalError("\x1b[1;33mTemplate: cannot build w/ unparameterized sources\x1b[0m")
         }
         if (tests) {
             Object.keys(tests).forEach(test => {
@@ -110,7 +110,7 @@ export class Precompiled extends Class {
         })
         let argsCount = retrieve.map(retrieval => retrieval.argsCount).reduce((prev, curr) => prev + curr)
         if (argsCount > 0) {
-            throw EvalError("\x1b[1;33mPrecompiled: static requests cannot be built w/ parameterized retrievals\x1b[0m")
+            throw EvalError("\x1b[1;33mPrecompiled: static requests cannot be built w/ parameterized sources\x1b[0m")
         }
     }
 }
