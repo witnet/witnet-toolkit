@@ -14,15 +14,28 @@
     "dist"  
   ],
   "exports": {
-    ".": "./src/utils.js",
+    ".": "./dist/lib/radon/index.js",
+    "./radon": {
+      "require": "./dist/lib/radon/index.js",
+      "types": "./dist/lib/radon/*.d.ts"
+    },
     "./utils": "./src/utils.js"
   }, 
+  "types": "./dist/lib/radon",
   "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "prepare": "npm run build",
     "test": "node ./src/bin/toolkit.js update"
   },
   "dependencies": {
     "axios": "^1.6.7",
     "cbor": "^9.0.1",
-    "witnet-radon-js": "../witnet-radon-js"
+    "graphql-query-compress": "^1.2.4",
+    "web3-jsonrpc-gateway": "../../witnet/web3-jsonrpc-gateway",
+    "witnet-radon-js": "^2.0.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.13",
+    "typescript": "latest"
   }
 }

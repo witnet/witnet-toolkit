@@ -1,10 +1,11 @@
 const { execSync } = require("child_process")
 
 module.exports = {
-  countLeaves,
-  dictionary,
-  findKeyInObject,
+  dryRunBytecode,
+  dryRunBytecodeVerbose,
   fromAscii,
+  getRequestMethodString,
+  getRequestResultDataTypeString,
   getMaxArgsIndexFromString,
   isHexString,
   isHexStringOfLength,
@@ -14,30 +15,6 @@ module.exports = {
   parseURL,
   spliceWildcards,
   splitSelectionFromProcessArgv,
-
-  dryRunBytecode,
-  dryRunBytecodeVerbose,
-  getRequestMethodString,
-  getRequestResultDataTypeString,
-}
-
-function dictionary(t, dict) {
-  return new Proxy(dict, proxyHandler(t));
-}
-
-function countLeaves(t, obj) {
-  if (!obj) {
-      return 0;
-  }
-  else if (obj instanceof t) {
-      return 1;
-  }
-  else if (Array.isArray(obj)) {
-      return obj.map(function (item) { return countLeaves(t, item); }).reduce(function (a, b) { return a + b; }, 0);
-  }
-  else {
-      return Object.values(obj).map(function (item) { return countLeaves(t, item); }).reduce(function (a, b) { return a + b; }, 0);
-  }
 }
 
 async function dryRunBytecode(bytecode) {
@@ -46,19 +23,6 @@ async function dryRunBytecode(bytecode) {
 
 async function dryRunBytecodeVerbose(bytecode) {
   return (await execSync(`npx witnet-toolkit try-query --hex ${bytecode}`)).toString()
-}
-
-function findKeyInObject(dict, tag) {
-  for (const key in dict) {
-    if (typeof dict[key] === 'object') {
-      if (key === tag) {
-        return dict[key]
-      } else {
-        let found = findKeyInObject(dict[key], tag)
-        if (found) return found
-      }
-    }
-  }
 }
 
 function fromAscii(str) {
