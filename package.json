@@ -1,6 +1,6 @@
 {
   "name": "witnet-toolkit",
-  "version": "2.0.1",
+  "version": "2.0.2",
   "description": "Basic typescript library for building Witnet Radon artifacts. This packag also bundles the `w3gw` and `witnet-toolkit` command-line tools.",
   "author": "Witnet Foundation",
   "license": "MIT",
@@ -11,7 +11,8 @@
   },
   "files": [
     "assets",
-    "dist"  
+    "dist",
+    "src/utils.js"
   ],
   "exports": {
     ".": "./dist/lib/radon/index.js",
