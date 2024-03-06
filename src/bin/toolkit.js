@@ -340,7 +340,7 @@ Promise.all([
         const formattedRadonResult = formatRadonValue(source.result)
         const resultInterpolation = `${yellow(formattedRadonResult[0])}: ${formattedRadonResult[1]}`
         return `
- │   ${cornerChar}─${green('[')} Source #${sourceIndex} ${ query?.retrieve[sourceIndex]?.url ? `(${new URL(query.retrieve[sourceIndex].url).hostname})` : ''} ${green(']')}${urlInterpolation}
+ │   ${cornerChar}─${green('[')} Source #${sourceIndex} ${ query.retrieve[sourceIndex].url ? `(${new URL(query.retrieve[sourceIndex].url).hostname})` : ''} ${green(']')}${urlInterpolation}
  │   ${sideChar}  Number of executed operators: ${source.context.call_index + 1 || 0}
  │   ${sideChar}  Execution time: ${executionTime > 0 ? executionTime + ' ms' : 'unknown'}
  │   ${sideChar}  Execution trace:\n${traceInterpolation}
