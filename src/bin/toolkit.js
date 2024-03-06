@@ -158,6 +158,8 @@ Promise.all([
 
     if (radonType === 'RadonInteger') {
       value = parseInt(value.replace('\"', ''))
+    } else if (radonType === 'RadonBytes') {
+      value = JSON.parse(value).map(i => i.toString(16)).join("")
     } else if (radonType === 'RadonError') {
       value = red(
         value
@@ -192,7 +194,7 @@ Promise.all([
     if (!settings.checks.toolkitIsDownloaded) {
       // Skip confirmation if install is forced
       if (!settings.force) {
-        console.log(`The witnettoolkit ${version} native binary hasn't been downloaded yet (this is a requirement).`)
+        console.log(`The witnet_toolkit ${version} native binary hasn't been downloaded yet (this is a requirement).`)
         const will = await prompt("Do you want to download it now? (Y/n)")
 
         // Abort if not confirmed
@@ -312,38 +314,38 @@ Promise.all([
             return ` │   ${sideChar}    [${callIndex}] ${operator} ${yellow(formattedRadonValue[0])}: ${formattedRadonValue[1]}`
           }).join('\n')
         } catch (e) {
-          traceInterpolation = ` |   ${sideChar}  ${red('[ERROR] Cannot decode execution trace information')}`
+          traceInterpolation = ` │   ${sideChar}  ${red('[ERROR] Cannot decode execution trace information')}`
         }
 
         let urlInterpolation = query ? `
-  |   ${sideChar}  Method: ${radon.retrieve[sourceIndex].kind}
-  |   ${sideChar}  Complete URL: ${radon.retrieve[sourceIndex].url}` : ''
+ │   ${sideChar}  Method: ${radon.retrieve[sourceIndex].kind}
+ │   ${sideChar}  Complete URL: ${radon.retrieve[sourceIndex].url}` : ''
 
         // // TODO: take headers info from `radon` instead of `query` once POST is supported in `witnet-radon-js`
         const headers = radon.retrieve[sourceIndex].headers;//query.retrieve[sourceIndex].headers
         if (headers) {
           const headersInterpolation = headers.map(([key, value]) => `
-  |   ${sideChar}    "${key}": "${value}"`).join()
+ │   ${sideChar}    "${key}": "${value}"`).join()
           urlInterpolation += `
-  |   ${sideChar}  Headers: ${headersInterpolation}`
+ │   ${sideChar}  Headers: ${headersInterpolation}`
         }
 
         // // TODO: take body info from `radon` instead of `query` once POST is supported in `witnet-radon-js`
         const body = radon.retrieve[sourceIndex].body;//query.retrieve[sourceIndex].body
         if (body) {
           urlInterpolation += `
-  |   ${sideChar}  Body: ${Buffer.from(body)}`
+ │   ${sideChar}  Body: ${Buffer.from(body)}`
         }
 
         const formattedRadonResult = formatRadonValue(source.result)
         const resultInterpolation = `${yellow(formattedRadonResult[0])}: ${formattedRadonResult[1]}`
-
-        return ` │   ${cornerChar}─${green('[')} Source #${sourceIndex} ${ query ? `(${new URL(query.retrieve[sourceIndex].url).hostname})` : ''} ${green(']')}${urlInterpolation}
-  |   ${sideChar}  Number of executed operators: ${source.context.call_index + 1 || 0}
-  |   ${sideChar}  Execution time: ${executionTime > 0 ? executionTime + ' ms' : 'unknown'}
-  |   ${sideChar}  Execution trace:\n${traceInterpolation}
-  |   ${sideChar}  Result: ${resultInterpolation}`
-      }).join('\n |   │\n')
+        return `
+ │   ${cornerChar}─${green('[')} Source #${sourceIndex} ${ query?.retrieve[sourceIndex]?.url ? `(${new URL(query.retrieve[sourceIndex].url).hostname})` : ''} ${green(']')}${urlInterpolation}
+ │   ${sideChar}  Number of executed operators: ${source.context.call_index + 1 || 0}
+ │   ${sideChar}  Execution time: ${executionTime > 0 ? executionTime + ' ms' : 'unknown'}
+ │   ${sideChar}  Execution trace:\n${traceInterpolation}
+ │   ${sideChar}  Execution result: ${resultInterpolation}`
+      }).join('\n │   │\n')
 
       let aggregationExecuted, aggregationExecutionTime, aggregationResult, tallyExecuted, tallyExecutionTime, tallyResult
 
@@ -366,39 +368,38 @@ Promise.all([
       }
 
       let filenameInterpolation = ''
-      const retrievalInterpolation = ` │
-  │  ┌────────────────────────────────────────────────┐
-  ├──┤ Retrieval stage                                │
-  │  ├────────────────────────────────────────────────┤
-  │  │ Number of retrieved data sources: ${dataSourcesCount}${` `.repeat(13 - dataSourcesCount.toString().length)}│
-  │  └┬───────────────────────────────────────────────┘
-  │   │
-  ${dataSourcesInterpolation}`
+      const retrievalInterpolation = `│
+ │  ┌────────────────────────────────────────────────┐
+ ├──┤ Retrieve stage                                 │
+ │  ├────────────────────────────────────────────────┤
+ │  │ Number of retrieved data sources: ${dataSourcesCount}${` `.repeat(13 - dataSourcesCount.toString().length)}│
+ │  └┬───────────────────────────────────────────────┘
+ │   │${dataSourcesInterpolation}`
 
       const aggregationExecutionTimeInterpolation = aggregationExecuted ? `
-  │  │ Execution time: ${aggregationExecutionTime} ms${` `.repeat(28 - aggregationExecutionTime.toString().length)}│` : ''
-      const aggregationInterpolation = ` │
-  │  ┌────────────────────────────────────────────────┐
-  ├──┤ Aggregation stage                              │
-  │  ├────────────────────────────────────────────────┤${aggregationExecutionTimeInterpolation}
-  │  │ Result is ${yellow(aggregationResult[0])}: ${aggregationResult[1]}${` `.repeat(Math.max(0, (aggregationResult[0] === 'Error' ? 44 : 35) - aggregationResult[0].toString().length - aggregationResult[1].toString().length))}│
-  │  └────────────────────────────────────────────────┘`
+ │  │ Execution time: ${aggregationExecutionTime} ms${` `.repeat(28 - aggregationExecutionTime.toString().length)}│` : ''
+      const aggregationInterpolation = `│
+ │  ┌────────────────────────────────────────────────┐
+ ├──┤ Aggregate stage                                │
+ │  ├────────────────────────────────────────────────┤${aggregationExecutionTimeInterpolation}
+ │  │ Result is: ${yellow(aggregationResult[0])}: ${aggregationResult[1]}${` `.repeat(Math.max(0, (aggregationResult[0] === 'Error' ? 43 : 34) - aggregationResult[0].toString().length - aggregationResult[1].toString().length))}│
+ │  └────────────────────────────────────────────────┘`
 
       const tallyExecutionTimeInterpolation = tallyExecuted ? `
-      │ Execution time: ${tallyExecutionTime} ms${` `.repeat(28 - tallyExecutionTime.toString().length)}│` : ''
-      const tallyInterpolation = ` │  
-  │  ┌────────────────────────────────────────────────┐
-  └──┤ Tally stage                                    │
-      ├────────────────────────────────────────────────┤${tallyExecutionTimeInterpolation}
-      │ Result is ${yellow(tallyResult[0])}: ${tallyResult[1]}${` `.repeat(Math.max(0, (tallyResult[0] === 'Error' ? 44 : 35) - tallyResult[0].toString().length - tallyResult[1].toString().length))}│
-      └────────────────────────────────────────────────┘`
+    │ Execution time: ${tallyExecutionTime} ms${` `.repeat(28 - tallyExecutionTime.toString().length)}│` : ''
+      const tallyInterpolation = `│  
+ │  ┌────────────────────────────────────────────────┐
+ └──┤ Tally stage                                    │
+    ├────────────────────────────────────────────────┤${tallyExecutionTimeInterpolation}
+    │ Result is: ${yellow(tallyResult[0])}: ${tallyResult[1]}${` `.repeat(Math.max(0, (tallyResult[0] === 'Error' ? 43 : 34) - tallyResult[0].toString().length - tallyResult[1].toString().length))}│
+    └────────────────────────────────────────────────┘`
 
-      return `╔════════════════════════════════════════════╗
-  ║ Witnet query local execution report        ║${filenameInterpolation}
-  ╚╤═══════════════════════════════════════════╝
-  ${retrievalInterpolation}
-  ${aggregationInterpolation}
-  ${tallyInterpolation}`
+      return `╔═══════════════════════════════════════════════════╗
+║ Witnet data request local execution report        ║${filenameInterpolation}
+╚╤══════════════════════════════════════════════════╝
+ ${retrievalInterpolation}
+ ${aggregationInterpolation}
+ ${tallyInterpolation}`
     })).then((outputs) => outputs.join('\n'))
   }
 
