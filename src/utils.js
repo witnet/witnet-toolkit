@@ -18,11 +18,11 @@ module.exports = {
 }
 
 async function dryRunBytecode(bytecode) {
-  return (await execSync(`npx witnet-toolkit try-data-request --hex ${bytecode}`)).toString()
+  return (await execSync(`npx witnet-toolkit try-query --hex ${bytecode}`)).toString()
 }
 
 async function dryRunBytecodeVerbose(bytecode) {
-  return (await execSync(`npx witnet-toolkit try-query --hex ${bytecode}`)).toString()
+  return (await execSync(`npx witnet-toolkit trace-query --hex ${bytecode}`)).toString()
 }
 
 function fromAscii(str) {
@@ -136,22 +136,6 @@ function parseURL(url) {
   } else {
     throw new EvalError(`Invalid URL was provided: ${url}`)
   }
-}
-
-function proxyHandler(t) {
-  return {
-      get: function (target, prop) {
-          var _a;
-          var found = (_a = target[prop]) !== null && _a !== void 0 ? _a : findKeyInObject(target, prop);
-          if (!found) {
-              throw EvalError("\u001B[1;31m['".concat(prop, "']\u001B[1;33m was not found in dictionary\u001B[0m"));
-          }
-          else if (!(found instanceof t)) {
-              throw EvalError("\u001B[1;31m['".concat(prop, "']\u001B[1;33m was found with unexpected type!\u001B[0m"));
-          }
-          return found;
-      }
-  };
 }
 
 function spliceWildcards(obj, argIndex, argValue, argsCount) {

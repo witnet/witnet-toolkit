@@ -265,7 +265,7 @@ Promise.all([
     return (await promises).join()
   }
 
-  async function tryQueryCommand (settings, args) {
+  async function traceQueryCommand (settings, args) {
     let query, radon
     const tasks = await tasksFromArgs(args)
 
@@ -274,8 +274,7 @@ Promise.all([
       const mir = JSON.parse(queryJson)
       query = decodeScriptsAndArguments(mir)
       radon = new Radon(query)
-      const output = await fallbackCommand(settings, task)
-
+      const output = await fallbackCommand(settings, ['try-query', ...task.slice(1)])
       let report;
       try {
         report = JSON.parse(output)
@@ -407,18 +406,30 @@ Promise.all([
     // For compatibility reasons, map query methods to data-request methods
     if (args.length > 0) {
       args = [args[0].replace('-query', '-data-request'), ...args.slice(1)]
+      return toolkitRun(settings, args)
+        .catch((err) => {
+          let errorMessage = err.message.split('\n').slice(1).join('\n').trim()
+          const errorRegex = /.*^error: (?<message>.*)$.*/gm
+          const matched = errorRegex.exec(err.message)
+          if (matched) {
+            errorMessage = matched.groups.message
+          }
+          console.error(errorMessage || err)
+        })
+    } else {
+      console.info("USAGE:")
+      console.info("    npx witnet-toolkit <SUBCOMMAND>")
+      console.info("\nFLAGS:")
+      console.info("    --help            Prints help information")
+      console.info("    --verbose         Prints detailed information of the subcommands being run")
+      console.info("    --version         Prints version information")
+      console.info("\nSUBCOMMANDS:")
+      console.info("    decode-query      Decodes some Witnet data query bytecode")
+      console.info("    trace-query       Resolves some Witnet data query bytecode locally, printing out step-by-step information")
+      console.info("    try-query         Resolves some Witnet data query bytecode locally, returning a detailed JSON report")
+      console.info("    update            Updates the witnet-toolkit binary if required")
+      console.info()
     }
-
-    return toolkitRun(settings, args)
-      .catch((err) => {
-        let errorMessage = err.message.split('\n').slice(1).join('\n').trim()
-        const errorRegex = /.*^error: (?<message>.*)$.*/gm
-        const matched = errorRegex.exec(err.message)
-        if (matched) {
-          errorMessage = matched.groups.message
-        }
-        console.error(errorMessage || err)
-      })
   }
 
 
@@ -428,7 +439,7 @@ Promise.all([
     'decode-query': decodeQueryCommand,
     'fallback': fallbackCommand,
     'install': forcedInstallCommand,
-    'try-query': tryQueryCommand,
+    'trace-query': traceQueryCommand,
     'update': forcedInstallCommand,
   }
 
