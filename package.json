@@ -32,7 +32,7 @@
     "axios": "^1.6.7",
     "cbor": "^9.0.1",
     "graphql-query-compress": "^1.2.4",
-    "web3-jsonrpc-gateway": "^1.9.1",
+    "web3-jsonrpc-gateway": "^1.9.3",
     "witnet-radon-js": "^2.0.0"
   },
   "devDependencies": {
