@@ -23,19 +23,20 @@ Promise.all([
   const toolkitDownloadUrlBase = `https://github.com/witnet/witnet-rust/releases/download/${version}/`
   const toolkitDownloadNames = {
     win32: (arch) => `witnet_toolkit-${arch}-pc-windows-msvc.exe`,
-    linux: (arch) => `witnet_toolkit-${arch}-unknown-linux-gnu${arch.includes("arm") ? "eabihf" : ""}`,
+    // TODO: detect armv7
+    linux: (arch) => `witnet_toolkit-${arch}-unknown-linux-gnu${arch === "arm" ? "eabihf" : ""}`,
     darwin: (arch) => `witnet_toolkit-${arch}-apple-darwin`,
   }
   const toolkitFileNames = {
     win32: (arch) => `witnet_toolkit-${version}-${arch}-pc-windows-msvc.exe`,
-    linux: (arch) => `witnet_toolkit-${version}-${arch}-unknown-linux-gnu${arch.includes("arm") ? "eabihf" : ""}`,
+    // TODO: detect armv7
+    linux: (arch) => `witnet_toolkit-${version}-${arch}-unknown-linux-gnu${arch === "arm" ? "eabihf" : ""}`,
     darwin: (arch) => `witnet_toolkit-${version}-${arch}-apple-darwin`,
   }
   const archsMap = {
-    arm64: 'x86_64',
+    arm64: 'aarch64',
     x64: 'x86_64'
   }
-
   
   /// ENVIRONMENT ACQUISITION =========================================================================================
   
