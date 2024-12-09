@@ -19,7 +19,7 @@ Promise.all([
 
   /// CONSTANTS =======================================================================================================  
   
-  const version = '1.6.7'
+  const version = '1.7.1'
   const toolkitDownloadUrlBase = `https://github.com/witnet/witnet-rust/releases/download/${version}/`
   const toolkitDownloadNames = {
     win32: (arch) => `witnet_toolkit-${arch}-pc-windows-msvc.exe`,
