@@ -1,6 +1,9 @@
 # Dependency directories
 node_modules
 
+# Arch-dependant binaries
+assets/witnet_toolkit-*
+
 # Build artifacts
 dist/
 
