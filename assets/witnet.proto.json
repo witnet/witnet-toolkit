@@ -1,0 +1,1006 @@
+{
+  "options": {
+    "syntax": "proto3"
+  },
+  "nested": {
+    "witnet": {
+      "nested": {
+        "Message": {
+          "fields": {
+            "magic": {
+              "type": "uint32",
+              "id": 1
+            },
+            "kind": {
+              "type": "Command",
+              "id": 2
+            }
+          },
+          "nested": {
+            "Command": {
+              "oneofs": {
+                "kind": {
+                  "oneof": [
+                    "Version",
+                    "Verack",
+                    "GetPeers",
+                    "Peers",
+                    "Block",
+                    "InventoryAnnouncement",
+                    "InventoryRequest",
+                    "LastBeacon",
+                    "Transaction",
+                    "SuperBlockVote",
+                    "SuperBlock"
+                  ]
+                }
+              },
+              "fields": {
+                "Version": {
+                  "type": "Version",
+                  "id": 1
+                },
+                "Verack": {
+                  "type": "Verack",
+                  "id": 2
+                },
+                "GetPeers": {
+                  "type": "GetPeers",
+                  "id": 3
+                },
+                "Peers": {
+                  "type": "Peers",
+                  "id": 4
+                },
+                "Block": {
+                  "type": "Block",
+                  "id": 5
+                },
+                "InventoryAnnouncement": {
+                  "type": "InventoryAnnouncement",
+                  "id": 6
+                },
+                "InventoryRequest": {
+                  "type": "InventoryRequest",
+                  "id": 7
+                },
+                "LastBeacon": {
+                  "type": "LastBeacon",
+                  "id": 8
+                },
+                "Transaction": {
+                  "type": "Transaction",
+                  "id": 9
+                },
+                "SuperBlockVote": {
+                  "type": "SuperBlockVote",
+                  "id": 10
+                },
+                "SuperBlock": {
+                  "type": "SuperBlock",
+                  "id": 11
+                }
+              }
+            }
+          }
+        },
+        "Version": {
+          "fields": {
+            "version": {
+              "type": "uint32",
+              "id": 1
+            },
+            "timestamp": {
+              "type": "int64",
+              "id": 2
+            },
+            "capabilities": {
+              "type": "fixed64",
+              "id": 3
+            },
+            "senderAddress": {
+              "type": "Address",
+              "id": 4
+            },
+            "receiverAddress": {
+              "type": "Address",
+              "id": 5
+            },
+            "userAgent": {
+              "type": "string",
+              "id": 6
+            },
+            "nonce": {
+              "type": "fixed64",
+              "id": 7
+            },
+            "beacon": {
+              "type": "LastBeacon",
+              "id": 8
+            }
+          }
+        },
+        "Verack": {
+          "fields": {}
+        },
+        "GetPeers": {
+          "fields": {}
+        },
+        "Peers": {
+          "fields": {
+            "peers": {
+              "rule": "repeated",
+              "type": "Address",
+              "id": 1
+            }
+          }
+        },
+        "Block": {
+          "fields": {
+            "blockHeader": {
+              "type": "BlockHeader",
+              "id": 1
+            },
+            "blockSig": {
+              "type": "KeyedSignature",
+              "id": 2
+            },
+            "txns": {
+              "type": "BlockTransactions",
+              "id": 3
+            }
+          },
+          "nested": {
+            "BlockEligibilityClaim": {
+              "fields": {
+                "proof": {
+                  "type": "VrfProof",
+                  "id": 1
+                }
+              }
+            },
+            "BlockHeader": {
+              "fields": {
+                "signals": {
+                  "type": "uint32",
+                  "id": 1
+                },
+                "beacon": {
+                  "type": "CheckpointBeacon",
+                  "id": 2
+                },
+                "merkleRoots": {
+                  "type": "BlockMerkleRoots",
+                  "id": 3
+                },
+                "proof": {
+                  "type": "BlockEligibilityClaim",
+                  "id": 4
+                },
+                "bn256PublicKey": {
+                  "type": "Bn256PublicKey",
+                  "id": 5
+                }
+              },
+              "nested": {
+                "BlockMerkleRoots": {
+                  "fields": {
+                    "mintHash": {
+                      "type": "Hash",
+                      "id": 1
+                    },
+                    "vtHashMerkleRoot": {
+                      "type": "Hash",
+                      "id": 2
+                    },
+                    "drHashMerkleRoot": {
+                      "type": "Hash",
+                      "id": 3
+                    },
+                    "commitHashMerkleRoot": {
+                      "type": "Hash",
+                      "id": 4
+                    },
+                    "revealHashMerkleRoot": {
+                      "type": "Hash",
+                      "id": 5
+                    },
+                    "tallyHashMerkleRoot": {
+                      "type": "Hash",
+                      "id": 6
+                    }
+                  }
+                }
+              }
+            },
+            "BlockTransactions": {
+              "fields": {
+                "mint": {
+                  "type": "MintTransaction",
+                  "id": 1
+                },
+                "valueTransferTxns": {
+                  "rule": "repeated",
+                  "type": "VTTransaction",
+                  "id": 2
+                },
+                "dataRequestTxns": {
+                  "rule": "repeated",
+                  "type": "DRTransaction",
+                  "id": 3
+                },
+                "commitTxns": {
+                  "rule": "repeated",
+                  "type": "CommitTransaction",
+                  "id": 4
+                },
+                "revealTxns": {
+                  "rule": "repeated",
+                  "type": "RevealTransaction",
+                  "id": 5
+                },
+                "tallyTxns": {
+                  "rule": "repeated",
+                  "type": "TallyTransaction",
+                  "id": 6
+                }
+              }
+            }
+          }
+        },
+        "SuperBlock": {
+          "fields": {
+            "signingCommitteeLength": {
+              "type": "uint32",
+              "id": 1
+            },
+            "arsRoot": {
+              "type": "Hash",
+              "id": 2
+            },
+            "dataRequestRoot": {
+              "type": "Hash",
+              "id": 3
+            },
+            "index": {
+              "type": "uint32",
+              "id": 4
+            },
+            "lastBlock": {
+              "type": "Hash",
+              "id": 5
+            },
+            "lastBlockInPreviousSuperblock": {
+              "type": "Hash",
+              "id": 6
+            },
+            "tallyRoot": {
+              "type": "Hash",
+              "id": 7
+            }
+          }
+        },
+        "InventoryAnnouncement": {
+          "fields": {
+            "inventory": {
+              "rule": "repeated",
+              "type": "InventoryEntry",
+              "id": 1
+            }
+          }
+        },
+        "InventoryRequest": {
+          "fields": {
+            "inventory": {
+              "rule": "repeated",
+              "type": "InventoryEntry",
+              "id": 1
+            }
+          }
+        },
+        "LastBeacon": {
+          "fields": {
+            "highestBlockCheckpoint": {
+              "type": "CheckpointBeacon",
+              "id": 1
+            },
+            "highestSuperblockCheckpoint": {
+              "type": "CheckpointBeacon",
+              "id": 2
+            }
+          }
+        },
+        "OutputPointer": {
+          "fields": {
+            "transactionId": {
+              "type": "Hash",
+              "id": 1
+            },
+            "outputIndex": {
+              "type": "uint32",
+              "id": 2
+            }
+          }
+        },
+        "ValueTransferOutput": {
+          "fields": {
+            "pkh": {
+              "type": "PublicKeyHash",
+              "id": 1
+            },
+            "value": {
+              "type": "uint64",
+              "id": 2
+            },
+            "timeLock": {
+              "type": "uint64",
+              "id": 3
+            }
+          }
+        },
+        "DataRequestOutput": {
+          "fields": {
+            "dataRequest": {
+              "type": "RADRequest",
+              "id": 1
+            },
+            "witnessReward": {
+              "type": "uint64",
+              "id": 2
+            },
+            "witnesses": {
+              "type": "uint32",
+              "id": 3
+            },
+            "commitAndRevealFee": {
+              "type": "uint64",
+              "id": 4
+            },
+            "minConsensusPercentage": {
+              "type": "uint32",
+              "id": 5
+            },
+            "collateral": {
+              "type": "uint64",
+              "id": 6
+            }
+          },
+          "nested": {
+            "RADRequest": {
+              "fields": {
+                "timeLock": {
+                  "type": "uint64",
+                  "id": 1
+                },
+                "retrieve": {
+                  "rule": "repeated",
+                  "type": "RADRetrieve",
+                  "id": 2
+                },
+                "aggregate": {
+                  "type": "RADAggregate",
+                  "id": 3
+                },
+                "tally": {
+                  "type": "RADTally",
+                  "id": 4
+                }
+              },
+              "nested": {
+                "RADType": {
+                  "values": {
+                    "Unknown": 0,
+                    "HttpGet": 1,
+                    "Rng": 2,
+                    "HttpPost": 3
+                  }
+                },
+                "RADFilter": {
+                  "fields": {
+                    "op": {
+                      "type": "uint32",
+                      "id": 1
+                    },
+                    "args": {
+                      "type": "bytes",
+                      "id": 2
+                    }
+                  }
+                },
+                "RADRetrieve": {
+                  "fields": {
+                    "kind": {
+                      "type": "RADType",
+                      "id": 1
+                    },
+                    "url": {
+                      "type": "string",
+                      "id": 2
+                    },
+                    "script": {
+                      "type": "bytes",
+                      "id": 3
+                    },
+                    "body": {
+                      "type": "bytes",
+                      "id": 4
+                    },
+                    "headers": {
+                      "rule": "repeated",
+                      "type": "StringPair",
+                      "id": 5
+                    }
+                  }
+                },
+                "RADAggregate": {
+                  "fields": {
+                    "filters": {
+                      "rule": "repeated",
+                      "type": "RADFilter",
+                      "id": 1
+                    },
+                    "reducer": {
+                      "type": "uint32",
+                      "id": 2
+                    }
+                  }
+                },
+                "RADTally": {
+                  "fields": {
+                    "filters": {
+                      "rule": "repeated",
+                      "type": "RADFilter",
+                      "id": 1
+                    },
+                    "reducer": {
+                      "type": "uint32",
+                      "id": 2
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "StringPair": {
+          "fields": {
+            "left": {
+              "type": "string",
+              "id": 1
+            },
+            "right": {
+              "type": "string",
+              "id": 2
+            }
+          }
+        },
+        "Input": {
+          "fields": {
+            "outputPointer": {
+              "type": "OutputPointer",
+              "id": 1
+            }
+          }
+        },
+        "VTTransactionBody": {
+          "fields": {
+            "inputs": {
+              "rule": "repeated",
+              "type": "Input",
+              "id": 1
+            },
+            "outputs": {
+              "rule": "repeated",
+              "type": "ValueTransferOutput",
+              "id": 2
+            }
+          }
+        },
+        "VTTransaction": {
+          "fields": {
+            "body": {
+              "type": "VTTransactionBody",
+              "id": 1
+            },
+            "signatures": {
+              "rule": "repeated",
+              "type": "KeyedSignature",
+              "id": 2
+            }
+          }
+        },
+        "DRTransactionBody": {
+          "fields": {
+            "inputs": {
+              "rule": "repeated",
+              "type": "Input",
+              "id": 1
+            },
+            "outputs": {
+              "rule": "repeated",
+              "type": "ValueTransferOutput",
+              "id": 2
+            },
+            "drOutput": {
+              "type": "DataRequestOutput",
+              "id": 3
+            }
+          }
+        },
+        "DRTransaction": {
+          "fields": {
+            "body": {
+              "type": "DRTransactionBody",
+              "id": 1
+            },
+            "signatures": {
+              "rule": "repeated",
+              "type": "KeyedSignature",
+              "id": 2
+            }
+          }
+        },
+        "CommitTransactionBody": {
+          "fields": {
+            "drPointer": {
+              "type": "Hash",
+              "id": 1
+            },
+            "commitment": {
+              "type": "Hash",
+              "id": 2
+            },
+            "proof": {
+              "type": "DataRequestEligibilityClaim",
+              "id": 3
+            },
+            "collateral": {
+              "rule": "repeated",
+              "type": "Input",
+              "id": 4
+            },
+            "outputs": {
+              "rule": "repeated",
+              "type": "ValueTransferOutput",
+              "id": 5
+            },
+            "bn256PublicKey": {
+              "type": "Bn256PublicKey",
+              "id": 6
+            }
+          }
+        },
+        "CommitTransaction": {
+          "fields": {
+            "body": {
+              "type": "CommitTransactionBody",
+              "id": 1
+            },
+            "signatures": {
+              "rule": "repeated",
+              "type": "KeyedSignature",
+              "id": 2
+            }
+          }
+        },
+        "RevealTransactionBody": {
+          "fields": {
+            "drPointer": {
+              "type": "Hash",
+              "id": 1
+            },
+            "reveal": {
+              "type": "bytes",
+              "id": 2
+            },
+            "pkh": {
+              "type": "PublicKeyHash",
+              "id": 3
+            }
+          }
+        },
+        "RevealTransaction": {
+          "fields": {
+            "body": {
+              "type": "RevealTransactionBody",
+              "id": 1
+            },
+            "signatures": {
+              "rule": "repeated",
+              "type": "KeyedSignature",
+              "id": 2
+            }
+          }
+        },
+        "TallyTransaction": {
+          "fields": {
+            "drPointer": {
+              "type": "Hash",
+              "id": 1
+            },
+            "tally": {
+              "type": "bytes",
+              "id": 2
+            },
+            "outputs": {
+              "rule": "repeated",
+              "type": "ValueTransferOutput",
+              "id": 3
+            },
+            "outOfConsensus": {
+              "rule": "repeated",
+              "type": "PublicKeyHash",
+              "id": 4
+            },
+            "errorCommitters": {
+              "rule": "repeated",
+              "type": "PublicKeyHash",
+              "id": 5
+            }
+          }
+        },
+        "MintTransaction": {
+          "fields": {
+            "epoch": {
+              "type": "fixed32",
+              "id": 1
+            },
+            "outputs": {
+              "rule": "repeated",
+              "type": "ValueTransferOutput",
+              "id": 2
+            }
+          }
+        },
+        "Transaction": {
+          "oneofs": {
+            "kind": {
+              "oneof": [
+                "ValueTransfer",
+                "DataRequest",
+                "Commit",
+                "Reveal",
+                "Tally",
+                "Mint"
+              ]
+            }
+          },
+          "fields": {
+            "ValueTransfer": {
+              "type": "VTTransaction",
+              "id": 1
+            },
+            "DataRequest": {
+              "type": "DRTransaction",
+              "id": 2
+            },
+            "Commit": {
+              "type": "CommitTransaction",
+              "id": 3
+            },
+            "Reveal": {
+              "type": "RevealTransaction",
+              "id": 4
+            },
+            "Tally": {
+              "type": "TallyTransaction",
+              "id": 5
+            },
+            "Mint": {
+              "type": "MintTransaction",
+              "id": 6
+            }
+          }
+        },
+        "Hash": {
+          "oneofs": {
+            "kind": {
+              "oneof": [
+                "SHA256"
+              ]
+            }
+          },
+          "fields": {
+            "SHA256": {
+              "type": "bytes",
+              "id": 1
+            }
+          }
+        },
+        "Secp256k1Signature": {
+          "fields": {
+            "der": {
+              "type": "bytes",
+              "id": 1
+            }
+          }
+        },
+        "Signature": {
+          "oneofs": {
+            "kind": {
+              "oneof": [
+                "Secp256k1"
+              ]
+            }
+          },
+          "fields": {
+            "Secp256k1": {
+              "type": "Secp256k1Signature",
+              "id": 1
+            }
+          }
+        },
+        "Bn256Signature": {
+          "fields": {
+            "signature": {
+              "type": "bytes",
+              "id": 1
+            }
+          }
+        },
+        "PublicKey": {
+          "fields": {
+            "publicKey": {
+              "type": "bytes",
+              "id": 1
+            }
+          }
+        },
+        "Bn256PublicKey": {
+          "fields": {
+            "publicKey": {
+              "type": "bytes",
+              "id": 1
+            }
+          }
+        },
+        "PublicKeyHash": {
+          "fields": {
+            "hash": {
+              "type": "bytes",
+              "id": 1
+            }
+          }
+        },
+        "KeyedSignature": {
+          "fields": {
+            "signature": {
+              "type": "Signature",
+              "id": 1
+            },
+            "publicKey": {
+              "type": "PublicKey",
+              "id": 2
+            }
+          }
+        },
+        "Bn256KeyedSignature": {
+          "fields": {
+            "signature": {
+              "type": "Bn256Signature",
+              "id": 1
+            },
+            "publicKey": {
+              "type": "Bn256PublicKey",
+              "id": 2
+            }
+          }
+        },
+        "Address": {
+          "fields": {
+            "address": {
+              "type": "bytes",
+              "id": 1
+            }
+          }
+        },
+        "CheckpointBeacon": {
+          "fields": {
+            "checkpoint": {
+              "type": "fixed32",
+              "id": 1
+            },
+            "hashPrevBlock": {
+              "type": "Hash",
+              "id": 2
+            }
+          }
+        },
+        "CheckpointVRF": {
+          "fields": {
+            "checkpoint": {
+              "type": "fixed32",
+              "id": 1
+            },
+            "hashPrevVrf": {
+              "type": "Hash",
+              "id": 2
+            }
+          }
+        },
+        "InventoryEntry": {
+          "oneofs": {
+            "kind": {
+              "oneof": [
+                "Block",
+                "Tx",
+                "SuperBlock"
+              ]
+            }
+          },
+          "fields": {
+            "Block": {
+              "type": "Hash",
+              "id": 1
+            },
+            "Tx": {
+              "type": "Hash",
+              "id": 2
+            },
+            "SuperBlock": {
+              "type": "uint32",
+              "id": 3
+            }
+          }
+        },
+        "ConsensusConstants": {
+          "fields": {
+            "checkpointZeroTimestamp": {
+              "type": "int64",
+              "id": 1
+            },
+            "checkpointsPeriod": {
+              "type": "uint32",
+              "id": 2
+            },
+            "bootstrapHash": {
+              "type": "Hash",
+              "id": 3
+            },
+            "genesisHash": {
+              "type": "Hash",
+              "id": 4
+            },
+            "maxVtWeight": {
+              "type": "uint32",
+              "id": 5
+            },
+            "maxDrWeight": {
+              "type": "uint32",
+              "id": 6
+            },
+            "activityPeriod": {
+              "type": "uint32",
+              "id": 7
+            },
+            "reputationExpireAlphaDiff": {
+              "type": "uint32",
+              "id": 8
+            },
+            "reputationIssuance": {
+              "type": "uint32",
+              "id": 9
+            },
+            "reputationIssuanceStop": {
+              "type": "uint32",
+              "id": 10
+            },
+            "reputationPenalizationFactor": {
+              "type": "double",
+              "id": 11
+            },
+            "miningBackupFactor": {
+              "type": "uint32",
+              "id": 12
+            },
+            "miningReplicationFactor": {
+              "type": "uint32",
+              "id": 13
+            },
+            "collateralMinimum": {
+              "type": "uint64",
+              "id": 14
+            },
+            "collateralAge": {
+              "type": "uint32",
+              "id": 15
+            },
+            "superblockPeriod": {
+              "type": "uint32",
+              "id": 16
+            },
+            "extraRounds": {
+              "type": "uint32",
+              "id": 17
+            },
+            "minimumDifficulty": {
+              "type": "uint32",
+              "id": 18
+            },
+            "epochsWithMinimumDifficulty": {
+              "type": "uint32",
+              "id": 19
+            },
+            "bootstrappingCommittee": {
+              "rule": "repeated",
+              "type": "string",
+              "id": 20
+            },
+            "superblockSigningCommitteeSize": {
+              "type": "uint32",
+              "id": 21
+            },
+            "superblockCommitteeDecreasingPeriod": {
+              "type": "uint32",
+              "id": 22
+            },
+            "superblockCommitteeDecreasingStep": {
+              "type": "uint32",
+              "id": 23
+            },
+            "initialBlockReward": {
+              "type": "uint64",
+              "id": 24
+            },
+            "halvingPeriod": {
+              "type": "uint32",
+              "id": 25
+            }
+          }
+        },
+        "VrfProof": {
+          "fields": {
+            "proof": {
+              "type": "bytes",
+              "id": 1
+            },
+            "publicKey": {
+              "type": "PublicKey",
+              "id": 2
+            }
+          }
+        },
+        "DataRequestVrfMessage": {
+          "fields": {
+            "vrfInput": {
+              "type": "CheckpointVRF",
+              "id": 1
+            },
+            "drHash": {
+              "type": "Hash",
+              "id": 2
+            }
+          }
+        },
+        "DataRequestEligibilityClaim": {
+          "fields": {
+            "proof": {
+              "type": "VrfProof",
+              "id": 1
+            }
+          }
+        },
+        "SuperBlockVote": {
+          "fields": {
+            "bn256Signature": {
+              "type": "Bn256Signature",
+              "id": 1
+            },
+            "secp256k1Signature": {
+              "type": "KeyedSignature",
+              "id": 2
+            },
+            "superblockHash": {
+              "type": "Hash",
+              "id": 3
+            },
+            "superblockIndex": {
+              "type": "fixed32",
+              "id": 4
+            }
+          }
+        }
+      }
+    }
+  }
+}
