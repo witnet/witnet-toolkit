@@ -1,5 +1,5 @@
 import { RadonType as Script } from "./types"
-import { Class as Filter, Stdev as StdevFilter } from "./filters"
+import { RadonFilter, Stdev as StdevFilter } from "./filters"
 
 export enum Opcodes {
     Mode = 0x02,
@@ -10,18 +10,18 @@ export enum Opcodes {
 }
 
 export interface Specs {
-    filters?: Filter[],
+    filters?: RadonFilter[],
     script?: Script,
 }
 
-export class Class {
-    opcode: Opcodes
-    filters?: Filter[]
-    // TODO: script?: Script
-    constructor(opcode: Opcodes, filters?: Filter[]) {
+export class RadonReducer {
+
+    readonly opcode: Opcodes
+    readonly filters?: RadonFilter[]
+    
+    constructor(opcode: Opcodes, filters?: RadonFilter[]) {
         this.opcode = opcode
         this.filters = filters
-        // TODO: this.script = specs?.filters
         Object.defineProperty(this, "toString", { value: () => {
             let filters = ""
             this.filters?.map(filter => { filters = filter.toString() + `${filters ? "." + filters : ""}` })
@@ -35,13 +35,37 @@ export class Class {
             }
         }})
     }
+
+    public toJSON(): any {
+        var json: any = {
+            reducer: Opcodes[this.opcode],
+        }
+        if (this.filters && this.filters.length > 0) {
+            json.filter = this.filters.map(filter => filter.toJSON())
+        }
+        return json
+    }
+    
+    public toProtobuf(): any {
+        var protobuf: any = {
+            reducer: this.opcode,
+        }
+        if (this.filters && this.filters.length > 0) {
+            protobuf.filters = this.filters.map(filter => filter.toProtobuf())
+        }
+        return protobuf
+    }
+
+    public opsCount(): number {
+        return 1 + (this.filters?.length || 0)
+    }
 }
 
-export function Mode (...filters: Filter[]) { return new Class(Opcodes.Mode, filters); }
-export function Mean (...filters: Filter[]) { return new Class(Opcodes.MeanAverage, filters); }
-export function Median (...filters: Filter[]) { return new Class(Opcodes.MedianAverage, filters); }
-export function Stdev (...filters: Filter[]) { return new Class(Opcodes.StandardDeviation, filters); }
-export function ConcatHash (...filters: Filter[]) { return new Class(Opcodes.ConcatenateAndHash, filters); }
+export function Mode (...filters: RadonFilter[]) { return new RadonReducer(Opcodes.Mode, filters); }
+export function Mean (...filters: RadonFilter[]) { return new RadonReducer(Opcodes.MeanAverage, filters); }
+export function Median (...filters: RadonFilter[]) { return new RadonReducer(Opcodes.MedianAverage, filters); }
+export function Stdev (...filters: RadonFilter[]) { return new RadonReducer(Opcodes.StandardDeviation, filters); }
+export function ConcatHash (...filters: RadonFilter[]) { return new RadonReducer(Opcodes.ConcatenateAndHash, filters); }
 
-export function PriceAggregate () { return new Class(Opcodes.MeanAverage, [ StdevFilter(1.4) ]); }
-export function PriceTally () { return new Class(Opcodes.MeanAverage, [ StdevFilter(2.5) ]); }
+export function PriceAggregate () { return new RadonReducer(Opcodes.MeanAverage, [ StdevFilter(1.4) ]); }
+export function PriceTally () { return new RadonReducer(Opcodes.MeanAverage, [ StdevFilter(2.5) ]); }

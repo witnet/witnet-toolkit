@@ -1,92 +1,49 @@
 import * as _Artifacts from "./artifacts"
 import * as _Filters from "./filters"
 import * as _Reducers from "./reducers"
-import * as _Sources from "./sources"
-import * as _RPC from "./ccdr"
+import * as _Retrievals from "./retrievals"
+import * as _RPCs from "./rpcs"
 import * as _Types from "./types"
 
+import { RadonRequest, RadonRequestTemplate } from "./artifacts"
+import { RadonReducer } from "./reducers"
+import { RadonRetrieval } from "./retrievals"
+
 /**
- * Web3 deployable artifacts that can be declared within
- * Witnet asset files: 
- * - data request templates,
- * - parameterized requests, 
- * - precompiled requests.
+ * Constructors for Radon requests or templates.
  */
 export const Artifacts: typeof _Artifacts = _Artifacts;
 
 /**
- * Radon Filtering operators that can be used within both
- * the Aggregate and Tally scripts of a Data Request.
+ * Set of Radon filters operators that can be used within both
+ * the `aggregate` and `tally` Radon reducers within
+ * a Radon request or template.
  */
 export const Filters: typeof _Filters = _Filters;
 
-/**
- * Radon Reducing operators that can be used within both
- * the Aggregate and Tally scripts of a Data Request.
+/**     
+ * Set of Radon reducers that can be applied to either
+ * data extracted from multiple data sources (i.e. `aggregate`),
+ * or results revealed from multiple witnessing nodes (i.e. `tally`).
  */
 export const Reducers: typeof _Reducers = _Reducers;
 
 /**
- * Supported data source types that can be added as part of a Data Request.
+ * Set of Radon retrievals that can be added as part of Radon requests or templates.
  */
-export const Sources: typeof _Sources = _Sources;
+export const Retrievals: typeof _Retrievals = _Retrievals;
 
 /**
- * Precompiled Remote Procedure Calls that can be included within
- * Cross Chain Data Requests (i.e. `Witnet.Sources.CrossChainDataSource({ .. })`, 
- * grouped by JSON-RPC protocol:
- * - JSON ETH/RPC endpoints
- * - JSON WIT/RPC endpoints
+ * Set or Remote Procedure Calls that can be used within Cross-chain Radon retrievals.
  */
-export const CCDR: typeof _RPC = _RPC;
+export const RPCs: typeof _RPCs = _RPCs;
 
 /**
- * Data types handled by Radon scripts
- * while processing response(s) from 
- * the source(s) of a Data Request.
+ * Set of data types that can be processed
+ * by Radon scripts when processing the result
+ * extracted from Radon retrievals.
  */
 export const Types: typeof _Types = _Types;
-
-/**
- * Creates a proxy dictionary of Witnet Radon assets
- * of the specified kind, where keys cannot
- * be duplicated, and where items can be accessed
- * by their name, no matter how deep they are placed
- * within the given hierarchy. 
- * @param t Type of the contained Radon assets.
- * @param dict Hierarchical object containing the assets.
- * @returns 
- */
-export function Dictionary<T>(t: { new(): T; }, dict: Object): Object {
-    return new Proxy(dict, proxyHandler<T>(t))
-}
-
-function proxyHandler<T>(t: { new(): T; }) {
-    return {
-        get(target: any, prop: string) {
-            let found = target[prop] ?? findKeyInObject(target, prop)
-            if (!found) {
-                throw EvalError(`\x1b[1;31m['${prop}']\x1b[1;33m was not found in dictionary\x1b[0m`)
-            } else if (!(found instanceof t)) {
-                throw EvalError(`\x1b[1;31m['${prop}']\x1b[1;33m was found with unexpected type!\x1b[0m`)
-            }
-            return found
-        }
-    }
-}
-
-function findKeyInObject(dict: any, tag: string) {
-    for (const key in dict) {
-        if (typeof dict[key] === 'object') {
-            if (key === tag) {
-                return dict[key]
-            } else {
-                let found: any = findKeyInObject(dict[key], tag)
-                if (found) return found
-            }
-        }
-    }
-}
 
 /**
  * Creates a Radon script capable of processing the returned
@@ -108,19 +65,8 @@ export function InnerScript<T extends _Types.RadonType>(t: { new(): T; }): T { r
 /// ===================================================================================================================
 /// --- Request and Template factory methods --------------------------------------------------------------------------
 
-export function PriceTickerRequest (dict: any, tags: Map<string, string | string[] | undefined>) {
-    return RequestFromDictionary({
-        retrieve: {
-            dict, 
-            tags,
-        }, 
-        aggregate: _Reducers.PriceAggregate(), 
-        tally: _Reducers.PriceTally()
-    })
-};
-
-export function PriceTickerTemplate (specs: { retrieve: _Sources.Class[], tests?: Map<string, string[][]> }) { 
-    return new _Artifacts.Template(
+export function PriceTickerTemplate (specs: { retrieve: RadonRetrieval[], tests?: Map<string, string[][]> }) { 
+    return new RadonRequestTemplate(
         {
             retrieve: specs.retrieve, 
             aggregate: _Reducers.PriceAggregate(), 
@@ -129,68 +75,28 @@ export function PriceTickerTemplate (specs: { retrieve: _Sources.Class[], tests?
         specs?.tests
     );
 };
- 
-export function RequestFromDictionary (specs: { 
-    retrieve: { dict: any, tags: Map<string, string | string[] | undefined>, },
-    aggregate?: _Reducers.Class, 
-    tally?: _Reducers.Class
-}) {
-    const sources: _Sources.Class[] = []
-    const args: string[][] = []
-    Object.keys(specs.retrieve.tags).forEach(key => {    
-        const retrieval: _Sources.Class = specs.retrieve.dict[key]
-        const value: any = (specs.retrieve.tags as any)[key]
-        if (typeof value === 'string') {
-            if (retrieval?.tuples) {
-                args.push((retrieval.tuples as any)[value] || [])
-            } else {
-                throw EvalError(`\x1b[1;33mRequestFromDictionary: No tuple \x1b[1;31m'${value}'\x1b[1;33m was declared for retrieval \x1b[1;37m['${key}']\x1b[0m`)
-            }
-        } else {
-            args.push(value || [])
-        }
-        sources.push(retrieval)
-    })
-    return new _Artifacts.Parameterized(
-        new _Artifacts.Template({ retrieve: sources, aggregate: specs.aggregate, tally: specs.tally }),
-        args
-    )
-};
 
-export function RequestFromTemplate (template: _Artifacts.Template, args: string[] | string[][]) {
-    return new _Artifacts.Parameterized(template, args);
+export function Request (specs: { 
+    retrieve: RadonRetrieval[], 
+    aggregate?: RadonReducer, 
+    tally?: RadonReducer 
+}): RadonRequest {
+    return new RadonRequest(specs)
 };
+ 
 
 export function RequestTemplate (specs: {
-        retrieve: _Sources.Class[], 
-        aggregate?: _Reducers.Class, 
-        tally?: _Reducers.Class,
+        retrieve: RadonRetrieval[], 
+        aggregate?: RadonReducer, 
+        tally?: RadonReducer,
         tests?: Map<string, string[] | string[][]>,   
-}) {
-    return new _Artifacts.Template(
+}): RadonRequestTemplate {
+    return new RadonRequestTemplate(
         {
             retrieve: specs.retrieve,
             aggregate: specs?.aggregate,
             tally: specs?.tally
-        }, specs.tests
-    );
-};
-
-export function RequestTemplateSingleSource (retrieval: _Sources.Class, tests?: Map<string, string[] | string[][]>) {
-    return new _Artifacts.Template(
-        {
-            retrieve: [ retrieval ],
-            aggregate: _Reducers.Mode(),
-            tally: _Reducers.Mode(Filters.Mode()),
         }, 
-        tests
+        specs.tests
     );
-};
-
-export function StaticRequest (specs: { 
-    retrieve: _Sources.Class[], 
-    aggregate?: _Reducers.Class, 
-    tally?: _Reducers.Class 
-}) {
-    return new _Artifacts.Precompiled(specs)
 };

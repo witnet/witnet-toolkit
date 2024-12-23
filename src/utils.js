@@ -1,170 +1,188 @@
-const { execSync } = require("child_process")
+const cbor = require("cbor")
+const os = require("os")
+const crypto = require("crypto")
+const { exec } = require("child_process")
 
-module.exports = {
-  dryRunBytecode,
-  dryRunBytecodeVerbose,
-  fromAscii,
-  getRequestMethodString,
-  getRequestResultDataTypeString,
-  getMaxArgsIndexFromString,
-  isHexString,
-  isHexStringOfLength,
-  isWildcard,
-  mapObjectRecursively,
-  padLeft,
-  parseURL,
-  spliceWildcards,
-  splitSelectionFromProcessArgv,
-}
+var protoBuf = require("protobufjs")
+var protoRoot = protoBuf.Root.fromJSON(require("../assets/witnet.proto.json"))
+var RADRequest = protoRoot.lookupType("RADRequest")
 
-async function dryRunBytecode(bytecode) {
-  return (await execSync(`npx witnet-toolkit try-query --hex ${bytecode}`)).toString()
-}
+import { RadonRequest } from "./lib/radon/artifacts"
+import { RadonRetrieval } from "./lib/radon/retrievals"
+import { RadonReducer } from "./lib/radon/reducers"
+import { RadonFilter } from "./lib/radon/filters"
+import * as RadonTypes from "./lib/radon/types"
 
-async function dryRunBytecodeVerbose(bytecode) {
-  return (await execSync(`npx witnet-toolkit trace-query --hex ${bytecode}`)).toString()
-}
-
-function fromAscii(str) {
-  const arr1 = []
-  for (let n = 0, l = str.length; n < l; n++) {
-    const hex = Number(str.charCodeAt(n)).toString(16)
-    arr1.push(hex)
-  }
-  return "0x" + arr1.join("")
-}
-
-function getMaxArgsIndexFromString(str) {
-  let maxArgsIndex = 0
-  if (str) {
-    let match
-    const regexp = /\\\d\\/g
-    while ((match = regexp.exec(str)) !== null) {
-      let argsIndex = parseInt(match[0][1]) + 1
-      if (argsIndex > maxArgsIndex) maxArgsIndex = argsIndex
+export function decodeRequest(hexString) {
+  const buffer = fromHexString(hexString)
+  const obj = RADRequest.decode(buffer)
+  const retrieve = obj.retrieve.map(retrieval => {
+    const specs = {}
+    if (retrieval?.url) { specs.url = retrieval.url }
+    if (retrieval?.headers) { 
+      specs.headers = retrieval.headers.map(stringPair =>  [
+        stringPair.left,
+        stringPair.right
+      ])
     }
+    if (retrieval?.body && retrieval.body.length > 0) { 
+      specs.body = utf8ArrayToStr(Object.values(retrieval.body)) 
+    }
+    if (retrieval?.script) specs.script = decodeScript(toHexString(retrieval.script))
+    return new RadonRetrieval(retrieval.kind, specs)
+  })
+  var decodeFilter = (f) => {
+    if (f?.args && f.args.length > 0) return new RadonFilter(f.op, cbor.decode(f.args))
+    else return new RadonFilter(f.op);
   }
-  return maxArgsIndex
+  return new RadonRequest({
+    retrieve,
+    aggregate: new RadonReducer(obj.aggregate.reducer, obj.aggregate.filters?.map(decodeFilter)),
+    tally: new RadonReducer(obj.tally.reducer, obj.tally.filters?.map(decodeFilter))
+  })
 }
 
-function getRequestMethodString(method) {
-  if (!method) {
-    return "HTTP-GET";
+export function decodeScript(hexString) {
+  const buffer = fromHexString(hexString)
+  const array = cbor.decode(buffer)
+  return parseScript(array)
+}
+
+export async function execDryRun(bytecode, ...flags) {
+  if (!isHexString(bytecode)) {
+    throw EvalError("Witnet.Utils.execDryRun: invalid bytecode")
   } else {
-    const methodNameMap = {
-      0: "UNKNOWN",
-      1: "HTTP-GET",
-      2: "RNG",
-      3: "HTTP-POST",
-      4: "HTTP-HEAD",
-    };
-    return methodNameMap[method] || method.toString();
+    const npx = os.type() === "Windows_NT" ? "npx.cmd" : "npx"
+    return cmd(npx, "witnet-toolkit", "dryrunRadonRequest", bytecode, ...flags)
+      .catch((err) => {
+        let errorMessage = err.message.split('\n').slice(1).join('\n').trim()
+        const errorRegex = /.*^error: (?<message>.*)$.*/gm
+        const matched = errorRegex.exec(err.message)
+        if (matched) {
+          errorMessage = matched.groups.message
+        }
+        console.error(errorMessage || err)
+      })
   }
 }
 
-function getRequestResultDataTypeString(type) {
-  const typeMap = {
-    1: "Array",
-    2: "Bool",
-    3: "Bytes",
-    4: "Integer",
-    5: "Float",
-    6: "Map",
-    7: "String",
-  };
-  return typeMap[type] || "(Undetermined)";
+export function fromHexString(hexString) {
+  if (hexString.startsWith("0x")) hexString = hexString.slice(2)
+  return Uint8Array.from(hexString.match(/.{1,2}/g).map((byte) => parseInt(byte, 16)))
 }
+
+export function sha256(buffer) {
+  const hash = crypto.createHash('sha256')
+  hash.update(buffer)
+  return hash.digest('hex')
+}
+
+export function toHexString(buffer) {
+  return "0x" + Array.prototype.map.call(buffer, x => ('00' + x.toString(16)).slice(-2))
+    .join('')
+    .match(/[a-fA-F0-9]{2}/g)
+    .join('')
+}
+
+// internal helper methods ------------------------------------------------------------------------
+
+function cmd (...command) {
+  return new Promise((resolve, reject) => {
+    exec(command.join(" "), { maxBuffer: 1024 * 1024 * 10 }, (error, stdout, stderr) => {
+      if (error) {
+        reject(error)
+      }
+      if (stderr) {
+        reject(stderr)
+      }
+      resolve(stdout)
+    })
+  })
+};
 
 function isHexString(str) {
+  if (str.startsWith("0x")) str = str.slice(2)
   return (
     !Number.isInteger(str)
-    && str.startsWith("0x")
     && /^[a-fA-F0-9]+$/i.test(str.slice(2))
   );
 }
 
-function isHexStringOfLength(str, max) {
-  return (isHexString(str)
-    && str.slice(2).length <= max * 2
-  );
-}
-
-function isWildcard(str) {
-  return str.length == 3 && /\\\d\\/g.test(str)
-}
-
-function mapObjectRecursively(obj, callback) {
-  let newObj = {}
-  for (let key in obj) {
-    if (obj.hasOwnProperty(key)) {
-      if (typeof obj[key] === "object") {
-        newObj[key] = mapObjectRecursively(obj[key], callback);
+function parseScript(array, script) {
+  if (Array.isArray(array)) {
+    array.forEach(item => {
+      if (Array.isArray(item)) {
+        script = parseScriptOperator(script, item[0], item.slice(1))
       } else {
-        newObj[key] = callback(key, obj[key]);
+        script = parseScriptOperator(script, item)
       }
-    }
-  }
-  return newObj;
-}
-
-function padLeft(str, char, size) {
-  if (str.length < size) {
-    return char.repeat((size - str.length) / char.length) + str
+    }) 
+    return script
   } else {
-    return str
+    return parseScriptOperator(script, array)
   }
 }
 
-function parseURL(url) {
-  if (url && typeof url === 'string' && url.indexOf("://") > -1) {
-    const hostIndex = url.indexOf("://") + 3
-    const schema = url.slice(0, hostIndex)
-    let host = url.slice(hostIndex)
-    let path = ""
-    let query = ""
-    const pathIndex = host.indexOf("/")
-    if (pathIndex > -1) {
-      path = host.slice(pathIndex + 1)
-      host = host.slice(0, pathIndex)
-      const queryIndex = path.indexOf("?")
-      if (queryIndex > -1) {
-        query = path.slice(queryIndex + 1)
-        path = path.slice(0, queryIndex)
-      }
+function parseScriptOperator(script, opcode, args) {
+  if (!script) {
+    const found = Object.entries({
+      "10": RadonTypes.RadonArray,
+      "20": RadonTypes.RadonBoolean,
+      "30": RadonTypes.RadonBytes,
+      "40": RadonTypes.RadonInteger,
+      "50": RadonTypes.RadonFloat,
+      "60": RadonTypes.RadonMap,
+      "70": RadonTypes.RadonString,
+    }).find(entry => entry[0] === (parseInt(opcode) & 0xf0).toString(16))
+    const RadonClass = found ? found[1] : RadonTypes.RadonType;
+    script = new RadonClass()
+  }
+  if (opcode) {
+    var operator = RadonTypes.RadonOperators[opcode].split(/(?=[A-Z])/).slice(1).join("")
+    operator = operator.charAt(0).toLowerCase() + operator.slice(1)
+    switch (operator) {
+      case "filter": case "map": case "sort": 
+        return script[operator](parseScript(args[0]), args.slice(1));
+      
+      case "alter":
+        return script[operator](args[0], parseScript(args[1], ...args.slice(2)));
+      
+      default:
+        return script[operator](args)
     }
-    return [schema, host, path, query];
-  } else {
-    throw new EvalError(`Invalid URL was provided: ${url}`)
   }
 }
 
-function spliceWildcards(obj, argIndex, argValue, argsCount) {
-  if (obj && typeof obj === "string") {
-    const wildcard = `\\${argIndex}\\`
-    obj = obj.replaceAll(wildcard, argValue)
-    for (var j = argIndex + 1; j < argsCount; j++) {
-      obj = obj.replaceAll(`\\${j}\\`, `\\${j - 1}\\`)
+function utf8ArrayToStr(array) {
+  var out, i, len, c;
+  var char2, char3;
+
+  out = "";
+  len = array.length;
+  i = 0;
+  while(i < len) {
+    c = array[i++];
+    switch(c >> 4)
+    { 
+      case 0: case 1: case 2: case 3: case 4: case 5: case 6: case 7:
+        // 0xxxxxxx
+        out += String.fromCharCode(c);
+        break;
+      case 12: case 13:
+        // 110x xxxx   10xx xxxx
+        char2 = array[i++];
+        out += String.fromCharCode(((c & 0x1F) << 6) | (char2 & 0x3F));
+        break;
+      case 14:
+        // 1110 xxxx  10xx xxxx  10xx xxxx
+        char2 = array[i++];
+        char3 = array[i++];
+        out += String.fromCharCode(((c & 0x0F) << 12) |
+                      ((char2 & 0x3F) << 6) |
+                      ((char3 & 0x3F) << 0));
+        break;
     }
-  } else if (obj && Array.isArray(obj)) {
-    obj = obj.map(value => typeof value === "string" || Array.isArray(value)
-      ? spliceWildcards(value, argIndex, argValue, argsCount)
-      : value
-    )
   }
-  return obj;
-}
 
-function splitSelectionFromProcessArgv(operand) {
-  let selection = []
-  if (process.argv.includes(operand)) {
-    process.argv.map((argv, index, args) => {
-      if (argv === operand) {
-        if (index < process.argv.length - 1 && !args[index + 1].startsWith("--")) {
-          selection = args[index + 1].replaceAll(":", ".").split(",")
-        }
-      }
-    })
-  }
-  return selection
+  return out;
 }
-
