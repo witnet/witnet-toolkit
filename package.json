@@ -1,6 +1,6 @@
 {
   "name": "witnet-toolkit",
-  "version": "2.0.8",
+  "version": "2.1.0-beta.0",
   "description": "JS/TS library and CLI tooling for Web3 devs willing to interact with the Witnet network without actually running a Witnet node.",
   "author": "Witnet Foundation",
   "license": "MIT",
@@ -30,7 +30,7 @@
   },
   "types": "./dist/lib/radon",
   "scripts": {
-    "build": "tsc -p tsconfig.json && npx pbjs --target json assets/witnet.proto -o witnet.proto.json",
+    "build": "tsc -p tsconfig.json && npx pbjs --target json assets/witnet.proto -o assets/witnet.proto.json",
     "prepare": "pnpm run build",
     "test": "node ./src/bin/toolkit.js update"
   },
