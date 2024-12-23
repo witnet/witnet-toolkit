@@ -25,9 +25,9 @@ export type Bytes = HexString;
 export type BlockNumber = number | Bytes32;
 
 /**
- * Base container class for Web3 Remote Procedure Calls.
+ * Base container class for JSON Remote Procedure Calls.
  */ 
-export class Call {
+export class JsonRPC {
     method: string;
     params?: any;
     /**

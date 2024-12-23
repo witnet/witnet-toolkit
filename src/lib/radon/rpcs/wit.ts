@@ -1,8 +1,8 @@
-const utils = require("../utils")
+const helpers = require("../helpers")
 
 import { 
     Bytes32,
-    Call,
+    JsonRPC,
 } from ".";
 
 export type WitAddress = string & {
@@ -15,13 +15,13 @@ export type WitAddress = string & {
  */
 export const getBalance = (address: WitAddress, simple?: boolean) => {
     if (
-        !utils.isWildcard(address) && (
+        !helpers.isWildcard(address) && (
             !address || typeof address !== "string" || address.length != 43 || !address.startsWith("wit")
         ) 
     ) {
         throw new EvalError("CCDR: WitGetBalance: invalid Witnet address");
     } else {
-        return new Call("getBalance", [ address, simple ]);
+        return new JsonRPC("getBalance", [ address, simple ]);
     }
 };
 
@@ -30,10 +30,10 @@ export const getBalance = (address: WitAddress, simple?: boolean) => {
  * @param blockHash The hash of the block to retrieve.
  */
 export const getBlockByHash = (blockHash: Bytes32) => {
-    if (!utils.isHexStringOfLength(blockHash, 32) && !utils.isWildcard(blockHash)) {
+    if (!helpers.isHexStringOfLength(blockHash, 32) && !helpers.isWildcard(blockHash)) {
         throw new EvalError("CCDR: WitGetBlockByHash: invalid block hash value");
     } else {
-        return new Call("getBlock", [ blockHash ])
+        return new JsonRPC("getBlock", [ blockHash ])
     }
 }
 
@@ -42,7 +42,7 @@ export const getBlockByHash = (blockHash: Bytes32) => {
  * @param txHash Hash of the remote transaction.
  */
 export const getSupplyInfo = () => {
-    return new Call("getSupplyInfo");
+    return new JsonRPC("getSupplyInfo");
 }
 
 /**
@@ -50,10 +50,10 @@ export const getSupplyInfo = () => {
  * @param txHash The hash of the transaction to retrieve.
  */
 export const getTransactionByHash = (txHash: Bytes32) => {
-    if (!utils.isHexStringOfLength(txHash, 32) && !utils.isWildcard(txHash)) {
+    if (!helpers.isHexStringOfLength(txHash, 32) && !helpers.isWildcard(txHash)) {
         throw new EvalError("CCDR: WitGetTransactionByHash: invalid transaction hash value");
     } else {
-        return new Call("getTransaction", [ txHash ])
+        return new JsonRPC("getTransaction", [ txHash ])
     }
 }
 
@@ -61,5 +61,5 @@ export const getTransactionByHash = (txHash: Bytes32) => {
  * Get Witnet node syncrhonization status.
  */
 export const syncStatus = () => {
-    return new Call("syncStatus");
+    return new JsonRPC("syncStatus");
 }

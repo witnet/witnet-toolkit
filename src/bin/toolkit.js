@@ -10,504 +10,566 @@ const path = require('path')
 const readline = require('readline')
 const { exec } = require("child_process")
 
-Promise.all([
-  import('witnet-radon-js'),
-])
-.then(([{ default: witnet_radon_js_1 }, ]) => {
+const toolkit = require("../")
   
-  const { Radon } = witnet_radon_js_1;
+/// CONSTANTS =======================================================================================================  
+  
+const version = '1.7.1'
+const toolkitDownloadUrlBase = `https://github.com/witnet/witnet-rust/releases/download/${version}/`
+const toolkitDownloadNames = {
+  win32: (arch) => `witnet_toolkit-${arch}-pc-windows-msvc.exe`,
+  // TODO: detect armv7
+  linux: (arch) => `witnet_toolkit-${arch}-unknown-linux-gnu${arch === "arm" ? "eabihf" : ""}`,
+  darwin: (arch) => `witnet_toolkit-${arch}-apple-darwin`,
+}
+const toolkitFileNames = {
+  win32: (arch) => `witnet_toolkit-${version}-${arch}-pc-windows-msvc.exe`,
+  // TODO: detect armv7
+  linux: (arch) => `witnet_toolkit-${version}-${arch}-unknown-linux-gnu${arch === "arm" ? "eabihf" : ""}`,
+  darwin: (arch) => `witnet_toolkit-${version}-${arch}-apple-darwin`,
+}
+const archsMap = {
+  arm64: 'aarch64',
+  x64: 'x86_64'
+}
 
-  /// CONSTANTS =======================================================================================================  
-  
-  const version = '1.7.1'
-  const toolkitDownloadUrlBase = `https://github.com/witnet/witnet-rust/releases/download/${version}/`
-  const toolkitDownloadNames = {
-    win32: (arch) => `witnet_toolkit-${arch}-pc-windows-msvc.exe`,
-    // TODO: detect armv7
-    linux: (arch) => `witnet_toolkit-${arch}-unknown-linux-gnu${arch === "arm" ? "eabihf" : ""}`,
-    darwin: (arch) => `witnet_toolkit-${arch}-apple-darwin`,
-  }
-  const toolkitFileNames = {
-    win32: (arch) => `witnet_toolkit-${version}-${arch}-pc-windows-msvc.exe`,
-    // TODO: detect armv7
-    linux: (arch) => `witnet_toolkit-${version}-${arch}-unknown-linux-gnu${arch === "arm" ? "eabihf" : ""}`,
-    darwin: (arch) => `witnet_toolkit-${version}-${arch}-apple-darwin`,
-  }
-  const archsMap = {
-    arm64: 'aarch64',
-    x64: 'x86_64'
-  }
-  
-  /// ENVIRONMENT ACQUISITION =========================================================================================
-  
-  let args = process.argv
-  const binDir = __dirname
+/// ENVIRONMENT ACQUISITION =========================================================================================
 
-  const toolkitDirPath = path.resolve(binDir, '../../assets/')
-  const platform = guessPlatform()
-  const arch = guessArch()
-  const toolkitDownloadName = guessToolkitDownloadName(platform, arch)
-  const toolkitFileName = guessToolkitFileName(platform, arch)
-  const toolkitBinPath = guessToolkitBinPath(toolkitDirPath, platform, arch)
-  const toolkitIsDownloaded = checkToolkitIsDownloaded(toolkitBinPath);
+let args = process.argv
+const binDir = __dirname
 
-  function guessPlatform () {
-    return os.platform()
-  }
-  function guessArch () {
-    const rawArch = os.arch()
-    return archsMap[rawArch] || rawArch
-  }
-  function guessDownloadUrl(toolkitFileName) {
-    return `${toolkitDownloadUrlBase}${toolkitFileName}`
-  }
-  function guessToolkitDownloadName (platform, arch) {
-    return (toolkitDownloadNames[platform] || toolkitDownloadNames['linux'])(arch)
-  }
-  function guessToolkitFileName (platform, arch) {
-    return (toolkitFileNames[platform] || toolkitFileNames['linux'])(arch)
-  }
-  function guessToolkitBinPath (toolkitDirPath, platform, arch) {
-    const fileName = guessToolkitFileName(platform, arch)
+const toolkitDirPath = path.resolve(binDir, '../../assets/')
+const platform = guessPlatform()
+const arch = guessArch()
+const toolkitDownloadName = guessToolkitDownloadName(platform, arch)
+const toolkitFileName = guessToolkitFileName(platform, arch)
+const toolkitBinPath = guessToolkitBinPath(toolkitDirPath, platform, arch)
+const toolkitIsDownloaded = checkToolkitIsDownloaded(toolkitBinPath);
 
-    return path.resolve(toolkitDirPath, fileName)
-  }
-  function checkToolkitIsDownloaded (toolkitBinPath) {
-    return fs.existsSync(toolkitBinPath)
-  }
+function guessPlatform () {
+  return os.platform()
+}
+function guessArch () {
+  const rawArch = os.arch()
+  return archsMap[rawArch] || rawArch
+}
+function guessDownloadUrl(toolkitFileName) {
+  return `${toolkitDownloadUrlBase}${toolkitFileName}`
+}
+function guessToolkitDownloadName (platform, arch) {
+  return (toolkitDownloadNames[platform] || toolkitDownloadNames['linux'])(arch)
+}
+function guessToolkitFileName (platform, arch) {
+  return (toolkitFileNames[platform] || toolkitFileNames['linux'])(arch)
+}
+function guessToolkitBinPath (toolkitDirPath, platform, arch) {
+  const fileName = guessToolkitFileName(platform, arch)
 
-  
-  /// HELPER FUNCTIONS ================================================================================================
-  
-  async function prompt (question) {
-    const readlineInterface = readline.createInterface({
-      input: process.stdin,
-      output: process.stdout
+  return path.resolve(toolkitDirPath, fileName)
+}
+function checkToolkitIsDownloaded (toolkitBinPath) {
+  return fs.existsSync(toolkitBinPath)
+}
+
+
+/// HELPER FUNCTIONS ================================================================================================
+
+async function prompt (question) {
+  const readlineInterface = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout
+  })
+
+  return new Promise((resolve, _) => {
+    readlineInterface.question(`${question} `, (response) => {
+      readlineInterface.close()
+      resolve(response.trim())
     })
+  })
+}
 
-    return new Promise((resolve, _) => {
-      readlineInterface.question(`${question} `, (response) => {
-        readlineInterface.close()
-        resolve(response.trim())
+async function downloadToolkit (toolkitDownloadName, toolkitFileName, toolkitBinPath, platform, arch) {
+  const downloadUrl = guessDownloadUrl(toolkitDownloadName)
+  console.log('Downloading', downloadUrl, 'into', toolkitBinPath)
+
+  const file = fs.createWriteStream(toolkitBinPath)
+  const req = axios({
+    method: "get",
+    url: downloadUrl,
+    responseType: "stream"
+  }).then(function (response) {
+    response.data.pipe(file)
+  });
+        
+  return new Promise((resolve, reject) => {
+    file.on('finish', () => {
+      file.close(() => {
+        if (file.bytesWritten > 1000000) {
+          fs.chmodSync(toolkitBinPath, 0o755)
+          resolve()
+        } else {
+          reject(`No suitable witnet_toolkit binary found. Maybe your OS (${platform}) or architecture \
+(${arch}) are not yet supported. Feel free to complain about it in the Witnet community on Discord: \
+https://discord.gg/2rTFYXHmPm `)
+        }
       })
     })
-  }
-
-  async function downloadToolkit (toolkitDownloadName, toolkitFileName, toolkitBinPath, platform, arch) {
-    const downloadUrl = guessDownloadUrl(toolkitDownloadName)
-    console.log('Downloading', downloadUrl, 'into', toolkitBinPath)
-
-    const file = fs.createWriteStream(toolkitBinPath)
-    const req = axios({
-      method: "get",
-      url: downloadUrl,
-      responseType: "stream"
-    }).then(function (response) {
-      response.data.pipe(file)
-    });
-          
-    return new Promise((resolve, reject) => {
-      file.on('finish', () => {
-        file.close(() => {
-          if (file.bytesWritten > 1000000) {
-            fs.chmodSync(toolkitBinPath, 0o755)
-            resolve()
-          } else {
-            reject(`No suitable witnet_toolkit binary found. Maybe your OS (${platform}) or architecture \
-  (${arch}) are not yet supported. Feel free to complain about it in the Witnet community on Discord: \
-  https://discord.gg/2rTFYXHmPm `)
-          }
-        })
+    const errorHandler = (err) => {
+      fs.unlink(downloadUrl, () => {
+        reject(err)
       })
-      const errorHandler = (err) => {
-        fs.unlink(downloadUrl, () => {
-          reject(err)
-        })
-      }
-      file.on('error', errorHandler)
-    })
-  }
-
-  async function toolkitRun(settings, args) {
-    const cmd = `${settings.paths.toolkitBinPath} ${args.join(' ')}`
-    if (settings.verbose) {
-      console.log('Running >', cmd)
     }
+    file.on('error', errorHandler)
+  })
+}
 
-    return new Promise((resolve, reject) => {
-      exec(cmd, { maxBuffer: 1024 * 1024 * 10 }, (error, stdout, stderr) => {
-        if (error) {
-          reject(error)
-        }
-        if (stderr) {
-          if (settings.verbose) {
-            console.log('STDERR <', stderr)
-          }
-          reject(stderr)
-        }
-        if (settings.verbose) {
-          console.log('STDOUT <', stdout)
-        }
-        resolve(stdout)
-      })
-    })
-  }
-
-  function formatRadonValue (call) {
-    const radonType = Object.keys(call)[0]
-    let value = JSON.stringify(call[radonType])
-
-    if (radonType === 'RadonInteger') {
-      value = parseInt(value.replace('\"', ''))
-    } else if (radonType === 'RadonBytes') {
-      value = JSON.parse(value).map(i => i.toString(16)).join("")
-    } else if (radonType === 'RadonError') {
-      value = red(
-        value
-          .replace(/.*Inner\:\s`Some\((?<inner>.*)\)`.*/g, '$<inner>')
-          .replace(/UnsupportedReducerInAT\s\{\soperator\:\s0\s\}/g, 'MissingReducer')
-      )
-    }
-
-    return [radonType.replace('Radon', ''), value]
-  }
-
-  function blue (string) {
-    return `\x1b[34m${string}\x1b[0m`
-  }
-
-  function green (string) {
-    return `\x1b[32m${string}\x1b[0m`
-  }
-
-  function red (string) {
-    return `\x1b[31m${string}\x1b[0m`
-  }
-
-  function yellow (string) {
-    return `\x1b[33m${string}\x1b[0m`
-  }
-
-  
-  /// COMMAND HANDLERS ================================================================================================
-  
-  async function installCommand (settings) {
-    if (!settings.checks.toolkitIsDownloaded) {
-      // Skip confirmation if install is forced
-      if (!settings.force) {
-        console.log(`The witnet_toolkit ${version} native binary hasn't been downloaded yet (this is a requirement).`)
-        const will = await prompt("Do you want to download it now? (Y/n)")
-
-        // Abort if not confirmed
-        if (!['', 'y'].includes(will.toLowerCase())) {
-          console.error('Aborted download of witnet_toolkit native binary.')
-          return
-        }
+async function toolkitRun(settings, args) {
+  const cmd = `${settings.paths.toolkitBinPath} ${args.join(' ')}`
+  return new Promise((resolve, reject) => {
+    exec(cmd, { maxBuffer: 1024 * 1024 * 10 }, (error, stdout, stderr) => {
+      if (error) {
+        reject(error)
       }
-
-      return forcedInstallCommand(settings)
-    }
-  }
-
-  async function forcedInstallCommand (settings) {
-    return downloadToolkit(
-      settings.paths.toolkitDownloadName,
-      settings.paths.toolkitFileName,
-      settings.paths.toolkitBinPath,
-      settings.system.platform,
-      settings.system.arch
-    )
-      .catch((err) => {
-        console.error(`Error updating witnet_toolkit binary:`, err)
-      })
-  }
-
-  function decodeFilters (mir) {
-    return mir.map((filter) => {
-      if (filter.args.length > 0) {
-        const decodedArgs = cbor.decode(Buffer.from(filter.args))
-        return {...filter, args: decodedArgs}
-      } else {
-        return filter
+      if (stderr) {
+        reject(stderr)
       }
+      resolve(stdout)
     })
-  }
+  })
+}
 
-  function decodeScriptsAndArguments (mir) {
-    let decoded = mir.data_request
-    decoded.retrieve = decoded.retrieve.map((source) => {
-      const decodedScript = cbor.decode(Buffer.from(source.script))
-      return {...source, script: decodedScript}
-    })
-    decoded.aggregate.filters = decodeFilters(decoded.aggregate.filters)
-    decoded.tally.filters = decodeFilters(decoded.tally.filters)
+function decodeUint8Arrays(_obj, key, value) {
+  return ['body', 'script', ].includes(key) ? JSON.stringify(value) : value
+}
 
-    return decoded
-  }
 
-  function tasksFromMatchingFiles (args, matcher) {
-    return fs.readdirSync(args[2])
-      .filter((filename) => filename.match(matcher))
-      .map((filename) => [args[0], args[1], path.join(args[2], filename)])
-  }
+/// COMMAND HANDLERS ================================================================================================
 
-  async function tasksFromArgs (args) {
-    // Ensure that no task contains arguments starting with `0x`
-    return [args.map(arg => arg.replace(/^0x/gm, ''))]
-  }
+async function installCommand (settings) {
+  if (!settings.checks.toolkitIsDownloaded) {
+    // Skip confirmation if install is forced
+    if (!settings.force) {
+      console.log(`The witnet_toolkit ${version} native binary hasn't been downloaded yet (this is a requirement).`)
+      const will = await prompt("Do you want to download it now? (Y/n)")
 
-  async function decodeQueryCommand (settings, args) {
-    const tasks = await tasksFromArgs(args)
-    const promises = Promise.all(tasks.map(async (task) => {
-      return fallbackCommand(settings, ['decode-query', ...task.slice(1)])
-        .then(JSON.parse)
-        .then(decodeScriptsAndArguments)
-        .then((decoded) => JSON.stringify(decoded, null, 4))
-    }))
-
-    return (await promises).join()
-  }
-
-  async function traceQueryCommand (settings, args) {
-    let query, radon
-    const tasks = await tasksFromArgs(args)
-
-    return Promise.all(tasks.map(async (task) => {
-      const queryJson = await fallbackCommand(settings, ['decode-query', ...task.slice(1)])
-      const mir = JSON.parse(queryJson)
-      query = decodeScriptsAndArguments(mir)
-      radon = new Radon(query)
-      const output = await fallbackCommand(settings, ['try-query', ...task.slice(1)])
-      let report;
-      try {
-        report = JSON.parse(output)
-      } catch {
+      // Abort if not confirmed
+      if (!['', 'y'].includes(will.toLowerCase())) {
+        console.error('Aborted download of witnet_toolkit native binary.')
         return
       }
-      const dataSourcesCount = report.retrieve.length
+    }
 
-      const dataSourcesInterpolation = report.retrieve.map((source, sourceIndex, sources) => {
-        let executionTime
-        try {
-          executionTime =
-            (source.context.completion_time.nanos_since_epoch - source.context.start_time.nanos_since_epoch) / 1000000
-        } catch (_) {
-          executionTime = 0
-        }
-
-        const cornerChar = sourceIndex < sources.length - 1 ? '├' : '└'
-        const sideChar = sourceIndex < sources.length - 1 ? '│' : ' '
-
-        let traceInterpolation
-        try {
-          if ((source.partial_results || []).length === 0) {
-            source.partial_results = [source.result]
-          }
-          traceInterpolation = source.partial_results.map((radonValue, callIndex) => {
-            const formattedRadonValue = formatRadonValue(radonValue)
-
-            const operator = radon
-              ? (callIndex === 0
-              ? blue(radon.retrieve[sourceIndex].kind)
-              : `.${blue(radon.retrieve[sourceIndex].script.operators[callIndex - 1].operatorInfo.name + '(')}${radon.retrieve[sourceIndex].script.operators[callIndex - 1].mirArguments.join(', ') + blue(')')}`) + ' ->'
-              : ''
-
-            return ` │   ${sideChar}    [${callIndex}] ${operator} ${yellow(formattedRadonValue[0])}: ${formattedRadonValue[1]}`
-          }).join('\n')
-        } catch (e) {
-          traceInterpolation = ` │   ${sideChar}  ${red('[ERROR] Cannot decode execution trace information')}`
-        }
-
-        let urlInterpolation = query ? `
- │   ${sideChar}  Method: ${radon.retrieve[sourceIndex].kind}
- │   ${sideChar}  Complete URL: ${radon.retrieve[sourceIndex].url}` : ''
-
-        // // TODO: take headers info from `radon` instead of `query` once POST is supported in `witnet-radon-js`
-        const headers = radon.retrieve[sourceIndex].headers;//query.retrieve[sourceIndex].headers
-        if (headers) {
-          const headersInterpolation = headers.map(([key, value]) => `
- │   ${sideChar}    "${key}": "${value}"`).join()
-          urlInterpolation += `
- │   ${sideChar}  Headers: ${headersInterpolation}`
-        }
-
-        // // TODO: take body info from `radon` instead of `query` once POST is supported in `witnet-radon-js`
-        const body = radon.retrieve[sourceIndex].body;//query.retrieve[sourceIndex].body
-        if (body) {
-          urlInterpolation += `
- │   ${sideChar}  Body: ${Buffer.from(body)}`
-        }
-
-        const formattedRadonResult = formatRadonValue(source.result)
-        const resultInterpolation = `${yellow(formattedRadonResult[0])}: ${formattedRadonResult[1]}`
-        return `
- │   ${cornerChar}─${green('[')} Source #${sourceIndex + 1} ${ query.retrieve[sourceIndex].url ? `(${new URL(query.retrieve[sourceIndex].url).hostname})` : ''} ${green(']')}${urlInterpolation}
- │   ${sideChar}  Number of executed operators: ${source.context.call_index + 1 || 0}
- │   ${sideChar}  Execution time: ${executionTime > 0 ? executionTime + ' ms' : 'unknown'}
- │   ${sideChar}  Execution trace:\n${traceInterpolation}
- │   ${sideChar}  Execution result: ${resultInterpolation}`
-      }).join('\n │   │\n')
-
-      let aggregationExecuted, aggregationExecutionTime, aggregationResult, tallyExecuted, tallyExecutionTime, tallyResult
-
-      try {
-        aggregationExecuted = report.aggregate.context.completion_time !== null
-        aggregationExecutionTime = aggregationExecuted &&
-          (report.aggregate.context.completion_time.nanos_since_epoch - report.aggregate.context.start_time.nanos_since_epoch) / 1000000
-        aggregationResult = formatRadonValue(report.aggregate.result);
-      } catch (error) {
-        aggregationExecuted = false
-      }
-
-      try {
-        tallyExecuted = report.tally.context.completion_time !== null
-        tallyExecutionTime = tallyExecuted &&
-          (report.tally.context.completion_time.nanos_since_epoch - report.tally.context.start_time.nanos_since_epoch) / 1000000
-        tallyResult = formatRadonValue(report.tally.result);
-      } catch (error) {
-        tallyExecuted = false
-      }
-
-      let filenameInterpolation = ''
-      const retrievalInterpolation = `│
- │  ┌────────────────────────────────────────────────┐
- ├──┤ Retrieve stage                                 │
- │  ├────────────────────────────────────────────────┤
- │  │ Number of retrieved data sources: ${dataSourcesCount}${` `.repeat(13 - dataSourcesCount.toString().length)}│
- │  └┬───────────────────────────────────────────────┘
- │   │${dataSourcesInterpolation}`
-
-      const aggregationExecutionTimeInterpolation = aggregationExecuted ? `
- │  │ Execution time: ${aggregationExecutionTime} ms${` `.repeat(28 - aggregationExecutionTime.toString().length)}│` : ''
-      const aggregationInterpolation = `│
- │  ┌────────────────────────────────────────────────┐
- ├──┤ Aggregate stage                                │
- │  ├────────────────────────────────────────────────┤${aggregationExecutionTimeInterpolation}
- │  │ Result is: ${yellow(aggregationResult[0])}: ${aggregationResult[1]}${` `.repeat(Math.max(0, (aggregationResult[0] === 'Error' ? 43 : 34) - aggregationResult[0].toString().length - aggregationResult[1].toString().length))}│
- │  └────────────────────────────────────────────────┘`
-
-      const tallyExecutionTimeInterpolation = tallyExecuted ? `
-    │ Execution time: ${tallyExecutionTime} ms${` `.repeat(28 - tallyExecutionTime.toString().length)}│` : ''
-      const tallyInterpolation = `│  
- │  ┌────────────────────────────────────────────────┐
- └──┤ Tally stage                                    │
-    ├────────────────────────────────────────────────┤${tallyExecutionTimeInterpolation}
-    │ Result is: ${yellow(tallyResult[0])}: ${tallyResult[1]}${` `.repeat(Math.max(0, (tallyResult[0] === 'Error' ? 43 : 34) - tallyResult[0].toString().length - tallyResult[1].toString().length))}│
-    └────────────────────────────────────────────────┘`
-
-      return `╔═══════════════════════════════════════════════════╗
-║ Witnet data request local execution report        ║${filenameInterpolation}
-╚╤══════════════════════════════════════════════════╝
- ${retrievalInterpolation}
- ${aggregationInterpolation}
- ${tallyInterpolation}`
-    })).then((outputs) => outputs.join('\n'))
+    return forcedInstallCommand(settings)
   }
+}
 
-  async function fallbackCommand (settings, args) {
-    // For compatibility reasons, map query methods to data-request methods
-    if (args.length > 0) {
-      args = [args[0].replace('-query', '-data-request'), ...args.slice(1)]
-      return toolkitRun(settings, args)
-        .catch((err) => {
-          let errorMessage = err.message.split('\n').slice(1).join('\n').trim()
-          const errorRegex = /.*^error: (?<message>.*)$.*/gm
-          const matched = errorRegex.exec(err.message)
-          if (matched) {
-            errorMessage = matched.groups.message
+async function forcedInstallCommand (settings) {
+  return downloadToolkit(
+    settings.paths.toolkitDownloadName,
+    settings.paths.toolkitFileName,
+    settings.paths.toolkitBinPath,
+    settings.system.platform,
+    settings.system.arch
+  )
+    .catch((err) => {
+      console.error(`Error updating witnet_toolkit binary:`, err)
+    })
+}
+
+
+function tasksFromMatchingFiles (args, matcher) {
+  return fs.readdirSync(args[2])
+    .filter((filename) => filename.match(matcher))
+    .map((filename) => [args[0], args[1], path.join(args[2], filename)])
+}
+
+function tasksFromArgs (args) {
+  // Ensure that no task contains arguments starting with `0x`
+  return args.map(arg => arg.replace(/^0x/gm, ''))
+}
+
+var cyan = (str) => `\x1b[36m${str}\x1b[0m`
+var gray = (str) => `\x1b[90m${str}\x1b[0m`
+var green = (str) => `\x1b[32m${str}\x1b[0m`
+var lcyan = (str) => `\x1b[1;96m${str}\x1b[0m`
+var lgreen = (str) => `\x1b[1;92m${str}\x1b[0m`
+var lyellow = (str) => `\x1b[1;93m${str}\x1b[0m`
+var lred = (str) => `\x1b[91m${str}\x1b[0m`
+var red = (str) => `\x1b[31m${str}\x1b[0m`
+var white = (str) => `\x1b[1;98m${str}\x1b[0m`
+var yellow = (str) => `\x1b[33m${str}\x1b[0m`
+
+var commas = (number) => number.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+var extractTypeName = (str) => str ? str.split(/(?=[A-Z])/).slice(1).join("") : "Any"
+
+async function reportHeadline(request, headline) {
+  const trait = (str) => `${str}${" ".repeat(56 - str.length)}`
+  const indent = settings?.indent ? " ".repeat(indent) : ""
+  const resultDataType = `Result<${extractTypeName(request.retrieve[0]?.script?.constructor.name)}, Error>`
+  console.info(`${indent}╔══════════════════════════════════════════════════════════════════════════════╗`)
+  console.info(`${indent}║ ${white(headline)}${" ".repeat(77 - headline.length)}║`)
+  console.info(`${indent}╠══════════════════════════════════════════════════════════════════════════════╣`)
+  console.info(`${indent}║ ${white("RAD hash")}: ${lgreen(request.radHash())}   ║`)
+  console.info(`${indent}║ > Bytes weight:     ${white(trait(commas(request.weight())))} ║`)
+  console.info(`${indent}║ > Data sources:     ${white(trait(commas(request.retrieve.length)))} ║`)
+  console.info(`${indent}║ > Radon operators:  ${white(trait(commas(request.opsCount())))} ║`)
+  console.info(`${indent}║ > Result data type: ${yellow(trait(resultDataType))} ║`)
+  // console.info(`${indent}╠════════════════════════════════════════════════════════════════════════════╣`)
+  // console.info(`${indent}║ > Times solved:    ${white(trait("{ values:  123, errors:  220 }"))} ║`)
+  // console.info(`${indent}║ > Times witnessed: ${white(trait("{ values: 2130, errors: 1326 }"))} ║`)
+  // console.info(`${indent}║ > Total fees:      ${white(trait("15,234.123 Wits"))} ║`)
+  // console.info(`${indent}║ > Total slash:     ${white(trait("    56.123 Wits"))} ║`)
+  // console.info(`${indent}║ > Total burn:      ${white(trait("     0.789 Wits"))} ║`)
+  // if (verbose) {
+  //   console.info(`${indent}╚══╤═════════════════════════════════════════════════════════════════════════╝`)
+  // } else {
+  //   console.info(`${indent}╚════════════════════════════════════════════════════════════════════════════╝`)
+  // }
+}
+
+async function decodeRadonRequestCommand (settings, args) {
+  const indent = settings?.indent ? " ".repeat(indent) : ""
+  const tasks = tasksFromArgs(args)
+  const promises = Promise.all(tasks.map(async (bytecode) => {
+    const request = toolkit.Utils.decodeRequest(bytecode)
+    if (settings?.json) {
+      console.info(JSON.stringify(settings?.verbose ? request.toJSON() : request.toProtobuf(), null, settings?.verbose && settings?.indent || 0))
+
+    } else {      
+      reportHeadline(request, "WITNET DATA REQUEST DISASSEMBLE")
+      const trait = (str) => `${str}${" ".repeat(54 - str.length)}`
+      // console.info(`${indent}╠════════════════════════════════════════════════════════════════════════════╣`)
+      // console.info(`${indent}║ > Times solved:     ${white(trait("{ values:  123, errors:  220 }"))} ║`)
+      // console.info(`${indent}║ > Times witnessed:  ${white(trait("{ values: 2130, errors: 1326 }"))} ║`)
+      // console.info(`${indent}║ > Total fees:       ${white(trait("15,234.123 Wits"))} ║`)
+      // console.info(`${indent}║ > Total slashed:    ${white(trait("    56.123 Wits"))} ║`)
+      // console.info(`${indent}║ > Total burnt:      ${white(trait("     0.789 Wits"))} ║`)
+      if (!settings.verbose) {
+        console.info(`${indent}╚══════════════════════════════════════════════════════════════════════════════╝`)
+      
+      } else {  
+        console.info(`${indent}╚══╤═══════════════════════════════════════════════════════════════════════════╝`)
+        console.info(`${indent}┌──┴─────────────────┐`)
+        console.info(`${indent}│  ${white("RETRIEVE DATA")}     │`) // ├ ┤
+        console.info(`${indent}└──┬─┬───────────────┘`) 
+        request.retrieve.forEach((source, sourceIndex) => {
+          // var subdomains = source.authority.toUpperCase().split(".")
+          // var authority = subdomains.length > 2 ? subdomains.slice(1).join(".") : subdomains.join(".")
+          var authority = source.authority?.toUpperCase() || (source.method === toolkit.RadonRetrievals.Methods.RNG ? "WIT/RNG" : "")
+          var corner = sourceIndex === request.retrieve.length - 1 ? "└" : "├"
+          var sep = sourceIndex === request.retrieve.length - 1 ? " " : "│"
+          console.info(`${indent}   │ ${corner}─ ${lgreen("[ ")}${`Data Source #${sourceIndex + 1}`}: ${" ".repeat(3 - sourceIndex.toString().length)}${lcyan(authority)} ${lgreen("]")}`)
+          if (source.method !== toolkit.RadonRetrievals.Methods.RNG) {
+            console.info(`${indent}   │ ${sep}    > Method:         ${lgreen(toolkit.RadonRetrievals.Methods[source.method])}`)
+            if (source?.schema)  console.info(`${indent}   │ ${sep}    > URL schema:     ${green(source.schema)}`)
+            if (source?.query)   console.info(`${indent}   │ ${sep}    > URL query:      ${green(source.query)}`)
+            if (source?.headers) console.info(`${indent}   │ ${sep}    > HTTP headers:   ${green(JSON.stringify(source.headers))}`)
+            if (source?.body)    console.info(`${indent}   │ ${sep}    > HTTP body:      ${green(source.body)}`)
+            // if (source?.script)  console.info(`${indent}   │ ${sep}    > Input data:     ${lyellow("[ ")}${yellow(source.script.constructor.name)}${lyellow(" ]")}`)
+            if (source?.script)  console.info(`${indent}   │ ${sep}    > Radon script:   ${lcyan(source.script.toString())}`)
+            if (source?.script)  console.info(`${indent}   │ ${sep}    > Output data:    ${lyellow("[ ")}${yellow(source.script.constructor.name)}${lyellow(" ]")}`)
           }
-          console.error(errorMessage || err)
+          if (sourceIndex < request.retrieve.length - 1) {
+            console.info(`${indent}   │ │`)
+          }
         })
-    } else {
-      console.info("USAGE:")
-      console.info("    npx witnet-toolkit <SUBCOMMAND>")
-      console.info("\nFLAGS:")
-      console.info("    --help      Prints help information")
-      console.info("    --verbose   Prints detailed information of the subcommands being run")
-      console.info("    --version   Prints version information")
-      console.info("\nSUBCOMMANDS:")
-      console.info("    decode-query --hex <witnet-bytecode>    Decodes some Witnet data query bytecode")
-      console.info("    trace-query --hex <witnet-bytecode>     Resolves some Witnet data query bytecode locally, printing out step-by-step information")
-      console.info("    try-query --hex <witnet-bytecode>       Resolves some Witnet data query bytecode locally, returning a detailed JSON report")
-      console.info()
-    }
-  }
-
-
-  /// COMMAND ROUTER ==================================================================================================
-  
-  const router = {
-    'decode-query': decodeQueryCommand,
-    'fallback': fallbackCommand,
-    'install': forcedInstallCommand,
-    'trace-query': traceQueryCommand,
-    'update': forcedInstallCommand,
-  }
-
-  
-  /// PROCESS SETTINGS ===============================================================================================
-  
-  let force;
-  let forceIndex = args.indexOf('--force');
-  if (forceIndex >= 2) {
-    // If the `--force` flag is found, process it, but remove it from args so it doesn't get passed down to the binary
-    force = args[forceIndex]
-    args.splice(forceIndex, 1)
-  }
-
-  const settings = {
-    paths: {
-      toolkitBinPath,
-      toolkitDirPath,
-      toolkitDownloadName,
-      toolkitFileName,
-    },
-    checks: {
-      toolkitIsDownloaded,
-    },
-    system: {
-      platform,
-      arch,
-    },
-    verbose: false,
-    force,
-  }
-
-
-  /// MAIN LOGIC ======================================================================================================
-
-  async function main () {
-    // Enter verbose mode if the --verbose flag is on
-    const verboseIndex = args.indexOf("--verbose")
-    if (verboseIndex >= 2) {
-      settings.verbose = true
-      args = [...args.slice(0, verboseIndex), ...args.slice(verboseIndex + 1)]
-    }
-
-    // Find the right command using the commands router, or default to the fallback command
-    const commandName = args[2]
-    let command = router[commandName] || router['fallback']
-
-    // Run command before anything else, mainly to ensure that the witnet_toolkit binary
-    // has been downloaded.
-    // Skip if we are intentionally installing or updating the toolkit.
-    if (!['install', 'update'].includes(commandName)) {
-      await installCommand(settings)
-    }
-
-    // Make sure that commands with --help are always passed through
-    if (args.includes("--help")) {
-      command = router['fallback']
-    }
-
-    // Run the invoked command, if any
-    if (command) {
-      const output = await command(settings, args.slice(2))
-      if (output) {
-        console.log(output.trim())
+        var stringifyFilter = (x) => `${lcyan(toolkit.RadonFilters.Opcodes[x.opcode])}(${x.args ? cyan(JSON.stringify(x.args)) : ""})`
+        var stringifyReducer = (x) => lcyan(`${toolkit.RadonReducers.Opcodes[x.opcode]}()`)
+        // console.info(`   │`)
+        console.info(`${indent}┌──┴──────────────────┐`)
+        console.info(`${indent}│  ${white("AGGREGATE SOURCES")}  │`)
+        console.info(`${indent}└──┬──────────────────┘`) // ┬
+        request.aggregate?.filters.forEach(filter => 
+        console.info(`${indent}   │      > Radon filter:   ${stringifyFilter(filter)}`))
+        console.info(`${indent}   │      > Radon reducer:  ${stringifyReducer(request.aggregate)}`)
+        // console.info(`   │`)
+        console.info(`${indent}┌──┴──────────────────┐`)
+        console.info(`${indent}│  ${white("WITNESSING TALLY")}   │`)
+        console.info(`${indent}└─────────────────────┘`) // ┬
+        request.tally?.filters.forEach(filter => 
+        console.info(`${indent}          > Radon filter:   ${stringifyFilter(filter)}`))
+        console.info(`${indent}          > Radon reducer:  ${stringifyReducer(request.tally)}`)
       }
     }
+  }))
+  return (await promises).join()
+}
+
+async function dryrunRadonRequestCommand (settings, args) {
+  const indent = settings?.indent ? " ".repeat(indent) : ""
+  const tasks = tasksFromArgs(args)
+  const promises = Promise.all(tasks.map(async (bytecode) => {
+    const report = JSON.parse(await binaryFallbackCommand(settings, ['try-data-request', '--hex', bytecode]))
+    const result = report?.tally.result
+    const resultType = Object.keys(result)[0]
+    const resultValue = JSON.stringify(Object.values(result)[0])
+    if (settings?.json) {
+      if (settings?.verbose) {
+        console.info(JSON.stringify(report, null, settings?.indent))
+      } else {
+        result[resultType] = resultValue
+        console.info(JSON.stringify(result, null, settings?.indent))
+      }
+    } else {
+      const request = toolkit.Utils.decodeRequest(bytecode)
+      reportHeadline(request, "WITNET DATA REQUEST DRY RUN REPORT", true)
+      console.info(`${indent}╚══╤═══════════════════════════════════════════════════════════════════════════╝`)        
+      var execTimeMs = report.retrieve?.map(retrieval => 
+        (retrieval?.running_time.secs || 0) + (retrieval?.running_time.nanos || 0) / 1000 
+      ).reduce(
+        (sum, secs) => sum + secs
+      )
+      var execTimeMs = execTimeMs + " ms"
+      var flexbar = "─".repeat(execTimeMs.length); 
+      var flexspc = " ".repeat(flexbar.length + 12)
+      console.info(`${indent}┌──┴─────────────────────────────${flexbar}──────┐`)
+      console.info(`${indent}│ ${white("Data providers")}     ${flexspc}      │`) // ├ ┤
+      console.info(`${indent}├────────────────────────────────${flexbar}──────┤`)
+      console.info(`${indent}│ Execution time: ${green(execTimeMs)} ${flexspc} │`)
+      console.info(`${indent}└──┬─┬───────────────────────────${flexbar}──────┘`)
+      request.retrieve.forEach((source, sourceIndex) => {
+        var authority = source.authority?.toUpperCase() || (source.method === toolkit.RadonRetrievals.Methods.RNG ? "WIT/RNG" : "")
+        var corner = sourceIndex === request.retrieve.length - 1 ? "└" : "├"
+        var sep = sourceIndex === request.retrieve.length - 1 ? " " : "│"
+        console.info(`${indent}   │ ${corner}─ [ ${lcyan(authority)} ]`)
+        if (source.method !== toolkit.RadonRetrievals.Methods.RNG) {
+          const result = report.retrieve[sourceIndex].result
+          const resultType = Object.keys(result)[0]
+          const resultValue = JSON.stringify(Object.values(result)[0])
+          // console.info(`${indent}   │ ${sep}    > Method:         ${lgreen(toolkit.RadonRetrievals.Methods[source.method])}`)
+          // if (source?.schema)  console.info(`${indent}   │ ${sep}    > URL schema:     ${green(source.schema)}`)
+          // if (source?.query)   console.info(`${indent}   │ ${sep}    > URL query:      ${green(source.query)}`)
+          // if (source?.headers) console.info(`${indent}   │ ${sep}    > HTTP headers:   ${green(JSON.stringify(source.headers))}`)
+          // if (source?.body)    console.info(`${indent}   │ ${sep}    > HTTP body:      ${green(source.body)}`)
+          // if (source?.script)  console.info(`${indent}   │ ${sep}    > Input data:     ${lyellow("[ ")}${yellow(source.script.constructor.name)}${lyellow(" ]")}`)
+          // if (source?.script)  console.info(`${indent}   │ ${sep}    > Radon script:   ${lcyan(source.script.toString())}`)
+          // if (source?.script)  console.info(`${indent}   │ ${sep}    > Output data:    ${lyellow("[ ")}${yellow(source.script.constructor.name)}${lyellow(" ]")}`)
+          // console.info(`${indent}   │ ${sep}  ${yellow("[ ")}${yellow(resultType)}${yellow(" ]")} ${green(resultValue)}`)
+        }
+        if (settings?.verbose && sourceIndex < request.retrieve.length - 1) {
+          console.info(`${indent}   │ │`)
+        }
+      })
+      var flexbar = "─".repeat(16); 
+      var flexspc = " ".repeat(28); 
+      var extraWidth = 0
+      if (['RadonMap', 'RadonArray', 'RadonError', 'RadonBytes', ].includes(resultType)) {
+        extraWidth = 31
+        flexbar += "─".repeat(extraWidth)
+        flexspc += " ".repeat(extraWidth)
+      }
+      console.info(`${indent}┌──┴───────────────────────────${flexbar}─┐`)
+      console.info(`${indent}│ ${white("Aggregated result")}${flexspc} │`) // ├ ┤
+      console.info(`${indent}├──────────────────────────────${flexbar}─┤`)
+      var printMapItem = (indent, width, key, value, indent2 = "") => {
+        // console.log(indent, width, key, value)
+        var key = `${indent2}"${key}": `
+        var type = extractTypeName(Object.keys(value)[0])
+        var value = Object.values(value)[0]
+        if (["Map", ].includes(type)) {
+          if (key.length > width - 12) {
+            console.info(`${indent}│ ${yellow("[ Map     ]")} ${" ".repeat(width - 15)}${green("...")}│`)   
+          } else {
+            console.info(`${indent}│ ${yellow("[ Map     ]")} ${green(key)}${" ".repeat(width - 12 - key.length)}│`)
+          }
+          Object.entries(value).forEach(([ key, value ]) => printMapItem(indent, width, key, value, indent2 + " "))
+        } else {
+          
+          if (key.length > width - 12) {
+            console.info(`${indent}│ ${yellow(type)} ${" ".repeat(width - 15)}${green("...")}│`)  
+          } else {
+            if (["String", "Array", "Error", "Map"].includes(type)) {
+              value = JSON.stringify(value)
+            }
+            type = `[ ${type}${" ".repeat(7 - type.length)} ]`
+            var result = key + value 
+            var spaces = width - 12 - result.length
+            if (result.length > width - 15) {
+              value = value.slice(0, width - 15 - key.length) + "..."
+              spaces = 0
+            }
+            console.info(`${indent}│ ${yellow(type)} ${green(key)}${lgreen(value)}${" ".repeat(spaces)}│`)
+          }
+        }
+      }
+      var printResult = (indent, width, resultType, resultValue) => {
+        resultType = extractTypeName(resultType)
+        // TODO: handle result arrays
+        if (resultType === "Map") {
+          console.info(`${indent}│ ${lyellow("[ Map     ]")}${" ".repeat(width - 11)}│`)
+          var obj = JSON.parse(resultValue)
+          Object.entries(obj).forEach(([ key, value ]) => printMapItem(indent, width, key, value))
+        } else {
+          if (resultType === "Bytes") {
+            resultValue = JSON.parse(resultValue).map(char => ('00' + char.toString(16)).slice(-2)).join("")
+          }
+          var resultMaxWidth = width - resultType.length - 5
+          if (resultValue.length > resultMaxWidth - 3) resultValue = resultValue.slice(0, resultMaxWidth - 3) + "..."
+          var spaces = width - resultType.length - resultValue.toString().length - 5 
+          var color = resultType.indexOf("Error") > -1 ? gray : lgreen
+          var typeText = resultType.indexOf("Error") > -1 ? `\x1b[1;98;41m  Error  \x1b[0m` : lyellow(`[ ${resultType} ]`)
+          console.info(`${indent}│ ${typeText} ${color(resultValue)}${" ".repeat(spaces)}│`)
+        }
+      }
+      printResult(indent, 46 + extraWidth, resultType, resultValue)
+      console.info(`${indent}└──────────────────────────────${flexbar}─┘`)
+      // TODO: Simulate witnesses from multiple regions
+    }
+  }))
+  return (await promises).join()
+}
+
+async function versionCommand (settings) {
+  return binaryFallbackCommand(settings, ['--version'])
+}
+
+async function binaryFallbackCommand (settings, args) {
+  return toolkitRun(settings, args)
+    .catch((err) => {
+      let errorMessage = err.message.split('\n').slice(1).join('\n').trim()
+      const errorRegex = /.*^error: (?<message>.*)$.*/gm
+      const matched = errorRegex.exec(err.message)
+      if (matched) {
+        errorMessage = matched.groups.message
+      }
+      console.error(errorMessage || err)
+    })
+}
+
+
+/// PROCESS SETTINGS ===============================================================================================
+
+let force;
+let forceIndex = args.indexOf('--force');
+if (forceIndex >= 2) {
+  // If the `--force` flag is found, process it, but remove it from args so it doesn't get passed down to the binary
+  force = args[forceIndex]
+  args.splice(forceIndex, 1)
+}
+
+let json = false
+if (args.includes('--json')) {
+  json = true
+  args.splice(args.indexOf('--json'), 1)
+}
+
+let indent;  
+let indentIndex = args.indexOf('--indent')
+if (indentIndex >= 2) {
+  if (args[indentIndex + 1] && !args[indentIndex + 1].startsWith('--')) {
+    indent = parseInt(args[indentIndex + 1])
+    args.splice(indentIndex, 2)
+  } else {
+    args.splice(indentIndex)
+  }
+}
+
+let verbose = false
+if (args.includes('--verbose')) {
+  verbose = true
+  args.splice(args.indexOf('--verbose'), 1)
+}
+
+const settings = {
+  paths: {
+    toolkitBinPath,
+    toolkitDirPath,
+    toolkitDownloadName,
+    toolkitFileName,
+  },
+  checks: {
+    toolkitIsDownloaded,
+  },
+  system: {
+    platform,
+    arch,
+  },
+  force, json, indent, verbose
+}
+
+
+/// MAIN LOGIC ======================================================================================================
+
+const mainRouter = {
+  '--': binaryFallbackCommand,
+  'decodeRadonRequest': decodeRadonRequestCommand,
+  'dryrunRadonRequest': dryrunRadonRequestCommand,
+  'install': forcedInstallCommand,
+  'network': networkFallbackCommand,
+  'update': forcedInstallCommand,
+  'version': versionCommand,
+}
+
+const networkRouter = {}
+
+async function networkFallbackCommand (args) {
+  const networkCommand = networkRouter[args[0]];
+  if (networkCommand) {
+    await networkCommand(settings, args.slice(1))
+  } else {
+    console.info("\nUSAGE:")
+    console.info(`    ${white("npx witnet network")} <COMMAND> [<params> ...]`)
+    console.info("\nFLAGS:")
+    console.info("    --json             Output data in JSON format")
+    console.info("    --indent <:nb>     Number of white spaces used to prefix every output line")
+    console.info("    --verbose          Report network detailed information")
+    console.info("\nNETWORK FLAGS:")
+    console.info("    --epoch <:nb>      Extract data from or at specified epoch")
+    console.info("    --limit <:nb>      Limit number of entries to fetch")
+    console.info("    --timeout <:secs>  Limit seconds to wait for a result")
+    // console.info("    --help             Explain commands requiring input params")
+    console.info("\nNETWORK COMMANDS:")
+    console.info(`    address            Public Witnet address corresponding to your ${yellow("WITNET_TOOLKIT_PRIVATE_KEY")}.`)
+    console.info("    blocks             Lately consolidated blocks in the Witnet blockhain.")
+    console.info("    fees               Lately consolidated transaction fees in the Witnet blockchain.")
+    console.info("    peers              Search public P2P nodes in the Witnet network.")
+    console.info("    protocol           Lorem ipsum.")
+    console.info("    providers          Search public RPC providers in the Witnet network.")
+    console.info("    reporter           Show Witnet network reporter's URL.")
+    console.info("    stakes             Current staking entries in the Witnet network, ordered by power.")
+    console.info("    supply             Current status of the Witnet network.")
+    console.info("    wips               Lorem ipsum.")
+    console.info()
+    console.info("    getBalance         <pkhAddress> Get balance of the specified Witnet address.")
+    console.info("    getUtxoInfo        <pkhAddress> Get unspent transaction outputs of the specified Witnet address.")
+    console.info()
+    console.info("    getBlock           <blockHash>  Get details for the specified Witnet block.")
+    console.info("    getDataRequest     <d|drTxHash> Get current status or result of some unique data request transaction.")
+    console.info("    getTransaction     <txHash>     Get details for specified Witnet transaction")
+    console.info()
+    console.info("    decodeRadonRequest <radHash>    Disassemble the Radon request given its network RAD hash.")
+    console.info("    dryrunRadonRequest <radHash>    Resolve the Radon request identified by the given network RAD hash, locally.")
+    console.info("    searchDataRequests <radHash>    Search data request transactions containing the given network RAD hash.")
+    console.info()
+    console.info("    sendDataRequest    <radHash>   --unitary-fee <:nanoWits> --num-witnesses <:number>")
+    console.info("    sendValue          <:nanoWits> --fee <:nanoWits> --to <:pkhAddress>")
+  }
+}
+
+async function main () {
+  // Run installCommand before anything else, mainly to ensure that the witnet_toolkit binary
+  // has been downloaded, unless we're intentionally installing or updating the binary.
+  if (!args.includes('install') && !args.includes('update')) {
+    await installCommand(settings)
   }
 
-  main()
-})
+  const command = mainRouter[args[2]]; args.splice(2, 1)
+  if (command) {
+    await command(settings, args.slice(2))
+  } else {
+    console.info("\nUSAGE:")
+    console.info(`    ${white("npx witnet")} <COMMAND> [<params> ...]`)
+    console.info("\nFLAGS:")
+    console.info("    --json          Output data in JSON format")
+    console.info("    --indent <:nb>  Number of white spaces used to prefix every output line")
+    console.info("    --verbose       Report step-by-step detailed information")
+    console.info("\nCOMMANDS:")
+    console.info("    decodeRadonRequest <drBytecode>  Disassemble hexified bytecode into a Radon request.")
+    console.info("    dryrunRadonRequest <drBytecode>  Resolve a Radon request given its hexified bytecode, locally.")
+    console.info()      
+    console.info("    network         Network commands suite for reading or interacting with the Witnet blockchain.")
+    console.info("    version         Show version of the installed witnet_toolkit binary.")
+  }
+}
+
+main()
