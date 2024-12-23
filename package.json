@@ -30,7 +30,7 @@
   },
   "types": "./dist/lib/radon",
   "scripts": {
-    "build": "tsc -p tsconfig.json",
+    "build": "tsc -p tsconfig.json && npx pbjs --target json assets/witnet.proto -o witnet.proto.json",
     "prepare": "pnpm run build",
     "test": "node ./src/bin/toolkit.js update"
   },
