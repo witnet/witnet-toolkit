@@ -7,11 +7,14 @@ export const RadonReducers: typeof _RadonReducers = _RadonReducers;
 import * as _RadonFilters from "./lib/radon/filters"
 export const RadonFilters: typeof _RadonFilters = _RadonFilters;
 
-import * as _RadonTypes from "./lib/radon/types"
-export const RadonTypes: typeof _RadonTypes = _RadonTypes;
+import { RadonAny, RadonString, RadonScript as _RadonScript } from "./lib/radon/types"
+export { RadonArray, RadonBytes, RadonBoolean, RadonFloat, RadonInteger, RadonString, RadonMap,  } from './lib/radon/types'
+export { RadonScriptWrapper } from "./lib/radon/types"
 
-export function RadonInnerScript<T extends _RadonTypes.RadonType = _RadonTypes.RadonString>(t: { new(): T; }): T { return new t(); }
-export function RadonScript(): _RadonTypes.RadonString { return RadonInnerScript(_RadonTypes.RadonString); }
+export function RadonScript<InputType extends RadonAny = RadonString>(inputType: { new (ops?: _RadonScript): InputType; }): InputType {
+    if (!inputType) throw EvalError("An InputType must be specified when declaring a new RadonScript") 
+    return new inputType();
+}
 
 export { RadonRequest, RadonRequestTemplate as RadonTemplate } from "./lib/radon/artifacts"
 

@@ -4,7 +4,7 @@ const helpers = require("./helpers")
 import * as _RPCS from "./rpcs"
 
 import graphQlCompress from "graphql-query-compress"
-import { RadonOperators, RadonType as Script, RadonString as ScriptDefault} from "./types"
+import { RadonAny, RadonScriptWrapper as RadonScript } from "./types"
 import { JsonRPC } from "./rpcs"
 
 /**
@@ -28,7 +28,7 @@ export interface Specs {
     url?: string,
     headers?: Map<string, string>,
     body?: string,
-    script?: Script,
+    script?: RadonAny,
 }
 
 export class RadonRetrieval {
@@ -40,7 +40,7 @@ export class RadonRetrieval {
     public readonly path?: string;
     public readonly query?: string;
     public readonly schema?: string;
-    public readonly script?: Script;
+    public readonly script?: RadonScript;
     public readonly url?: string;
     
     constructor(method: Methods, specs?: Specs) {
@@ -53,17 +53,6 @@ export class RadonRetrieval {
             throw EvalError("\x1b[1;33mRadonRetrieval: body cannot be specified in HTTP-GET queries\x1b[0m")
         }
         this.method = method
-        if (specs?.headers) {
-            this.headers = []
-            if (specs.headers instanceof Map) {
-                specs.headers.forEach((value: string, key: string) => this.headers?.push([key, value]))
-            } else {
-                this.headers = specs.headers
-                // Object.entries(specs.headers).forEach((entry: any) => this.headers?.push(entry))
-            }
-        }
-        this.body = specs?.body
-        this.script = specs?.script
         if (specs?.url) {
             this.url = specs.url
             if (!helpers.isWildcard(specs.url)) {
@@ -74,11 +63,22 @@ export class RadonRetrieval {
                 if (parts[3] !== "") this.query = parts[3]
             }
         }
+        if (specs?.headers) {
+            this.headers = []
+            if (specs.headers instanceof Map) {
+                specs.headers.forEach((value: string, key: string) => this.headers?.push([key, value]))
+            } else {
+                // this.headers = specs.headers
+                Object.entries(specs.headers).forEach((entry: any) => this.headers?.push(entry))
+            }
+        }
+        this.body = specs?.body
+        if (specs?.script) this.script = new RadonScript(specs?.script)
         this.argsCount = Math.max(
-            helpers.getWildcardsCountFromString(specs?.url),
-            helpers.getWildcardsCountFromString(specs?.body),
+            helpers.getWildcardsCountFromString(this?.url),
+            helpers.getWildcardsCountFromString(this?.body),
             ...this.headers?.map(header => helpers.getWildcardsCountFromString(header[1])) ?? [],
-            specs?.script?._countWildcards() || 0,
+            this.script?.argsCount() || 0,
         )
     }
     
@@ -108,7 +108,7 @@ export class RadonRetrieval {
             url: helpers.replaceWildcards(this.url, args),
             body: helpers.replaceWildcards(this.body, args),
             headers,
-            script: this.script?._replaceWildcards(args),
+            script: this.script?.replaceWildcards(...args),
         })
     }
     /**
@@ -134,7 +134,7 @@ export class RadonRetrieval {
                 url: helpers.spliceWildcard(this.url, 0, value, this.argsCount),
                 body: helpers.spliceWildcard(this.body, 0, value, this.argsCount),
                 headers, 
-                script: this.script?._spliceWildcard(0, value)
+                script: this.script?.spliceWildcard(0, value)
             }))
         })
         return _spawned
@@ -165,12 +165,12 @@ export class RadonRetrieval {
             var utf8Array = helpers.toUtf8Array(this.body)
             protobuf.body = utf8Array
         }
-        protobuf.script = Object.values(Uint8Array.from(cbor.encode(this.script?._encodeArray())))
+        protobuf.script = Object.values(Uint8Array.from(cbor.encode(this.script?.encode())))
         return protobuf
     }
 
     public opsCount(): any {
-        return countOps(this.script?._encodeArray() || [])
+        return countOps(this.script?.encode() || [])
     }
 }
 
@@ -183,20 +183,13 @@ function countOps(items: any[]): number {
  * @param script (Optional) Radon Script to apply to the random seed proposed by every single witness, 
  * before aggregation.
   */
-export function RNG (script?: Script) { 
-    if (script) {
-        if (!stringifyFirstOpcode(script._encodeArray())?.startsWith("Bytes")) {
-            throw new EvalError("Input Radon script should be a RadonBytes value")
-        }
+export function RNG (script?: RadonAny) { 
+    const retrieval = new RadonRetrieval(Methods.RNG, { script }); 
+    if (retrieval?.script && retrieval?.script?.inputType?.constructor.name !== "RadonBytes") {
+        throw new EvalError("RNG script must expect a [RadonBytes] value as input")
     }
-    return new RadonRetrieval(Methods.RNG, { script }); 
+    return retrieval
 };
-
-function stringifyFirstOpcode(item: any) {
-    if (Array.isArray(item)) return stringifyFirstOpcode(item[0]);
-    else if (typeof item === 'number') return RadonOperators[item];
-    else return undefined
-}
 
 /**
  * Creates a Witnet HTTP/GET Radon RadonRetrieval.
@@ -206,7 +199,7 @@ function stringifyFirstOpcode(item: any) {
 export function HttpGet (specs: {
     url: string,
     headers?: Map<string, string>,
-    script?: Script,
+    script?: RadonAny,
     tuples?: Map<string, string[]>
 }) {
     return new RadonRetrieval(
@@ -214,7 +207,6 @@ export function HttpGet (specs: {
             url: specs.url, 
             headers: specs.headers, 
             script: specs.script, 
-            // tuples: specs.tuples 
         }
     );
 };
@@ -227,15 +219,13 @@ export function HttpGet (specs: {
 export function HttpHead (specs: {
     url: string,
     headers?: Map<string, string>,
-    script?: Script,
-    tuples?: Map<string, string[]>
+    script?: RadonAny,
 }) {
     return new RadonRetrieval(
         Methods.HttpHead, { 
             url: specs.url, 
             headers: specs.headers, 
             script: specs.script, 
-            // tuples: specs.tuples 
         }
     );
 };
@@ -249,8 +239,7 @@ export function HttpPost (specs?: {
     url: string,
     body: string,
     headers?: Map<string, string>,
-    script?: Script,
-    tuples?: Map<string, string[]>   
+    script?: RadonAny,
 }) {
     return new RadonRetrieval(
         Methods.HttpPost, { 
@@ -258,7 +247,6 @@ export function HttpPost (specs?: {
             headers: specs?.headers, 
             body: specs?.body, 
             script: specs?.script, 
-            // tuples: specs?.tuples 
         }
     );
 };
@@ -271,15 +259,13 @@ export function HttpPost (specs?: {
 export function GraphQLQuery (specs: { 
     url: string, 
     query: string, 
-    script?: Script,  
-    tuples?: Map<string, string[]>,
+    script?: RadonAny,  
 }) {
     return new RadonRetrieval(Methods.HttpPost, {
         url: specs.url, 
         body: `{\"query\":\"${graphQlCompress(specs.query).replaceAll('"', '\\"')}\"}`,
         headers: new Map<string,string>().set("Content-Type", "application/json;charset=UTF-8"),
-        script: specs?.script || new ScriptDefault(),
-        // tuples: specs?.tuples
+        script: specs?.script,
     });
 };
 
@@ -291,7 +277,7 @@ export function GraphQLQuery (specs: {
  */
 export function CrossChainRPC  (specs: {
     rpc: JsonRPC,
-    script?: Script
+    script?: RadonAny
 }) {
     return new RadonRetrieval(Methods.HttpPost, {
         url: "\\0\\",
@@ -302,6 +288,6 @@ export function CrossChainRPC  (specs: {
             id: 1,
         }).replaceAll('\\\\', '\\'),
         headers: new Map<string,string>().set("Content-Type", "application/json;charset=UTF-8"),
-        script: specs?.script || new ScriptDefault(),
+        script: specs?.script,
     });
 };

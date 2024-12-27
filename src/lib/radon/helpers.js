@@ -98,6 +98,12 @@ export function spliceWildcard(obj, argIndex, argValue, argsCount) {
     return obj;
 }
 
+export function toUpperCamelCase(str) {
+    return str.replace(/\b(\w)/g, function(match, capture) {
+        return capture.toUpperCase();
+      }).replace(/\s+/g, '');
+}
+
 export function toUtf8Array(str) {
     var utf8 = [];
     for (var i=0; i < str.length; i++) {

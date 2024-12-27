@@ -1,4 +1,4 @@
-import { RadonType as Script } from "./types"
+import { RadonScriptWrapper as RadonScript } from "./types"
 import { RadonFilter, Stdev as StdevFilter } from "./filters"
 
 export enum Opcodes {
@@ -11,7 +11,7 @@ export enum Opcodes {
 
 export interface Specs {
     filters?: RadonFilter[],
-    script?: Script,
+    script?: RadonScript,
 }
 
 export class RadonReducer {
