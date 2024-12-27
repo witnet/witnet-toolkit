@@ -11,7 +11,10 @@ import { RadonRequest } from "./lib/radon/artifacts"
 import { RadonRetrieval } from "./lib/radon/retrievals"
 import { RadonReducer } from "./lib/radon/reducers"
 import { RadonFilter } from "./lib/radon/filters"
-import * as RadonTypes from "./lib/radon/types"
+import { 
+  RadonAny, RadonArray, RadonBoolean, RadonBytes, RadonFloat, RadonInteger, RadonMap, RadonString,
+  RadonOperators
+ } from "./lib/radon/types"
 
 export function decodeRequest(hexString) {
   const buffer = fromHexString(hexString)
@@ -126,26 +129,26 @@ function parseScript(array, script) {
 function parseScriptOperator(script, opcode, args) {
   if (!script) {
     const found = Object.entries({
-      "10": RadonTypes.RadonArray,
-      "20": RadonTypes.RadonBoolean,
-      "30": RadonTypes.RadonBytes,
-      "40": RadonTypes.RadonInteger,
-      "50": RadonTypes.RadonFloat,
-      "60": RadonTypes.RadonMap,
-      "70": RadonTypes.RadonString,
+      "10": RadonArray,
+      "20": RadonBoolean,
+      "30": RadonBytes,
+      "40": RadonInteger,
+      "50": RadonFloat,
+      "60": RadonMap,
+      "70": RadonString,
     }).find(entry => entry[0] === (parseInt(opcode) & 0xf0).toString(16))
-    const RadonClass = found ? found[1] : RadonTypes.RadonType;
+    const RadonClass = found ? found[1] : RadonAny;
     script = new RadonClass()
   }
   if (opcode) {
-    var operator = RadonTypes.RadonOperators[opcode].split(/(?=[A-Z])/).slice(1).join("")
+    var operator = RadonOperators[opcode].split(/(?=[A-Z])/).slice(1).join("")
     operator = operator.charAt(0).toLowerCase() + operator.slice(1)
     switch (operator) {
-      case "filter": case "map": case "sort": 
+      case "filter": case "map": case "sort": case "alter":
         return script[operator](parseScript(args[0]), args.slice(1));
       
-      case "alter":
-        return script[operator](args[0], parseScript(args[1], ...args.slice(2)));
+      // case "alter":
+      //   return script[operator](args[0], parseScript(args[1], ...args.slice(2)));
       
       default:
         return script[operator](args)

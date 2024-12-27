@@ -38,7 +38,6 @@
   "files": [
     "src/index.ts",
     "src/bin/toolkit.js",
-    "src/lib/radon/index.ts",
     "src/lib/radon/helpers.js",
   ],
   "include": [

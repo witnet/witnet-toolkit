@@ -1,10 +1,10 @@
 const cbor = require("cbor")
 const helpers = require('./helpers')
 
-import { Opcodes as RedonReducerOpcodes } from './reducers'
+import { Opcodes as RadonReducerOpcodes } from './reducers'
 import * as Utils from '../../utils'
 
-enum RadonBytesEncodings {
+enum RadonEncodings {
     HexString = 0,
     Base64 = 1,
 }
@@ -79,274 +79,329 @@ export enum RadonOperators {
     StringParseSplit = 0x7d,
 }
 
-export class RadonType {
-    public static from(hexString: string) {
-        return Utils.decodeScript(hexString)
-    }
-    
-    protected _bytecode?: any; 
-    protected _key?: string;
-    protected _prev?: RadonType;
-    protected _method?: string;
-    protected _params?: any;
-    constructor (prev?: RadonType, key?: string) {
-        this._key = key
-        this._prev = prev
-        Object.defineProperty(this, "argsCount", { value: () => {
-            return Math.max(
-                helpers.getWildcardsCountFromString(key),
-                prev?._countWildcards() || 0
-            )   
-        }})
-        Object.defineProperty(this, "toArray", { value: () => {
-            let _result = this._bytecode ? [ this._bytecode ] : []
-            if (this._prev !== undefined) _result = Object(this._prev).toArray().concat(_result)
-            return _result
-        }})
-        Object.defineProperty(this, "toBytecode", { value: () => {
-            let _array = Object(this).toArray()
-            return Utils.toHexString(Object.values(Uint8Array.from(cbor.encode(_array))))
-        }})
-        Object.defineProperty(this, "toString", { value: () => {
-            let _result
-            if (this._method) _result = `${this._method}(${this._params !== undefined ? this._params : ""})`
-            if (this._prev) _result = `${this._prev.toString()}${_result ? `.${_result}` : ""}`
-            return _result
-        }})
-    }
-    protected _set(bytecode?: any, method?: string, params?: any) {
-        this._bytecode = bytecode
-        this._method = method
-        this._params = params
-    }
-    /**
-     * (Compilation time only) Returns the maximum index from all wildcarded arguments refered at any step of the script, plus 1.
-     * @returns 0 if the script refers no wildcarded argument at all.
-     */
-    public _countWildcards(): number {
-        return Math.max(
-            helpers.getWildcardsCountFromString(this?._key),
-            this._prev?._countWildcards() || 0
-        );
-    }
-    /**
-     * (Compilation time only) Encodes the script into an array of array of opcodes and values.
-     */
-    public _encodeArray(): any[] {
-        let _result = this._bytecode ? [ this._bytecode ] : []
-        if (this._prev !== undefined) _result = this._prev._encodeArray().concat(_result)
-        return _result
-    }
-    /**
-     * (Compilation time only) Clone the script and replace indexed wildcards
-     * with given parameters. Fails if less values than indexed wildcards are provided.
-     */
-    public _replaceWildcards(args: string[]): RadonType {
-        const RadonClass = [ 
-            RadonArray,
-            RadonBoolean,
-            RadonBytes,
-            RadonFloat,
-            RadonInteger,
-            RadonMap,
-            RadonString
-        ].find(RadonClass => this instanceof RadonClass) || RadonType;
-        if (args.length < this._countWildcards()) {
-            throw EvalError(`\x1b[1;33m${RadonClass}: insufficient args were provided (${args.length} < ${this._countWildcards()})\x1b[0m`)
-        }
-        const spliced = new RadonClass(this._prev?._replaceWildcards(args), this._key);  
-        spliced._set(
-            helpers.replaceWildcards(this._bytecode, args), 
-            this._method, 
-            helpers.replaceWildcards(this._params, args),
-        )
-        return spliced
-    }
-    
-    /**
-     * (Compilation time only) Clone the script and replace all occurences of the 
-     * specified argument index by the given value. All wildcards with a higher
-     * index will be decreased by one in the new script.
-     */
-    _spliceWildcard(argIndex: number, argValue: string): RadonType {
-        const RadonClass = [ 
-            RadonArray,
-            RadonBoolean,
-            RadonBytes,
-            RadonFloat,
-            RadonInteger,
-            RadonMap,
-            RadonString
-        ].find(RadonClass => this instanceof RadonClass) || RadonType;
-        const argsCount: number = this._countWildcards()
-        const spliced = new RadonClass(this._prev?._spliceWildcard(argIndex, argValue), this._key);  
-        spliced._set(
-            helpers.spliceWildcard(this._bytecode, argIndex, argValue, argsCount), 
-            this._method, 
-            helpers.spliceWildcard(this._params, argIndex, argValue, argsCount)
-        )
-        return spliced
+abstract class RadonClass {
+    readonly prev?: RadonScript;
+    constructor(prev?: RadonScript) {
+        this.prev = prev
     }
 }
 
-export class RadonArray extends RadonType {
+export class RadonScript extends RadonClass {
+    readonly opcode: RadonOperators
+    readonly params: any[]
+    constructor(opcode: RadonOperators, params: any[], ops?: RadonScript) {
+        super(ops)
+        this.opcode = opcode
+        this.params = [...params]
+    }
+    public argsCount(): number { 
+        var maxCount: number = 0
+        this.params.forEach(param => {
+            if (typeof param === 'string') {
+                count = helpers.getWildcardsCountFromString(param)
+                if (count > maxCount) maxCount = count
+            } else if (typeof param === 'object' && param instanceof RadonScriptWrapper) {
+                var count = param.argsCount()
+                if (count > maxCount) maxCount = count
+            }
+        })
+        return Math.max(
+            maxCount,
+            this.prev?.argsCount() || 0
+        )
+    }
+    public encode(): any[] { 
+        var encoded
+        if (this?.params && this.params.length > 0) {
+            encoded = [this.opcode, ...this.params.map(param => {
+                if (typeof param === 'object' && param instanceof RadonScriptWrapper) {
+                    return param.encode()
+                } else {
+                    return param
+                }
+            })]
+            if (this.opcode == RadonOperators.ArrayFilter) console.log("encoded =>", encoded)
+        } else {
+            encoded = this.opcode
+        }
+        if (this.prev) {
+            return [...this.prev.encode(), encoded]
+        } else {
+            return [encoded]
+        }
+    }
+    public replaceWildcards(args: string[]): RadonScript {
+        if (args.length < this.argsCount()) {
+            throw EvalError(`Insufficent args were provided (${args.length} < ${this.argsCount()})`)
+        }
+        return new RadonScript(
+            this.opcode, 
+            this.params.map(param => {
+                if (typeof param === 'string') {
+                    return helpers.replaceWildcards(param, args)
+                } else if (typeof param === 'object' && param instanceof RadonScriptWrapper) {
+                    return param.replaceWildcards(...args)
+                } else {
+                    return param
+                }
+            }), 
+            this?.prev?.replaceWildcards(args)
+        )
+    }
+    public spliceWildcard(argIndex: number, argValue: string): RadonScript {
+        return new RadonScript(
+            this.opcode,
+            this.params.map(param => {
+                if (typeof param === 'string') {
+                    return helpers.spliceWildcard(param, argIndex, argValue, this.argsCount())
+                } else if (typeof param === 'object' && param instanceof RadonScriptWrapper) {
+                    return param.spliceWildcard(argIndex, argValue)
+                } else {
+                    return param
+                }
+            }),
+            this?.prev?.spliceWildcard(argIndex, argValue)
+        )
+    }
+    public toString(left = "", indent = 4, level = 0): string { 
+        var lf = left !== "" ? "\n" : ""
+        var str = this?.prev?.toString(left, indent, level) || ""
+        var methodName = RadonOperators[this.opcode].split(/(?=[A-Z])/).slice(1).join('')
+        methodName = methodName.charAt(0).toLowerCase() + methodName.slice(1)
+        str += `${left}${" ".repeat(indent * level)}.${methodName}(`
+        if (this.params.length > 0) { 
+            this.params.forEach(param => {
+                if (typeof param === 'string') {
+                    str += `"${param}", `
+                } else if (typeof param === 'object' && param instanceof RadonScriptWrapper) {
+                    str += `${param.toString(left, indent, level + 1)}${left}${" ".repeat(indent * level)}, `
+                } else {
+                    str += param.toString() + ", "
+                }
+            })
+            str = str.slice(0, -2)
+        }
+        str += `)${lf}`
+        return str
+    }
+}
+
+export class RadonScriptWrapper {
+    protected readonly ops?: RadonScript;
+    public readonly inputType?: RadonAny;
+    public readonly outputType?: RadonAny;
+    constructor (output: RadonAny) {
+        this.ops = output?.prev;
+        const radonTypes = {
+            "Array": RadonArray,
+            "Boolean": RadonBoolean,
+            "Bytes": RadonBytes,
+            "Float": RadonFloat,
+            "Integer": RadonInteger,
+            "Map": RadonMap,
+            "String": RadonString,
+        }
+        var input = output?.prev
+        while (input?.prev) input = input?.prev
+        const inputType = Object.entries(radonTypes).find(([prefix, _]) => input && RadonOperators[input.opcode].startsWith(prefix))
+        if (inputType && inputType[1]) this.inputType = new inputType[1]()
+        const outputType = Object.values(radonTypes).find(outputType => output instanceof outputType);
+        if (outputType) this.outputType = new outputType()
+    }
+    public argsCount(): number {
+        return this.ops?.argsCount() || 0;
+    }
+    public encode(): any[] {
+        return this.ops?.encode() || [];
+    }
+    public replaceWildcards(...args: string[]): RadonAny {
+        const OutputType = [
+            RadonArray,
+            RadonBoolean,
+            RadonBytes,
+            RadonFloat,
+            RadonInteger,
+            RadonMap,
+            RadonString,
+        ].find(OutputType => this.outputType instanceof OutputType);
+        if (OutputType) {
+            return new OutputType(this.ops?.replaceWildcards(args))
+        } else {
+            throw EvalError(`Cannot replace wildcards on empty script`)
+        }
+    }
+    public spliceWildcard(argIndex: number, argValue: string): RadonAny {
+        const OutputType = [
+            RadonArray,
+            RadonBoolean,
+            RadonBytes,
+            RadonFloat,
+            RadonInteger,
+            RadonMap,
+            RadonString,
+        ].find(OutputType => this.outputType instanceof OutputType);
+        if (OutputType) {
+            return new OutputType(this.ops?.spliceWildcard(argIndex, argValue))
+        } else {
+            throw EvalError(`Cannot splice wildcards on empty script`)
+        }
+    }
+    public toBytecode(): string {
+        return Utils.toHexString(Object.values(Uint8Array.from(cbor.encode(this.encode()))))
+    }
+    public toString(left = "", indent = 0, level = 0): string {
+        var lf = left !== "" ? "\n" : ""
+        return `RadonScript(${this.inputType?.constructor.name || ""})${lf}${this.ops?.toString(left, indent, level + 1)}`
+    }
+}
+
+export abstract class RadonAny extends RadonClass {
+    protected _pushOperator<OutputType extends RadonAny>(
+        outputType: { new(ops?: RadonScript): OutputType; }, 
+        params: any[],
+    ): OutputType {
+        var name
+        try {
+            throw new Error();
+        } catch (err) {
+            var result = (err as Error)
+            name = result.stack?.split(' at ')[2]
+                .split(' ')[0]
+                .split('.')
+                .map(part => helpers.toUpperCamelCase(part))
+                .join('')
+                .split(/(?=[A-Z])/).slice(1)
+                .join('')
+        }
+        var opcode = RadonOperators[name as keyof typeof RadonOperators]
+        if (!opcode) {
+            throw Error(`Fatal: unknown Radon Operator opcode '${name}'`)
+        } else {
+            return new outputType(new RadonScript(
+                opcode, 
+                [...params], 
+                this?.prev
+            ))
+        }
+    }
+}
+
+export interface RadonArray<ItemsType extends RadonAny> {
+    itemsType: ItemsType;
+}
+
+export class RadonArray<ItemsType extends RadonAny = RadonAny> extends RadonAny {
     /**
      * Discard the items in the input array that make the given `innerScript` to return a `false` value. 
-     * @param innerScript Filtering script ultimately returning a `RadonBoolean` object.
+     * @param script Filtering script ultimately returning a `RadonBoolean` object.
      * Must accept as input the same data types as the ones of the items being iterated. 
      * @returns A `RadonArray` object containing only the items that make the `innerScript` to return a `true` value. 
      */
-    public filter(innerScript: RadonType) {
+    public filter(innerScript: RadonBoolean) {
         if (!(innerScript instanceof RadonBoolean)) {
-            throw new EvalError(`\x1b[1;33mRadonArray::filter: inner script returns no RadonBoolean object\x1b[0m`)
-        }
-        this._bytecode = [ 0x11, innerScript._encodeArray() ]
-        this._method = "filter"
-        this._params = innerScript.toString()
-        return new RadonArray(this)
+            throw new EvalError(`Inner script must fetch a RadonBoolean value`)
+        } 
+        return this._pushOperator(RadonArray<ItemsType>, [new RadonScriptWrapper(innerScript)])
     }
     /**
      * Fetch the item at the given `index` as a `RadonArray` object.
      * @param index 
      */
-    public getArray(index: number) {
-        this._bytecode = [ 0x13, index ]
-        this._method = "getArray"
-        this._params = index
-        return new RadonArray(this)
+    public getArray<SubItemsType extends RadonAny = RadonAny>(index: number) {
+        return this._pushOperator(RadonArray<SubItemsType>, [index])
     }
     /**
      * Fetch the item at the given `index` as a `RadonBoolean` object.
      * @param index 
      */
     public getBoolean(index: number) {
-        this._bytecode = [ 0x14, index ]
-        this._method = "getBoolean"
-        this._params = index
-        return new RadonBoolean(this)
+        return this._pushOperator(RadonBoolean, [index])
     }
     /**
      * Fetch the item at the given `index` as a `RadonBytes` object.
      * @param index 
      */
     public getBytes(index: number) {
-        this._bytecode = [ 0x15, index ]
-        this._method = "getBytes"
-        this._params = index
-        return new RadonBytes(this)
+        return this._pushOperator(RadonBytes, [index])
     }
     /**
      * Fetch the item at the given `index` as a `RadonFloat` object.
      * @param index 
      */
     public getFloat(index: number) {
-        this._bytecode = [ 0x16, index ]
-        this._method = "getFloat"
-        this._params = index
-        return new RadonFloat(this)
+        return this._pushOperator(RadonFloat, [index])
     }
     /**
      * Fetch the item at the given `index` as a `RadonInteger` object.
      * @param index 
      */
     public getInteger(index: number) {
-        this._bytecode = [ 0x17, index ]
-        this._method = "getInteger"
-        this._params = index
-        return new RadonInteger(this)
+        return this._pushOperator(RadonInteger, [index])
     }
     /**
      * Fetch the item at the given `index` as a `RadonMap` object.
      * @param index 
      */
     public getMap(index: number) {
-        this._bytecode = [ 0x18, index ]
-        this._method = "getMap"
-        this._params = index
-        return new RadonMap(this)
+        return this._pushOperator(RadonMap, [index])
     }
     /**
      * Fetch the item at the given `index` as a `RadonString` object.
      * @param index 
      */
     public getString(index: number) {
-        this._bytecode = [ 0x19, index ]
-        this._method = "getString"
-        this._params = index
-        return new RadonString(this)
+        return this._pushOperator(RadonString, [index])
     }
     /**
      * Join all items of the array into a value of the given type. The array must be homogeneous, 
-     * all items being of the same type as the expected `outputType`. 
-     * @param outputType Radon type of the output value. 
+     * all items being of the same type as the outputType`, if specified, or the Array's itemsType otherwise.
      * @param separator Separator to be used when joining strings. When joining RadonMaps, it can be used to settle base schema on resulting object.
+     * @param outputType Radon type of the output value. 
      */
-    public join<T extends RadonType>(
-        outputType: { new(prev?: RadonType, key?: string): T; }, 
-        separator?: string,
-    ) {
-        if (separator && typeof separator === 'string') {
-            this._bytecode = [ 0x12, separator, ]
-        } else {
-            this._bytecode = 0x12
-        }
-        this._method = "join"
-        this._params = `${separator && separator !== "" ? `"${separator}"`: `""`}`
-        return new outputType(this)
+    public join<OutputType extends RadonAny = RadonAny>(separator = "", outputType?: { new(): ItemsType; }) {
+        if (outputType) this._pushOperator(RadonArray<OutputType>, [separator])
+        else this._pushOperator(RadonArray<ItemsType>, [separator])
     }
     /**
      * Count the number of items. 
      * @returns A `RadonInteger` object.
      */
     public length() {
-        this._bytecode = 0x10
-        this._method = "length"
-        return new RadonInteger(this)
+        return this._pushOperator(RadonInteger, [])
     }
     /**
      * Map all items in the array with the given `innerScript`. 
-     * @param innerScript Mapping script returning some `RadonType` object.
+     * @param innerScript Mapping script returning some `RadonAny` object.
      * Must accept as input the same data type as the one of the items being iterated. 
      * @returns A `RadonArray` object containing the mapped values. 
      */
-    public map(innerScript: RadonType) {
-        this._bytecode = [ 0x1A, innerScript._encodeArray() ]
-        this._method = "map"
-        this._params = innerScript.toString()
-        return new RadonArray(this)
+    public map(innerScript: RadonScript) {
+        return this._pushOperator(RadonArray, [innerScript])
     }
+    // public map<OutputItemsType extends RadonAny>(innerScript: RadonScript<OutputItemsType>) {
+    //     // todo: check script's input type matches array's items type, if any ??
+    //     return this._pushOperator(RadonArray<OutputItemsType>, [innerScript])
+    // }
     /**
      * Reduce all items in the array into a single value.
      * @param reductor The reductor method to be applied. All array items must be 
      * convertable into float values.
      * @returns A `RadonFloat` object.
      */
-    public reduce(reductor: RedonReducerOpcodes) {
-        this._bytecode = [ 0x1B, reductor ]
-        this._method = "reduce"
-        this._params = RedonReducerOpcodes[reductor]
-        return new RadonFloat(this)
+    public reduce(reductor: RadonReducerOpcodes) {
+        return this._pushOperator(RadonFloat, [reductor])
     }
     /**
      * Order the array items based either on the results of applying the given `innerScript` to every item, or on the 
      * actual item values (as long as these are either integers or strings).
-     * Fails if applied on non-homegenous arrays (i.e. not all items sharing the same `RadonType`). 
+     * Fails if applied on non-homegenous arrays (i.e. not all items sharing the same `RadonAny`). 
      * @param innerScript (Optional) Sorting script returning either a `RadonInteger` or a `RadonString` object.
      * @returns A `RadonArray` object.
      */
-    public sort(innerScript?: RadonType) {
-        if (!(innerScript instanceof RadonInteger) && !(innerScript instanceof RadonString)) {
-            throw new EvalError(`\x1b[1;33mRadonArray::sort: inner script returns neither a RadonInteger nor a RadonString object\x1b[0m`)
-        }
-        if (innerScript) {
-            this._bytecode = [ 0x1d, innerScript._encodeArray() ]
-            this._params = innerScript.toString()
-        } else {
-            this._bytecode = [ 0x1d, [] ]
-        }
-        this._method = "sort"
-        return new RadonArray(this)
-    }
+    // TODO
+    // public sort(innerScript?: RadonScript<RadonString | RadonInteger>) {
+    //     return this._pushOperator(RadonArray<ItemsType>, [innerScript])
+    // }
     /**
      * Take a selection of items from the input array.
      * @param indexes Indexes of the input items to take into the output array. 
@@ -356,62 +411,49 @@ export class RadonArray extends RadonType {
         if (Array(indexes).length == 0) {
             throw new EvalError(`\x1b[1;33mRadonArray::pick: a non-empty array of numbers must be provided\x1b[0m`)
         }
-        this._bytecode = [ 0x1e, ...indexes ]
-        this._params = JSON.stringify(indexes)
-        this._method = "pick"
-        return new RadonArray(this)
+        return this._pushOperator(RadonArray<ItemsType>, [...indexes])
     }
 }
 
-export class RadonBoolean extends RadonType {
+export class RadonBoolean extends RadonAny {
     /**
      * Reverse value.
      * @returns A `RadonBoolean` object.
      */
     public negate() {
-        this._bytecode = 0x22
-        this._method = "negate"
-        return new RadonBoolean(this)
+        return this._pushOperator(RadonBoolean, [])
     }
     /**
      * Cast value into a string. 
      * @returns A `RadonString` object.
      */
     public stringify() {
-            this._bytecode = 0x20
-        this._method = "stringify"
-        return new RadonString(this)
+        return this._pushOperator(RadonString, [])
     }
 }
 
-export class RadonBytes extends RadonType {
-    static readonly Encodings = RadonBytesEncodings;
+export class RadonBytes extends RadonAny {
+    static readonly Encodings = RadonEncodings;
     /**
      * Convert buffer into (big-endian) integer.
      * @returns A `RadonBytes` object.
      */
     public asInteger() {
-        this._bytecode = 0x32
-        this._method = "toInteger"
-        return new RadonInteger(this)
+        return this._pushOperator(RadonInteger, [])
     }
     /**
      * Apply the SHA2-256 hash function.
      * @returns A `RadonBytes` object.
      */
     public hash() {
-        this._bytecode = [ 0x31, 0x0A ]
-        this._method = "hash"
-        return new RadonBytes(this)
+        return this._pushOperator(RadonBytes, [])
     }
     /**
      * Count the number of bytes. 
      * @returns A `RadonInteger` object.
      */
     public length() {
-        this._bytecode = 0x34
-        this._method = "length"
-        return new RadonInteger(this)
+        return this._pushOperator(RadonInteger, [])
     }
     /**
      * Returns a slice extracted from the input buffer. 
@@ -422,15 +464,7 @@ export class RadonBytes extends RadonType {
      * @returns A `RadonBytes` object.
      */
     public slice(startIndex: number = 0, endIndex?: number) {
-        if (endIndex !== undefined) {
-            this._bytecode = [ 0x3c, startIndex, endIndex ]
-            this._params = `${startIndex}, ${endIndex}`
-        } else {
-            this._bytecode = [ 0x3c, startIndex ]
-            this._params = `${startIndex}`
-        }
-        this._method = "slice"
-        return new RadonBytes(this)
+        return this._pushOperator(RadonBytes, [startIndex, endIndex])
     }
     /**
      * Convert the input buffer into a string.
@@ -439,45 +473,33 @@ export class RadonBytes extends RadonType {
      *   1 -> Base64 string
      * @returns A `RadonString` object.
      */
-    public stringify(encoding?: RadonBytesEncodings) {
-        if (encoding) {
-            this._bytecode = [ 0x30, encoding ]
-            this._params = `${RadonBytesEncodings[encoding]}`
-        } else {
-            this._bytecode = 0x30
-        }
-        this._method = "stringify"
-        return new RadonString(this)
+    public stringify(encoding = RadonEncodings.HexString) {
+        return this._pushOperator(RadonString, [encoding])
     }
 }
 
-export class RadonFloat extends RadonType {
+export class RadonFloat extends RadonAny {
     /**
      * Compute the absolute value.
      * @returns A `RadonFloat` object.
      */
     public absolute() {
-        this._bytecode = 0x50
-        this._method = "absolute"
-        return new RadonFloat(this)
+        return this._pushOperator(RadonFloat, [])
     }
     /**
      * Compute the lowest integer greater than or equal to the float value.
      * @returns A `RadonInteger` object. 
      */
     public ceiling() {
-        this._bytecode = 0x52
-        this._method = "ceiling"
-        return new RadonInteger(this)
+        return this._pushOperator(RadonFloat, [])
+
     }
     /**
      * Compute the greatest integer less than or equal to the float value.
      * @returns A `RadonInteger` object.
      */
     public floor() {
-        this._bytecode = 0x54
-        this._method = "floor"
-        return new RadonInteger(this)
+        return this._pushOperator(RadonInteger, [])
     }
     /**
      * Determine if the float value is greater than the given `input`. 
@@ -485,21 +507,15 @@ export class RadonFloat extends RadonType {
      * @returns A `RadonBoolean` object.
      */
     public greaterThan(input: number | string) {
-        this._bytecode = [ 0x53, input ]
-        this._method = "greaterThan"
-        this._params = typeof input === 'string' ? `'${input}'` : input
-        return new RadonBoolean(this)
+        return this._pushOperator(RadonBoolean, [input])
     }
     /**
      * Determine if the float value is less than the given `input`.
      * @param input 
-     * @returns A `RadonBoolen` object.
+     * @returns A `RadonBoolean` object.
      */
     public lessThan(input: number | string) {
-        this._bytecode = [ 0x55, input ]
-        this._method = "lessThan"
-        this._params = typeof input === 'string' ? `'${input}'` : input
-        return new RadonBoolean(this)
+        return this._pushOperator(RadonBoolean, [input])
     }
     /**
      * Compute the float remainder of dividing the value by the given `integer`.
@@ -507,10 +523,7 @@ export class RadonFloat extends RadonType {
      * @returns A `RadonFloat` object.
      */
     public modulo(integer: number | string) {
-        this._bytecode = [ 0x56, integer ]
-        this._method = "modulo"
-        this._params = typeof integer === 'string' ? `'${integer}'` : integer
-        return new RadonFloat(this)
+        return this._pushOperator(RadonFloat, [integer])
     }
     /**
      * Multiply the float value by the given `factor`.
@@ -518,19 +531,14 @@ export class RadonFloat extends RadonType {
      * @returns A `RadonFloat` object. 
      */
     public multiply(factor: number | string) {
-        this._bytecode = [ 0x57, factor ]
-        this._method = "multiply"
-        this._params = typeof factor === 'string' ? `'${factor}'` : factor
-        return new RadonFloat(this)
+        return this._pushOperator(RadonFloat, [factor])
     }
     /**
      * Negate the float value. 
      * @returns A `RadonFloat` object.
      */
     public negate() {
-        this._bytecode = 0x58
-        this._method = "negate"
-        return new RadonFloat(this)
+        return this._pushOperator(RadonFloat, [])
     }
     /**
      * Compute the float value raised to the power of given `exponent`
@@ -538,49 +546,38 @@ export class RadonFloat extends RadonType {
      * @returns A `RadonFloat` object.
      */
     public power(exponent: number | string) {
-        this._bytecode = [ 0x59, exponent ]
-        this._method = "power"
-        this._params = typeof exponent === 'string' ? `'${exponent}'` : exponent
-        return new RadonFloat(this)
+        return this._pushOperator(RadonFloat, [exponent])
     }
     /**
      * Round to the closest integer value.
      * @returns A `RadonInteger` object.
      */
     public round() {
-        this._bytecode = 0x5b
-        this._method = "round"
-        return new RadonInteger(this)
+        return this._pushOperator(RadonInteger, [])
     }
     /**
      * Stringify the float value.
      * @returns A `RadonString` object.
      */
     public stringify() {
-        this._bytecode = 0x51
-        this._method = "stringify"
-        return new RadonString(this)
+        return this._pushOperator(RadonString, [])
     }
     /**
      * Take the integer part of the float value. 
      * @returns A `RadonInteger` object.
      */
     public truncate() {
-        this._bytecode = 0x5d
-        this._method = "truncate"
-        return new RadonInteger(this)
+        return this._pushOperator(RadonInteger, [])
     }
 }
 
-export class RadonInteger extends RadonType {
+export class RadonInteger extends RadonAny {
     /**
      * Compute the absolute value.
      * @returns A `RadonInteger` object.
      */
     public absolute() {
-        this._bytecode = 0x40
-        this._method = "absolute"
-        return new RadonInteger(this)
+        return this._pushOperator(RadonInteger, [])
     }
     /**
      * Determine if the integer value is greater than the given `input`. 
@@ -588,10 +585,7 @@ export class RadonInteger extends RadonType {
      * @returns A `RadonBoolean` object.
      */
     public greaterThan(input: number | string) {
-        this._bytecode = [ 0x43, input ]
-        this._method = "greaterThan"
-        this._params = typeof input === 'string' ? `'${input}'` : input
-        return new RadonBoolean(this)
+        return this._pushOperator(RadonBoolean, [input])
     }
     /**
      * Determine if the integer value is less than the given `input`. 
@@ -599,10 +593,7 @@ export class RadonInteger extends RadonType {
      * @returns A `RadonBoolean` object.
      */
     public lessThan(input: number | string) {
-        this._bytecode = [ 0x44, input ]
-        this._method = "lessThan"
-        this._params = typeof input === 'string' ? `'${input}'` : input
-        return new RadonBoolean(this)
+        return this._pushOperator(RadonBoolean, [input])
     }
     /**
      * Compute the remainder of dividing the value by the given `integer`.
@@ -610,10 +601,7 @@ export class RadonInteger extends RadonType {
      * @returns A `RadonFloat` object.
      */
     public modulo(integer: number | string) {
-        this._bytecode = [ 0x46, integer ]
-        this._method = "modulo"
-        this._params = typeof integer === 'string' ? `'${integer}'` : integer
-        return new RadonInteger(this)
+        return this._pushOperator(RadonInteger, [integer])
     }
     /**
      * Multiply the value by the given `integer`.
@@ -621,61 +609,47 @@ export class RadonInteger extends RadonType {
      * @returns A `RadonInteger` object. 
      */
     public multiply(integer: number | string) {
-        this._bytecode = [ 0x47, integer ]
-        this._method = "multiply"
-        this._params = typeof integer === 'string' ? `'${integer}'` : integer
-        return new RadonInteger(this)
+        return this._pushOperator(RadonInteger, [integer])
     }
     /**
      * Negate the integer value. 
      * @returns A `RadonFloat` object.
      */
     public negate() {
-        this._bytecode = 0x48
-        this._method = "negate"
-        return new RadonInteger(this)
+        return this._pushOperator(RadonInteger, [])
     }
     /**
      * Compute the value raised to the power of given `exponent`
      * @param exponent
      * @returns A `RadonInteger` object.
      */
-    public power(value: number | string) {
-        this._bytecode = [ 0x49, value ]
-        this._method = "power"
-        this._params = typeof value === 'string' ? `'${value}'` : value
-        return new RadonInteger(this); 
+    public power(exponent: number | string) {
+        return this._pushOperator(RadonInteger, [exponent])
     }
     /**
      * Stringify the value.
      * @returns A `RadonString` object.
      */
     public stringify() {
-        this._bytecode = 0x42
-        this._method = "stringify"
-        return new RadonString(this)
+        return this._pushOperator(RadonString, [])
     }
     /**
      * Cast into a big-endian bytes buffer.
      * @returns A `RadonBytes` object.
      */
     public toBytes() {
-        this._bytecode = 0x4A
-        this._method = "toBytes"
-        return new RadonBytes(this)
+        return this._pushOperator(RadonBytes, [])
     }
     /**
      * Cast into a float value.
      * @returns A `RadonFloat` object.
      */
     public toFloat() {
-        this._bytecode = 0x41
-        this._method = "toFloat"
-        return new RadonFloat(this)
+        return this._pushOperator(RadonFloat, [])
     }
 }
 
-export class RadonMap extends RadonType {
+export class RadonMap extends RadonAny {
     /**
      * Alter the value of the item(s) identified by `keys`, applying the given `innerScript` to each one of them.
      * @param key 
@@ -683,35 +657,17 @@ export class RadonMap extends RadonType {
      * @returns The same RadonMap upon which this operator is executed, with the specified item(s) altered
      * by the given `innerScript`.
      */
-    public alter(innerScript: RadonType, ...keys: string[])  {
-        const RadonClass = [ 
-            RadonArray,
-            RadonBoolean,
-            RadonBytes,
-            RadonFloat,
-            RadonInteger,
-            RadonMap,
-            RadonString,
-            RadonType,
-        ].find(RadonClass => innerScript instanceof RadonClass) || undefined;
-        if (!RadonClass || RadonClass instanceof RadonType) {
-            throw new EvalError(`\x1b[1;33mRadonMap::alter: passed inner script is not valid\x1b[0m`)
-        }
-        this._bytecode = [ 0x6b, innerScript._encodeArray(), ...keys ]
-        this._method = "alter"
-        this._params = `{ ${innerScript.toString()}${keys.length > 0 ? `, ${JSON.stringify(keys).slice(1, -1)}` : ""} }`
-        return new RadonMap(this)
-    }
+    // TODO
+    // public alter<AlteredOutputType extends RadonAny>(innerScript: RadonScript<AlteredOutputType>, ...keys: string[]) {
+    //     return this._pushOperator(RadonMap, [innerScript, ...keys])
+    // }
     /**
      * Fetch the array within the specified `key` field.
      * @param key 
      * @returns A `RadonArray` object.
      */
-    public getArray(key: string) {
-        this._bytecode = [ 0x61, key ]
-        this._method = "getArray"
-        this._params = `'${key}'`
-        return new RadonArray(this, key)
+    public getArray<ItemsType extends RadonAny = RadonAny>(key: string, _itemsType?: { new(): ItemsType; }) {
+        return this._pushOperator(RadonArray<ItemsType>, [key])
     }
     /**
      * Fetch the boolean within the specified `key` field. 
@@ -719,10 +675,7 @@ export class RadonMap extends RadonType {
      * @returns A `RadonBoolean` object. 
      */
     public getBoolean(key: string) {
-        this._bytecode = [ 0x62, key ]
-        this._method = "getBoolean"
-        this._params = `'${key}'`
-        return new RadonBoolean(this, key)
+        return this._pushOperator(RadonBoolean, [key])
     }
     /**
      * Fetch the float value within the specified `key` field.
@@ -730,10 +683,7 @@ export class RadonMap extends RadonType {
      * @returns A `RadonFloat` object.
      */
     public getFloat(key: string) {
-        this._bytecode = [ 0x64, key ]
-        this._method = "getFloat"
-        this._params = `'${key}'`
-        return new RadonFloat(this, key)
+        return this._pushOperator(RadonFloat, [key])
     }
     /**
      * Fetch the integer value within the specified `key` field. 
@@ -741,10 +691,7 @@ export class RadonMap extends RadonType {
      * @returns A `RadonInteger` object.
      */
     public getInteger(key: string) {
-        this._bytecode = [ 0x65, key ]
-        this._method = "getInteger"
-        this._params = `'${key}'`
-        return new RadonInteger(this, key)
+        return this._pushOperator(RadonInteger, [key])
     }
     /**
      * Fetch the map object within the specified `key` field. 
@@ -752,10 +699,7 @@ export class RadonMap extends RadonType {
      * @returns A `RadonMap` object.
      */
     public getMap(key: string) {
-        this._bytecode = [ 0x66, key ]
-        this._method = "getMap"
-        this._params = `'${key}'`
-        return new RadonMap(this, key)
+        return this._pushOperator(RadonMap, [key])
     }
     /**
      * Fetch the string within the specified `key` field.
@@ -763,19 +707,14 @@ export class RadonMap extends RadonType {
      * @returns A `RadonString` object.
      */
     public getString(key: string) {
-        this._bytecode = [ 0x67, key ]
-        this._method = "getString"
-        this._params = `'${key}'`
-        return new RadonString(this, key)
+        return this._pushOperator(RadonString, [key])
     }
     /**
      * Extract key names of the map into an array of strings.
      * @returns A `RadonArray` object.
      */
     public keys() {
-        this._bytecode = 0x68
-        this._method = "keys"
-        return new RadonArray(this)
+        return this._pushOperator(RadonArray<RadonString>, [])
     }
     /**
      * Take a selection of items from the input map. Fails if unexistent items are referred.
@@ -786,40 +725,32 @@ export class RadonMap extends RadonType {
         if (Array(keys).length == 0) {
             throw new EvalError(`\x1b[1;33mRadonMap::pick: a non-empty array of key strings must be provided\x1b[0m`)
         }
-        this._bytecode = [ 0x6e, ...keys ]
-        this._params = JSON.stringify(keys)
-        this._method = "pick"
-        return new RadonMap(this)
+        return this._pushOperator(RadonMap, [...keys])
+
     }
     /**
      * Extract the map values into an array.
      * @returns A `RadonArray` object.
      */
     public values() {
-        this._bytecode = 0x69
-        this._method = "values"
-        return new RadonArray(this)
+        return this._pushOperator(RadonArray, [])
     }
     /**
      * Stringify input `RadonMap` object into a JSON string.
      * @return A `RadonString` object.
      */
     public stringify() {
-        this._bytecode = 0x60
-        this._method = "stringify"
-        return new RadonString(this)
+        return this._pushOperator(RadonString, [])
     }
 }
 
-export class RadonString extends RadonType {
+export class RadonString extends RadonAny {
     /**
      * Cast into a boolean value.
      * @returns A `RadonBoolean` object.
      */
     public asBoolean() {
-        this._bytecode = 0x70
-        this._method = "asBoolean"
-        return new RadonBoolean(this)
+        return this._pushOperator(RadonBoolean, [])
     }
     /**
      * Convert the input string into a bytes buffer.
@@ -828,33 +759,22 @@ export class RadonString extends RadonType {
      *   1 -> Base64 string
      * @returns A `RadonBytes` object.
      */
-    public asBytes(encoding?: RadonBytesEncodings) {
-        if (encoding !== undefined) {
-            this._bytecode = [ 0x71, encoding ]
-            this._params = `${RadonBytesEncodings[encoding]}`
-        } else {
-            this._bytecode = 0x71
-        }
-        this._method = "asBytes"
-        return new RadonBytes(this)
+    public asBytes(encoding = RadonEncodings.HexString) {
+        return this._pushOperator(RadonBytes, [encoding])
     }
     /**
      * Cast into a float number.
      * @returns A `RadonFloat` object.
      */
     public asFloat() {
-        this._bytecode = 0x72
-        this._method = "asFloat"
-        return new RadonFloat(this)
+        return this._pushOperator(RadonFloat, [])
     }
     /**
      * Count the number of chars. 
      * @returns A `RadonInteger` object.
      */
     public length() {
-        this._bytecode = 0x74
-        this._method = "length"
-        return new RadonInteger(this)
+        return this._pushOperator(RadonInteger, [])
     }
     /**
      * Replace the string by a value of type `outputType`, determined on whether the string value matches 
@@ -864,36 +784,30 @@ export class RadonString extends RadonType {
      * @param defaultValue Value returned if no match is found. 
      * @returns 
      */
-    public match<T extends RadonType>(
-        outputType: { new(prev?: RadonType, key?: string): T; }, 
+    public match<OutputType extends RadonAny = RadonString>(
+        outputType: { new(prev?: RadonScript): OutputType; }, 
         matchingMap: Map<string, any>, 
         defaultValue: any
     ) {
-        this._bytecode = [ 
-            0x75,  
-            matchingMap,
-            defaultValue
-        ]
-        this._method = "match"
-        this._params = `{ ${Object.entries(matchingMap).map((entry: [string, any]) => `\"${entry[0]}\": ${entry[1]}, `)}}, ${defaultValue}`
-        let keys: string = ""
-        Object.keys(matchingMap).map((key: string) => keys += key + ";")
-        return new outputType(this, keys)
+        return this._pushOperator(outputType, [matchingMap, defaultValue])
+        // this._bytecode = [ 
+        //     0x75,  
+        //     matchingMap,
+        //     defaultValue
+        // ]
+        // this._method = "match"
+        // this._params = `{ ${Object.entries(matchingMap).map((entry: [string, any]) => `\"${entry[0]}\": ${entry[1]}, `)}}, ${defaultValue}`
+        // let keys: string = ""
+        // Object.keys(matchingMap).map((key: string) => keys += key + ";")
+        // return new outputType(this, keys)
     }
     /**
      * Parse input string as an array of JSON items. 
      * @param jsonPaths (optional) Array of JSON paths within input `RadonString` from where to fetch items that will be appended to the output `RadonArray`. 
      * @returns A `RadonArray` object.
      */
-    public parseJSONArray(...jsonPaths: string[]) {
-        if (jsonPaths.length > 0) {
-            this._bytecode = [ 0x76, ...jsonPaths ]
-            this._params = `${jsonPaths}`
-        } else {
-            this._bytecode = 0x76
-        }
-        this._method = "parseJsonArray"
-        return new RadonArray(this)
+    public parseJSONArray(...jsonPaths: string[]): RadonArray<RadonAny> { 
+        return this._pushOperator(RadonArray<RadonAny>, [...jsonPaths])
     }
     /**
      * Parse string as a JSON-encoded map. 
@@ -901,23 +815,14 @@ export class RadonString extends RadonType {
      * @returns A `RadonMap` object. 
      */
     public parseJSONMap(jsonPath?: string) {
-        if (jsonPath && jsonPath !== "") {
-            this._bytecode = [ 0x77, jsonPath ]
-            this._params = `${jsonPath}`
-        } else {
-            this._bytecode = 0x77
-        }
-        this._method = "parseJsonMap"
-        return new RadonMap(this)
+        return this._pushOperator(RadonMap, [jsonPath])
     }
     /**
      * Parse string as an XML-encoded map. 
      * @returns A `RadonMap` object.
      */
     public parseXMLMap() {
-        this._bytecode = 0x78
-        this._method = "parseXMLMap"
-        return new RadonMap(this)
+        return this._pushOperator(RadonMap, [])
     }
     /**
      * Replace with given `replacement` string, all parts of the input string that match with given regular expression. 
@@ -926,14 +831,7 @@ export class RadonString extends RadonType {
      * @returns A `RadonString` object.
      */
     public replace(regex: string = "", replacement: string = "") {
-        this._bytecode = [
-            0x7b,
-            regex,
-            replacement,
-        ]
-        this._method = "replace"
-        this._params = `/${regex}/, "${replacement}"`
-        return new RadonString(this)
+        return this._pushOperator(RadonString, [regex, replacement])
     }
     /**
      * Returns a slice extracted from the input string. 
@@ -944,15 +842,7 @@ export class RadonString extends RadonType {
      * @returns A `RadonString` object.
      */
     public slice(startIndex: number = 0, endIndex?: number) {
-        if (endIndex !== undefined) {
-            this._bytecode = [ 0x7c, startIndex, endIndex ]
-            this._params = `${startIndex}, ${endIndex}`
-        } else {
-            this._bytecode = [ 0x7c, startIndex ]
-            this._params = `${startIndex}`
-        }
-        this._method = "slice"
-        return new RadonString(this)
+        return this._pushOperator(RadonString, [startIndex, endIndex])
     }
     /**
      * Divides input string into an array of substrings, 
@@ -960,27 +850,20 @@ export class RadonString extends RadonType {
      * @returns A `RadonArray` object.
      */
     public split(regex: string = "\r") {
-        this._bytecode = [ 0x7d, regex ]
-        this._params = `/${regex}/`
-        this._method = "split"
-        return new RadonArray(this)
+        return this._pushOperator(RadonArray<RadonString>, [regex])
     }
     /**
      * Lower case all characters.
      * @returns A `RadonString` object.
      */
     public toLowercase() {
-        this._bytecode = 0x79
-        this._method = "toLowercase"
-        return new RadonString(this)
+        return this._pushOperator(RadonString, [])
     }
     /**
      * Upper case all characters.
      * @returns A `RadonString` object.
      */
     public toUpperCase() {
-        this._bytecode = 0x7a
-        this._method = "toUpperCase"
-        return new RadonString(this)
+        return this._pushOperator(RadonString, [])
     }
 }
