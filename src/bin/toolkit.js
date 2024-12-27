@@ -90,7 +90,7 @@ async function prompt (question) {
 
 async function downloadToolkit (toolkitDownloadName, toolkitFileName, toolkitBinPath, platform, arch) {
   const downloadUrl = guessDownloadUrl(toolkitDownloadName)
-  console.log('Downloading', downloadUrl, 'into', toolkitBinPath)
+  console.info('Downloading', downloadUrl, 'into', toolkitBinPath)
 
   const file = fs.createWriteStream(toolkitBinPath)
   const req = axios({
@@ -149,7 +149,7 @@ async function installCommand (settings) {
   if (!settings.checks.toolkitIsDownloaded) {
     // Skip confirmation if install is forced
     if (!settings.force) {
-      console.log(`The witnet_toolkit ${version} native binary hasn't been downloaded yet (this is a requirement).`)
+      console.info(`The witnet_toolkit ${version} native binary hasn't been downloaded yet (this is a requirement).`)
       const will = await prompt("Do you want to download it now? (Y/n)")
 
       // Abort if not confirmed
@@ -195,6 +195,7 @@ var lcyan = (str) => `\x1b[1;96m${str}\x1b[0m`
 var lgreen = (str) => `\x1b[1;92m${str}\x1b[0m`
 var lyellow = (str) => `\x1b[1;93m${str}\x1b[0m`
 var lred = (str) => `\x1b[91m${str}\x1b[0m`
+var mcyan = (str) => `\x1b[96m${str}\x1b[0m`
 var red = (str) => `\x1b[31m${str}\x1b[0m`
 var white = (str) => `\x1b[1;98m${str}\x1b[0m`
 var yellow = (str) => `\x1b[33m${str}\x1b[0m`
@@ -205,7 +206,7 @@ var extractTypeName = (str) => str ? str.split(/(?=[A-Z])/).slice(1).join("") : 
 async function reportHeadline(request, headline) {
   const trait = (str) => `${str}${" ".repeat(56 - str.length)}`
   const indent = settings?.indent ? " ".repeat(indent) : ""
-  const resultDataType = `Result<${extractTypeName(request.retrieve[0]?.script?.constructor.name)}, Error>`
+  const resultDataType = `Result<${extractTypeName(request.retrieve[0]?.script?.constructor.name)}, RadonError>`
   console.info(`${indent}╔══════════════════════════════════════════════════════════════════════════════╗`)
   console.info(`${indent}║ ${white(headline)}${" ".repeat(77 - headline.length)}║`)
   console.info(`${indent}╠══════════════════════════════════════════════════════════════════════════════╣`)
@@ -273,8 +274,8 @@ async function decodeRadonRequestCommand (settings, args) {
             console.info(`${indent}   │ │`)
           }
         })
-        var stringifyFilter = (x) => `${lcyan(toolkit.RadonFilters.Opcodes[x.opcode])}(${x.args ? cyan(JSON.stringify(x.args)) : ""})`
-        var stringifyReducer = (x) => lcyan(`${toolkit.RadonReducers.Opcodes[x.opcode]}()`)
+        var stringifyFilter = (x) => `${mcyan(toolkit.RadonFilters.Opcodes[x.opcode])}(${x.args ? cyan(JSON.stringify(x.args)) : ""})`
+        var stringifyReducer = (x) => mcyan(`${toolkit.RadonReducers.Opcodes[x.opcode]}()`)
         // console.info(`   │`)
         console.info(`${indent}┌──┴──────────────────┐`)
         console.info(`${indent}│  ${white("AGGREGATE SOURCES")}  │`)
@@ -299,7 +300,19 @@ async function dryrunRadonRequestCommand (settings, args) {
   const indent = settings?.indent ? " ".repeat(indent) : ""
   const tasks = tasksFromArgs(args)
   const promises = Promise.all(tasks.map(async (bytecode) => {
-    const report = JSON.parse(await binaryFallbackCommand(settings, ['try-data-request', '--hex', bytecode]))
+    const report = JSON.parse(
+      await toolkitRun(settings, ['try-data-request', '--hex', bytecode])
+        .catch((err) => {
+          let errorMessage = err.message.split('\n').slice(1).join('\n').trim()
+          const errorRegex = /.*^error: (?<message>.*)$.*/gm
+          const matched = errorRegex.exec(err.message)
+          if (matched) {
+            errorMessage = matched.groups.message
+          }
+          console.error(errorMessage || err)
+          return
+        })
+      )
     const result = report?.tally.result
     const resultType = Object.keys(result)[0]
     const resultValue = JSON.stringify(Object.values(result)[0])
@@ -420,11 +433,11 @@ async function dryrunRadonRequestCommand (settings, args) {
 }
 
 async function versionCommand (settings) {
-  return binaryFallbackCommand(settings, ['--version'])
+  return fallbackBinaryCommand(settings, ['--version'])
 }
 
-async function binaryFallbackCommand (settings, args) {
-  return toolkitRun(settings, args)
+async function fallbackBinaryCommand (settings, args) {
+  const toolkitOutput = await toolkitRun(settings, args.slice(1))
     .catch((err) => {
       let errorMessage = err.message.split('\n').slice(1).join('\n').trim()
       const errorRegex = /.*^error: (?<message>.*)$.*/gm
@@ -434,6 +447,7 @@ async function binaryFallbackCommand (settings, args) {
       }
       console.error(errorMessage || err)
     })
+  console.info(toolkitOutput)
 }
 
 
@@ -491,7 +505,7 @@ const settings = {
 /// MAIN LOGIC ======================================================================================================
 
 const mainRouter = {
-  '--': binaryFallbackCommand,
+  '--': fallbackBinaryCommand,
   'decodeRadonRequest': decodeRadonRequestCommand,
   'dryrunRadonRequest': dryrunRadonRequestCommand,
   'install': forcedInstallCommand,
@@ -552,10 +566,9 @@ async function main () {
   if (!args.includes('install') && !args.includes('update')) {
     await installCommand(settings)
   }
-
-  const command = mainRouter[args[2]]; args.splice(2, 1)
+  const command = mainRouter[args[2]]; 
   if (command) {
-    await command(settings, args.slice(2))
+    await command(settings, args.slice(3))
   } else {
     console.info("\nUSAGE:")
     console.info(`    ${white("npx witnet")} <COMMAND> [<params> ...]`)
