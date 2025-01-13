@@ -1,0 +1,45 @@
+import { IProvider, Provider } from "./provider"
+import { 
+    DataRequestReport, 
+    Hash, 
+    Methods, 
+    PeerAddr, 
+    SupplyInfo, 
+} from "./types"
+
+export interface IReporter extends IProvider {
+    providers(): Promise<Array<string>>
+    supplyInfo(): Promise<SupplyInfo>;
+
+    getDataRequest(drTxHash: Hash, channel?: string): Promise<DataRequestReport>
+    searchDataRequests(radHash: Hash): Promise<any>;
+}
+
+export class Reporter extends Provider implements IReporter {
+    constructor(url?: string) {
+        super(url || process.env.WITNET_TOOLKIT_REPORTER_URL || "https://kermit.witnet.io")
+    }
+    
+    /// ---------------------------------------------------------------------------------------------------------------
+    public peers(): Promise<Array<PeerAddr>> {
+        return this.callApiMethod<Array<PeerAddr>>(Methods.KnownPeers);
+    }
+    
+    public async providers(): Promise<Array<string>> {
+        return this.callApiMethod<Array<string>>(Methods.Providers)
+    }
+    
+    /// Get supply info
+    public async supplyInfo(): Promise<SupplyInfo> {
+        return this.callApiMethod<SupplyInfo>(Methods.GetSupplyInfo)
+    }
+    
+    /// ---------------------------------------------------------------------------------------------------------------
+    public async reportDataRequest(drTxHash: Hash, channel?: string): Promise<DataRequestReport> {
+        return this.callApiMethod<DataRequestReport>(Methods.DataRequestReport, [drTxHash, channel, ])
+    }
+    
+    public async searchDataRequests(radHash: Hash): Promise<any> {
+        return this.callApiMethod<any>(Methods.SearchDataRequests, [radHash, ])
+    }
+}
