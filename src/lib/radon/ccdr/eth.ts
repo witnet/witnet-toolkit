@@ -1,4 +1,4 @@
-const helpers = require("../helpers")
+const helpers = require("../../helpers")
 
 import { 
     JsonRPC, 
@@ -18,7 +18,7 @@ function _isBlockHead(block: EthBlockHead): boolean {
         block === "latest" || block === "earliest" || block === "finalized" || block === "pending"
             || typeof block === 'number'
             || helpers.isHexStringOfLength(block, 32)
-            || helpers.isWildcard(block)
+            || helpers.wildcards.isWildcard(block)
     );
 }
 
@@ -41,19 +41,19 @@ export const call = (tx: {
     value?: number | HexString,
     data?: HexString
 }) => {
-    if (tx?.from && !helpers.isHexStringOfLength(tx?.from, 20) && !helpers.isWildcard(tx?.from)) {
+    if (tx?.from && !helpers.isHexStringOfLength(tx?.from, 20) && !helpers.wildcards.isWildcard(tx?.from)) {
         throw new EvalError("CCDR: EthCall: invalid 'from' address");
     }
-    if (tx?.gas && !Number.isInteger(tx.gas) && !helpers.isHexStringOfLength(tx.gas, 32) && !helpers.isWildcard(tx.gas)) {
+    if (tx?.gas && !Number.isInteger(tx.gas) && !helpers.isHexStringOfLength(tx.gas, 32) && !helpers.wildcards.isWildcard(tx.gas)) {
         throw new EvalError("CCDR: EthCall: invalid 'gas' value")
     }
-    if (tx?.gasPrice && !Number.isInteger(tx.gasPrice) && !helpers.isHexStringOfLength(tx.gasPrice, 32) && !helpers.isWildcard(tx.gasPrice)) {
+    if (tx?.gasPrice && !Number.isInteger(tx.gasPrice) && !helpers.isHexStringOfLength(tx.gasPrice, 32) && !helpers.wildcards.isWildcard(tx.gasPrice)) {
         throw new EvalError("CCDR: EthCall: invalid 'gasPrice' value")
     }
-    if (tx?.value && !Number.isInteger(tx.value) && !helpers.isHexStringOfLength(tx.value, 32) && !helpers.isWildcard(tx.value)) {
+    if (tx?.value && !Number.isInteger(tx.value) && !helpers.isHexStringOfLength(tx.value, 32) && !helpers.wildcards.isWildcard(tx.value)) {
         throw new EvalError("CCDR: EthCall: invalid transaction 'value'")
     }
-    if (tx?.data && !helpers.isHexString(tx.data) && !helpers.isWildcard(tx.data)) {
+    if (tx?.data && !helpers.isHexString(tx.data) && !helpers.wildcards.isWildcard(tx.data)) {
         throw new EvalError("CCDR: EthCall: invalid transaction 'data'")
     }
     return new JsonRPC("eth_call", [ tx ]);
@@ -75,19 +75,19 @@ export const estimateGas = (tx: {
     value?: number | HexString,
     data?: HexString
 }) => {
-    if (tx?.from && !helpers.isHexStringOfLength(tx?.from, 20) && !helpers.isWildcard(tx?.from)) {
+    if (tx?.from && !helpers.isHexStringOfLength(tx?.from, 20) && !helpers.wildcards.isWildcard(tx?.from)) {
         throw new EvalError("CCDR: EthEstimateGas: invalid 'from' address");
     }
-    if (tx?.gas && !Number.isInteger(tx.gas) && !helpers.isHexStringOfLength(tx.gas, 32) && !helpers.isWildcard(tx.gas)) {
+    if (tx?.gas && !Number.isInteger(tx.gas) && !helpers.isHexStringOfLength(tx.gas, 32) && !helpers.wildcards.isWildcard(tx.gas)) {
         throw new EvalError("CCDR: EthEstimateGas: invalid 'gas' value")
     }
-    if (tx?.gasPrice && !Number.isInteger(tx.gasPrice) && !helpers.isHexStringOfLength(tx.gasPrice, 32) && !helpers.isWildcard(tx.gasPrice)) {
+    if (tx?.gasPrice && !Number.isInteger(tx.gasPrice) && !helpers.isHexStringOfLength(tx.gasPrice, 32) && !helpers.wildcards.isWildcard(tx.gasPrice)) {
         throw new EvalError("CCDR: EthEstimateGas: invalid 'gasPrice' value")
     }
-    if (tx?.value && !Number.isInteger(tx.value) && !helpers.isHexStringOfLength(tx.value, 32) && !helpers.isWildcard(tx.value)) {
+    if (tx?.value && !Number.isInteger(tx.value) && !helpers.isHexStringOfLength(tx.value, 32) && !helpers.wildcards.isWildcard(tx.value)) {
         throw new EvalError("CCDR: EthEstimateGas: invalid transaction 'value'")
     }
-    if (tx?.data && !helpers.isHexString(tx.data) && !helpers.isWildcard(tx.data)) {
+    if (tx?.data && !helpers.isHexString(tx.data) && !helpers.wildcards.isWildcard(tx.data)) {
         throw new EvalError("CCDR: EthEstimateGas: invalid transaction 'data'")
     }
     return new JsonRPC("eth_estimateGas", [ tx ]);
@@ -98,7 +98,7 @@ export const estimateGas = (tx: {
  * @param address Web3 address on remote EVM chain.
  */
 export const getBalance = (address: EthAddress, block?: EthBlockHead) => {
-    if (!helpers.isHexStringOfLength(address, 20) && !helpers.isWildcard(address)) {
+    if (!helpers.isHexStringOfLength(address, 20) && !helpers.wildcards.isWildcard(address)) {
         throw new EvalError("CCDR: EthGetBalance: invalid Web3 address format");
     } else {
         return new JsonRPC("eth_getBalance", [ address, block ]);
@@ -110,7 +110,7 @@ export const getBalance = (address: EthAddress, block?: EthBlockHead) => {
  * @param address EthAddress from where to get the code.
  */
 export const getCode = (address: EthAddress) => {
-    if (!helpers.isHexStringOfLength(address, 20) && !helpers.isWildcard(address)) {
+    if (!helpers.isHexStringOfLength(address, 20) && !helpers.wildcards.isWildcard(address)) {
         throw new EvalError("CCDR: EthGetCode: invalid Web3 address format");
     } else {
         return new JsonRPC("eth_getCode", [ address ]);
@@ -145,12 +145,12 @@ export const getLogs = (filter: {
             filter.toBlock = `0x${(filter?.toBlock as number).toString(16)}` as EthBlockHead
         }
     }
-    if (filter?.blockHash && !helpers.isHexStringOfLength(filter.blockHash, 32) && !helpers.isWildcard(filter.blockHash)) {
+    if (filter?.blockHash && !helpers.isHexStringOfLength(filter.blockHash, 32) && !helpers.wildcards.isWildcard(filter.blockHash)) {
         throw new EvalError("CCDR: EthGetLogs: invalid 'blockHash' value");
     }
     if (filter?.topics) {
         filter.topics.map((value: Bytes32, index: number) => {
-            if (!helpers.isHexStringOfLength(value, 32) && !helpers.isWildcard(value)) {
+            if (!helpers.isHexStringOfLength(value, 32) && !helpers.wildcards.isWildcard(value)) {
                 throw new EvalError(`CCDR: EthGetLogs: topic #${index}: invalid hash`)
             }
         })
@@ -169,10 +169,10 @@ export const gasPrice = () => new JsonRPC("eth_gasPrice");
  * @param offset Offset within storage address.
  */
 export const getStorageAt = (address: EthAddress, offset: Bytes32) => {
-    if (!helpers.isHexStringOfLength(address, 20) && !helpers.isWildcard(address)) {
+    if (!helpers.isHexStringOfLength(address, 20) && !helpers.wildcards.isWildcard(address)) {
         throw new EvalError("CCDR: EthGetStorageAt: invalid Web3 address format");
     } 
-    if (!helpers.isHexStringOfLength(offset, 32) && !helpers.isWildcard(offset)) {
+    if (!helpers.isHexStringOfLength(offset, 32) && !helpers.wildcards.isWildcard(offset)) {
         throw new EvalError("CCDR: EthGetStorageAt: invalid storage offset value");
     }
     return new JsonRPC("eth_getStorageAt", [ address, offset ]);
@@ -183,10 +183,10 @@ export const getStorageAt = (address: EthAddress, offset: Bytes32) => {
  * @param txHash Hash of the remote transaction.
  */
 export const getTransactionByBlockHashAndIndex = (blockHash: Bytes32, txIndex: number | Bytes32) => {
-    if (!helpers.isHexStringOfLength(blockHash, 32) && !helpers.isWildcard(blockHash)) {
+    if (!helpers.isHexStringOfLength(blockHash, 32) && !helpers.wildcards.isWildcard(blockHash)) {
         throw new EvalError("CCDR: EthGetTransactionByBlockHashAndIndex: invalid block hash value");
     }
-    if (!Number.isInteger(txIndex) && !helpers.isHexStringOfLength(txIndex, 32) && !helpers.isWildcard(txIndex)) {
+    if (!Number.isInteger(txIndex) && !helpers.isHexStringOfLength(txIndex, 32) && !helpers.wildcards.isWildcard(txIndex)) {
         throw new EvalError("CCDR: EthGetTransactionByBlockHashAndIndex: invalid transaction index value")
     }
     return new JsonRPC("eth_getTransactionByBlockHashAndIndex", [ blockHash, txIndex ]);
@@ -207,7 +207,7 @@ export const getTransactionByBlockNumberAndIndex = (
             blockNumber = `0x${(blockNumber as number).toString(16)}` as EthBlockHead
         }
     }
-    if (!Number.isInteger(txIndex) && !helpers.isHexStringOfLength(txIndex, 32) && !helpers.isWildcard(txIndex)) {
+    if (!Number.isInteger(txIndex) && !helpers.isHexStringOfLength(txIndex, 32) && !helpers.wildcards.isWildcard(txIndex)) {
         throw new EvalError("CCDR: EthGetTransactionByBlockNumberAndIndex: invalid transaction index value")
     }
     return new JsonRPC("eth_getTransactionByBlockHashAndIndex", [ blockNumber, txIndex ]);
@@ -218,7 +218,7 @@ export const getTransactionByBlockNumberAndIndex = (
  * @param txHash Hash of the remote transaction.
  */
 export const getTransactionByHash = (txHash: Bytes32) => {
-    if (!helpers.isHexStringOfLength(txHash, 32) && !helpers.isWildcard(txHash)) {
+    if (!helpers.isHexStringOfLength(txHash, 32) && !helpers.wildcards.isWildcard(txHash)) {
         throw new EvalError("CCDR: EthGetTransactionByHash: invalid transaction hash value");
     } else {
         return new JsonRPC("eth_getTransactionByHash", [ txHash ]);
@@ -230,7 +230,7 @@ export const getTransactionByHash = (txHash: Bytes32) => {
  * @param address EthAddress from where to get transaction count.
  */
 export const getTransactionCount = (address: EthAddress) => {
-    if (!helpers.isHexStringOfLength(address, 20) && !helpers.isWildcard(address)) {
+    if (!helpers.isHexStringOfLength(address, 20) && !helpers.wildcards.isWildcard(address)) {
         throw new EvalError("CCDR: EthGetTransactionCount: invalid Web3 address format");
     } else {
         return new JsonRPC("eth_getTransactionCount", [ address ]);
@@ -242,7 +242,7 @@ export const getTransactionCount = (address: EthAddress) => {
  * @param txHash Hash of the remote transaction.
  */
 export const getTransactionReceipt = (txHash: Bytes32) => {
-    if (!helpers.isHexStringOfLength(txHash, 32) && !helpers.isWildcard(txHash)) {
+    if (!helpers.isHexStringOfLength(txHash, 32) && !helpers.wildcards.isWildcard(txHash)) {
         throw new EvalError("CCDR: EthGetTransactionReceipt: invalid transaction hash value");
     } else {
         return new JsonRPC("eth_getTransactionReceipt", [ txHash ]);
@@ -254,7 +254,7 @@ export const getTransactionReceipt = (txHash: Bytes32) => {
  * @param data The signed transaction data.
  */
 export const sendRawTransaction = (data: Bytes) => {
-    if (!helpers.isHexString(data) && !helpers.isWildcard(data)) {
+    if (!helpers.isHexString(data) && !helpers.wildcards.isWildcard(data)) {
         throw new EvalError("CCDR: EthSendRawTransaction: invalid signed transaction data");
     } else {
         return new JsonRPC("eth_sendRawTransaction", [ data ]);
