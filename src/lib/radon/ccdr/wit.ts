@@ -1,4 +1,4 @@
-const helpers = require("../helpers")
+const helpers = require("../../helpers")
 
 import { 
     Bytes32,
@@ -15,7 +15,7 @@ export type WitAddress = string & {
  */
 export const getBalance = (address: WitAddress, simple?: boolean) => {
     if (
-        !helpers.isWildcard(address) && (
+        !helpers.wildcards.isWildcard(address) && (
             !address || typeof address !== "string" || address.length != 43 || !address.startsWith("wit")
         ) 
     ) {
@@ -30,7 +30,7 @@ export const getBalance = (address: WitAddress, simple?: boolean) => {
  * @param blockHash The hash of the block to retrieve.
  */
 export const getBlockByHash = (blockHash: Bytes32) => {
-    if (!helpers.isHexStringOfLength(blockHash, 32) && !helpers.isWildcard(blockHash)) {
+    if (!helpers.isHexStringOfLength(blockHash, 32) && !helpers.wildcards.isWildcard(blockHash)) {
         throw new EvalError("CCDR: WitGetBlockByHash: invalid block hash value");
     } else {
         return new JsonRPC("getBlock", [ blockHash ])
@@ -50,7 +50,7 @@ export const getSupplyInfo = () => {
  * @param txHash The hash of the transaction to retrieve.
  */
 export const getTransactionByHash = (txHash: Bytes32) => {
-    if (!helpers.isHexStringOfLength(txHash, 32) && !helpers.isWildcard(txHash)) {
+    if (!helpers.isHexStringOfLength(txHash, 32) && !helpers.wildcards.isWildcard(txHash)) {
         throw new EvalError("CCDR: WitGetTransactionByHash: invalid transaction hash value");
     } else {
         return new JsonRPC("getTransaction", [ txHash ])
