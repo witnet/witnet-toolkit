@@ -7,8 +7,8 @@
   "private": false,
   "type": "commonjs",
   "bin": {
-    "witnet": "dist/bin/toolkit.js",
-    "witnet-toolkit": "dist/bin/toolkit.js"
+    "witnet": "src/bin/toolkit.js",
+    "witnet-toolkit": "src/bin/toolkit.js"
   },
   "files": [
     "witnet/witnet.proto.json",
