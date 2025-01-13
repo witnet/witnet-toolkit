@@ -45,6 +45,10 @@ module.exports = {
             hint: "Report staking powers for given address and capability.",
             params: [ "ADDRESS", "mining | witnessing" ],
         },
+        superblock: {
+            hint: "Show superblock metadata for given epoch.",
+            params: "EPOCH",
+        },
         utxos: {
             hint: "List available UTXOs for given address.",
             params: "ADDRESS",

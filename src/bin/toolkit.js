@@ -3,14 +3,14 @@
 /// IMPORTS ===========================================================================================================
 
 const axios = require("axios")
-const cbor = require('cbor')
+require('dotenv').config() 
 const fs = require('fs')
 const os = require('os')
 const path = require('path')
 const readline = require('readline')
 
 const {
-    color, 
+    colors, 
     deleteExtraFlags, extractFromArgs, 
     showUsage, showUsageError, showUsageSubcommand, 
     toolkitRun, 
@@ -299,18 +299,18 @@ async function main () {
     console.error(`EXCEPTION:\n${e}\n`)
   }
   console.info("USAGE:")
-  console.info(`    ${color.white("npx witnet")} [FLAGS] <COMMAND>`)
+  console.info(`    ${colors.white("npx witnet")} [FLAGS] <COMMAND>`)
   console.info("\nFLAGS:")
   console.info("    --help      Describes command or subcommand usage")
   console.info("    --update    Forces update of underlying binaries")
   console.info("    --version   Prints toolkit name and version as first line")
   console.info("\nCOMMANDS:")
-  console.info("    fetch     Fetch public data from the Wit/Oracle blockchain.")
-  console.info("    history   Aggregated historical data from the Wit/Oracle blockchain.")
-  console.info("    network   Current information about the Wit/Oracle P2P network.")
-  console.info("    node      Interact with private Wit/Oracle nodes, if reachable.")
-  console.info("    radon     Manage Radon requests and templates within your project.")
-  console.info("    wallet    Simple CLI wallet for spending and staking your Wits.")
+  console.info("    fetch        Fetch public data from the Wit/Oracle blockchain.")
+  console.info("    network      Dynamic information from the Wit/Oracle P2P network.")
+  console.info("    node         Interact with a private Wit/Oracle node, if reachable.")
+  console.info("    radon        Manage Radon requests and templates within your project.")
+  console.info("    scoreboard   Historical scoreboards from the Wit/Oracle blockchain.")
+  console.info("    wallet       Simple CLI wallet for spending and staking your Wits.")
 }
 
 main()

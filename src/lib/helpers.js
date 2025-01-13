@@ -1,6 +1,12 @@
 const { exec } = require("child_process");
 
-const commas = (number) => number.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+const commas = (number) => {
+    parts = number.toString().split('.')
+    var result = parts.length <= 1
+        ? `${parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",")}`
+        : `${parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",")}.${parts[1]}`
+    return result 
+}
 const lcyan = (str) => `\x1b[96m${str}\x1b[0m`
 const lgray = (str) => `\x1b[1;90m${str}\x1b[0m`
 const lgreen = (str) => `\x1b[1;92m${str}\x1b[0m`
@@ -17,8 +23,8 @@ const white = (str) => `\x1b[1;98m${str}\x1b[0m`
 const yellow = (str) => `\x1b[33m${str}\x1b[0m`
 
 module.exports = {
-    color: {
-        cyan, gray, green, red, white, yellow,
+    colors: {
+        cyan, gray, green, red, white, yellow, normal,
         lcyan, lgray, lgreen, lyellow,
         mcyan, mgreen, myellow,
     },
@@ -31,7 +37,7 @@ module.exports = {
     toolkitRun,
     toUpperCamelCase,
     toUtf8Array, utf8ArrayToStr,
-    traceHeader,
+    prompter, traceHeader, traceTable,
     wildcards: {
         isWildcard,
         getWildcardsCountFromString,
@@ -199,7 +205,7 @@ function showUsageError(cmd, subcmd, flags, params, options, error) {
     showUsageSubcommand(cmd, subcmd, flags, params, options)
     if (error) {
         console.info(`\nERROR:`)
-        console.error(error?.stack.split('\n')[0] || error)
+        console.error(error?.stack?.split('\n')[0] || error)
     }
 }
 
@@ -401,9 +407,88 @@ function utf8ArrayToStr(array) {
     return out;
 }
 
+async function prompter(promise) {
+    var loading = (function() {
+        var h = ['|', '/', '-', '\\'];
+        var i = 0;
+        return setInterval(() => {
+            i = (i > 3) ? 0 : i;  
+            process.stdout.write(`\b\b${h[i]} `)
+            i++;
+        }, 50);
+    })();
+    return promise
+        .then(result => { 
+            clearInterval(loading); 
+            process.stdout.write('\b\b')
+            return result
+        })
+}
 
 function traceHeader(headline, indent = "", color = normal) {
     console.info(`${indent}${color(headline.toUpperCase())}`)
     console.info(`${indent}${"-".repeat(headline.length)}`)
 }
 
+function traceTable(records, options) {
+    const stringify = (data, humanizers, index) => humanizers && humanizers[index] ? humanizers[index](data).toString() : data?.toString() ?? ""
+    const max = (a, b) => a > b ? a : b
+    const min = (a, b) => a < b ? a : b
+    const reduceMax = (numbers) => numbers.reduce((curr, prev) => prev > curr ? prev : curr, 0)
+    if (!options) options = {}
+    const numColumns = reduceMax(records.map(record => record?.length || 1))
+    const table = transpose(records, numColumns)
+    options.widths = options?.widths || table.map((column, index) => {
+        var maxWidth = reduceMax(column.map(field => stringify(field, options?.humanizers, index).length))
+        if (options?.headlines && options.headlines[index]) {
+            maxWidth = max(maxWidth, options.headlines[index].replaceAll(':', '').length)
+        }
+        return min(maxWidth, 66)
+    })
+    var headline = options.widths.map(maxWidth => "─".repeat(maxWidth))
+    console.info(`┌─${headline.join("─┬─")}─┐`)
+    if (options?.headlines) {
+        headline = options.widths.map((maxWidth, index) => {
+            var caption = options.headlines[index].replaceAll(':', '')
+            return `${this.colors.white(caption)}${" ".repeat(maxWidth - caption.length)}`
+        })
+        console.info(`│ ${headline.join(" │ ")} │`)
+        headline = options.widths.map(maxWidth => "─".repeat(maxWidth))
+        console.info(`├─${headline.join("─┼─")}─┤`)
+    }
+    for (var i = 0; i < records.length; i ++) {
+        var line = ""
+        for (var j = 0; j < numColumns; j ++) {
+            var data = table[j][i]
+            var color
+            if (options?.colors && options.colors[j]) {
+              color = options.colors[j]  
+            } else {
+              color = typeof data === 'string' 
+                ? this.colors.green 
+                : (Number(data) === data && data % 1 !== 0 // is float number?
+                    ? this.colors.yellow 
+                    : this.colors.normal
+                )
+            }
+            var data = stringify(data, options?.humanizers, j)
+            if (options?.headlines && options.headlines[j][0] === ':') {
+                data = `${color(data)}${" ".repeat(options.widths[j] - data.length)}`
+            } else {
+                data = `${" ".repeat(options.widths[j] - data.length)}${color(data)}`
+            }
+            line += `│ ${data} `
+        }
+        console.info(`${line}│`)
+    }
+    var headline = options.widths.map(maxWidth => "─".repeat(maxWidth))
+    console.info(`└─${headline.join("─┴─")}─┘`)
+}
+
+function transpose(records, numColumns) {
+    const columns = []
+    for (var index = 0; index < numColumns; index ++) {
+        columns.push(records.map(row => row[index]))
+    }
+    return columns
+}
