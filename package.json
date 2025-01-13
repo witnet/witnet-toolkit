@@ -12,6 +12,7 @@
   },
   "files": [
     "witnet/witnet.proto.json",
+    "witnet/assets",
     "dist"
   ],
   "exports": {
@@ -19,20 +20,14 @@
       "require": "./dist/index.js",
       "types:": "./dist/lib/radon/*.d.ts"
     },
-    "./radon": {
-      "require": "./dist/lib/radon/index.js",
-      "types": "./dist/lib/radon/*.d.ts"
-    },
-    "./utils": {
-      "require": "./dist/utils.js",
-      "types": "./dist/**/*.d.ts"
-    }
+    "./assets": "./witnet/assets/index.js"
   },
   "types": "./dist/lib/radon",
   "scripts": {
     "build": "npx pbjs --target json witnet/witnet.proto -o witnet/witnet.proto.json && tsc -p tsconfig.json",
+    "postintall": "npx witnet --update --version radon init",
     "prepare": "pnpm run build",
-    "test": "node ./src/bin/toolkit.js update"
+    "test": "cross-env-shell WITNET_TOOLKIT_REQUIRE_PATH='../../../witnet' node ./src/bin/toolkit.js"
   },
   "dependencies": {
     "axios": "1.7.9",
@@ -44,6 +39,7 @@
   },
   "devDependencies": {
     "@types/node": "^22.10.2",
+    "cross-env": "7.0.3",
     "protobufjs-cli": "^1.1.3",
     "typescript": "^5.7.2"
   }
