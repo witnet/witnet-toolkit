@@ -1,5 +1,6 @@
 export * from "./node"
 export * from "./provider"
+export * from "./reporter"
 
 export { 
     Balance, 
