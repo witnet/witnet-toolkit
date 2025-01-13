@@ -81,7 +81,9 @@ module.exports = {
             hint: "Initialize Witnet Radon workspace within your project."
         },
     },
-    assets, init, check, decode, dryrun,
+    subcommands: {
+        assets, init, check, decode, dryrun,
+    }
 };
 
 function init() {

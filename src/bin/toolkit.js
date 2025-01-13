@@ -273,17 +273,19 @@ async function main () {
     var cmd = args[2]
     const module = require(`../lib/cli/${args[2]}`)
     var [args, flags, ] = extractFromArgs(args.slice(3), module.flags)
-    if (args && args[0] && module.router && module.router[args[0]]) {
+    if (args && args[0] && module.subcommands && module?.router[args[0]]) {
       var subcmd = args[0]
       var params = module.router[subcmd]?.params
       var options = module.router[subcmd]?.options
       if (settings?.help) {
         showUsageSubcommand(cmd, subcmd, module.flags, params, options)
+      
       } else {
         var [args, options, ] = extractFromArgs(args.slice(1), options)
         args = deleteExtraFlags(args)
         try {
-          await module[subcmd](flags, args, options, settings)
+          await module.subcommands[subcmd](flags, args, options, settings)
+      
         } catch (e) {
           showUsageError(cmd, subcmd, module.flags, params, options, e)
         }
