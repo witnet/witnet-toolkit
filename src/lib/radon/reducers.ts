@@ -1,4 +1,4 @@
-import { RadonScriptWrapper as RadonScript } from "./types"
+import { RadonScript } from "./types"
 import { RadonFilter, Stdev as StdevFilter } from "./filters"
 
 export enum Opcodes {

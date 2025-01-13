@@ -1,8 +1,6 @@
-const helpers = require("./helpers")
-
 import { RadonRetrieval } from "./retrievals"
 import { RadonReducer, Mode } from "./reducers"
-import * as Utils from '../../utils'
+import * as Utils from '../utils'
 
 export type Args = string[] | string[][];
 
@@ -69,11 +67,11 @@ export class RadonRequest extends Class {
     }
     
     public radHash(): string {
-        return Utils.sha256(helpers.encodeRequest(this.toProtobuf()))//.slice(0, 40)
+        return Utils.sha256(Utils.encodeRequest(this.toProtobuf()))//.slice(0, 40)
     }
     
     public toBytecode(): string {
-        return Utils.toHexString(helpers.encodeRequest(this.toProtobuf()))
+        return Utils.toHexString(Utils.encodeRequest(this.toProtobuf()))
     }
 
     public toJSON(): any {

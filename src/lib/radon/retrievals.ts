@@ -1,11 +1,9 @@
 const cbor = require("cbor")
-const helpers = require("./helpers")
-
-import * as _RPCS from "./rpcs"
+const helpers = require("../helpers")
 
 import graphQlCompress from "graphql-query-compress"
-import { RadonAny, RadonScriptWrapper as RadonScript } from "./types"
-import { JsonRPC } from "./rpcs"
+import { RadonAny, RadonScript } from "./types"
+import { JsonRPC } from "./ccdr"
 
 /**
  * Precompiled Remote Procedure Calls that can be included within
@@ -14,7 +12,7 @@ import { JsonRPC } from "./rpcs"
  * - JSON ETH-RPC 
  * - JSON WIT-RPC 
  */
-export const RPCs: typeof _RPCS = _RPCS;
+export * as CCDR from "./ccdr"
 
 export enum Methods {
     None = 0x0,
@@ -45,7 +43,6 @@ export class RadonRetrieval {
     
     constructor(method: Methods, specs?: Specs) {
         if (method === Methods.RNG && (specs?.url || specs?.headers?.size || specs?.body)) {
-            console.log(specs)  
             throw EvalError("\x1b[1;33mRadonRetrieval: badly specified RNG\x1b[0m");
         } else if (!specs?.url && (method == Methods.HttpPost || method == Methods.HttpGet)) {
             throw EvalError("\x1b[1;33mRadonRetrieval: URL must be specified\x1b[0m");
@@ -55,12 +52,14 @@ export class RadonRetrieval {
         this.method = method
         if (specs?.url) {
             this.url = specs.url
-            if (!helpers.isWildcard(specs.url)) {
-                let parts = helpers.parseURL(specs.url)
-                this.schema = parts[0]
-                if (parts[1] !== "") this.authority = parts[1]
-                if (parts[2] !== "") this.path = parts[2]
-                if (parts[3] !== "") this.query = parts[3]
+            if (!helpers.wildcards.isWildcard(specs.url)) {
+                try {
+                    let parts = helpers.parseURL(specs.url)
+                    this.schema = parts[0]
+                    if (parts[1] !== "") this.authority = parts[1]
+                    if (parts[2] !== "") this.path = parts[2]
+                    if (parts[3] !== "") this.query = parts[3]
+                } catch {}
             }
         }
         if (specs?.headers) {
@@ -68,16 +67,16 @@ export class RadonRetrieval {
             if (specs.headers instanceof Map) {
                 specs.headers.forEach((value: string, key: string) => this.headers?.push([key, value]))
             } else {
-                // this.headers = specs.headers
-                Object.entries(specs.headers).forEach((entry: any) => this.headers?.push(entry))
+                this.headers = specs.headers
+                // Object.entries(specs.headers).forEach((entry: any) => this.headers?.push(entry))
             }
         }
         this.body = specs?.body
         if (specs?.script) this.script = new RadonScript(specs?.script)
         this.argsCount = Math.max(
-            helpers.getWildcardsCountFromString(this?.url),
-            helpers.getWildcardsCountFromString(this?.body),
-            ...this.headers?.map(header => helpers.getWildcardsCountFromString(header[1])) ?? [],
+            helpers.wildcards.getWildcardsCountFromString(this?.url),
+            helpers.wildcards.getWildcardsCountFromString(this?.body),
+            ...this.headers?.map(header => helpers.wildcards.getWildcardsCountFromString(header[1])) ?? [],
             this.script?.argsCount() || 0,
         )
     }
@@ -99,14 +98,14 @@ export class RadonRetrieval {
         if (this.headers) {
             this.headers.forEach(header => {
                 headers.set(
-                    helpers.replaceWildcards(header[0], args),
-                    helpers.replaceWildcards(header[1], args),
+                    helpers.wildcards.replaceWildcards(header[0], args),
+                    helpers.wildcards.replaceWildcards(header[1], args),
                 )
             })
         }
         return new RadonRetrieval(this.method, {
-            url: helpers.replaceWildcards(this.url, args),
-            body: helpers.replaceWildcards(this.body, args),
+            url: helpers.wildcards.replaceWildcards(this.url, args),
+            body: helpers.wildcards.replaceWildcards(this.body, args),
             headers,
             script: this.script?.replaceWildcards(...args),
         })
@@ -165,7 +164,7 @@ export class RadonRetrieval {
             var utf8Array = helpers.toUtf8Array(this.body)
             protobuf.body = utf8Array
         }
-        protobuf.script = Object.values(Uint8Array.from(cbor.encode(this.script?.encode())))
+        protobuf.script = Object.values(Uint8Array.from(cbor.encode(this.script?.encode() || [])))
         return protobuf
     }
 

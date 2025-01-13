@@ -1,8 +1,8 @@
 const cbor = require("cbor")
-const helpers = require('./helpers')
+const helpers = require("../helpers")
 
 import { Opcodes as RadonReducerOpcodes } from './reducers'
-import * as Utils from '../../utils'
+import * as Utils from '../utils'
 
 enum RadonEncodings {
     HexString = 0,
@@ -61,7 +61,7 @@ export enum RadonOperators {
     MapGetMap = 0x66,
     MapGetString = 0x67,
     MapKeys = 0x68,
-    MapValued = 0x69,
+    MapValues = 0x69,
     MapAlter = 0x6b,
     MapPick = 0x6e,   
     StringAsBoolean = 0x70,
@@ -80,27 +80,27 @@ export enum RadonOperators {
 }
 
 abstract class RadonClass {
-    readonly prev?: RadonScript;
-    constructor(prev?: RadonScript) {
+    readonly prev?: RadonOperator;
+    constructor(prev?: RadonOperator) {
         this.prev = prev
     }
 }
 
-export class RadonScript extends RadonClass {
+export class RadonOperator extends RadonClass {
     readonly opcode: RadonOperators
-    readonly params: any[]
-    constructor(opcode: RadonOperators, params: any[], ops?: RadonScript) {
+    readonly params?: any[]
+    constructor(opcode: RadonOperators, params?: any[], ops?: RadonOperator) {
         super(ops)
         this.opcode = opcode
-        this.params = [...params]
+        this.params = params || []
     }
     public argsCount(): number { 
         var maxCount: number = 0
-        this.params.forEach(param => {
+        this.params?.forEach(param => {
             if (typeof param === 'string') {
-                count = helpers.getWildcardsCountFromString(param)
+                count = helpers.wildcards.getWildcardsCountFromString(param)
                 if (count > maxCount) maxCount = count
-            } else if (typeof param === 'object' && param instanceof RadonScriptWrapper) {
+            } else if (typeof param === 'object' && param instanceof RadonScript) {
                 var count = param.argsCount()
                 if (count > maxCount) maxCount = count
             }
@@ -110,17 +110,56 @@ export class RadonScript extends RadonClass {
             this.prev?.argsCount() || 0
         )
     }
+    public disect(level = 0): [number, string, string][] {
+        var result = this?.prev?.disect(level) || []
+        var operator = RadonOperators[this.opcode]
+        var inputType = `Radon${operator.split(/(?=[A-Z])/)[0]}`
+        var radonCall = operator.split(/(?=[A-Z])/).slice(1).join('')
+        radonCall = radonCall.charAt(0).toLowerCase() + radonCall.slice(1)
+        var args = ""
+        var script
+        if (this.params && this.params[0] !== undefined) {
+            this.params.map(param => {
+                if (typeof param !== 'object' || !(param instanceof RadonScript)) {
+                    args += (typeof param === 'string' ?  `"${param}"` : param.toString()) + ", "
+                } else {
+                    script = param
+                }
+            })
+            if (script) args += "RadonOperator {"
+            else args = args.slice(0, -2)
+        }
+        if (script) {
+            var outputType = `${(script as RadonScript).outputType?.constructor.name || "RadonAny"}`
+            radonCall += `(${args}`
+            result.push([level, inputType, radonCall])
+            result.push(...(script as RadonScript).disect(level + 1))
+            result.push([level, outputType, "})"])
+        } else {
+            radonCall += `(${args})`
+            result.push([level, inputType, radonCall])
+        }
+        return result
+    }
     public encode(): any[] { 
         var encoded
-        if (this?.params && this.params.length > 0) {
-            encoded = [this.opcode, ...this.params.map(param => {
-                if (typeof param === 'object' && param instanceof RadonScriptWrapper) {
-                    return param.encode()
+        if (this?.params && this.params[0] !== undefined) {
+            var args = this.params.map(param => {
+                if (typeof param === 'object') {
+                    if (param instanceof RadonAny) {
+                        var aux = param.prev?.encode()
+                        return aux
+                    } else if (param instanceof RadonOperator) {
+                        return param.encode()
+                    } else if (param instanceof RadonScript) {
+                        var aux2 = param.encode()
+                        return aux2
+                    }
                 } else {
                     return param
                 }
-            })]
-            if (this.opcode == RadonOperators.ArrayFilter) console.log("encoded =>", encoded)
+            })
+            encoded = [this.opcode, ...args]
         } else {
             encoded = this.opcode
         }
@@ -130,16 +169,16 @@ export class RadonScript extends RadonClass {
             return [encoded]
         }
     }
-    public replaceWildcards(args: string[]): RadonScript {
+    public replaceWildcards(args: string[]): RadonOperator {
         if (args.length < this.argsCount()) {
             throw EvalError(`Insufficent args were provided (${args.length} < ${this.argsCount()})`)
         }
-        return new RadonScript(
+        return new RadonOperator(
             this.opcode, 
-            this.params.map(param => {
+            this.params?.map(param => {
                 if (typeof param === 'string') {
-                    return helpers.replaceWildcards(param, args)
-                } else if (typeof param === 'object' && param instanceof RadonScriptWrapper) {
+                    return helpers.wildcards.replaceWildcards(param, args)
+                } else if (typeof param === 'object' && param instanceof RadonScript) {
                     return param.replaceWildcards(...args)
                 } else {
                     return param
@@ -148,13 +187,13 @@ export class RadonScript extends RadonClass {
             this?.prev?.replaceWildcards(args)
         )
     }
-    public spliceWildcard(argIndex: number, argValue: string): RadonScript {
-        return new RadonScript(
+    public spliceWildcard(argIndex: number, argValue: string): RadonOperator {
+        return new RadonOperator(
             this.opcode,
-            this.params.map(param => {
+            this.params?.map(param => {
                 if (typeof param === 'string') {
                     return helpers.spliceWildcard(param, argIndex, argValue, this.argsCount())
-                } else if (typeof param === 'object' && param instanceof RadonScriptWrapper) {
+                } else if (typeof param === 'object' && param instanceof RadonScript) {
                     return param.spliceWildcard(argIndex, argValue)
                 } else {
                     return param
@@ -169,11 +208,11 @@ export class RadonScript extends RadonClass {
         var methodName = RadonOperators[this.opcode].split(/(?=[A-Z])/).slice(1).join('')
         methodName = methodName.charAt(0).toLowerCase() + methodName.slice(1)
         str += `${left}${" ".repeat(indent * level)}.${methodName}(`
-        if (this.params.length > 0) { 
+        if (this.params && this.params[0] !== undefined) { 
             this.params.forEach(param => {
                 if (typeof param === 'string') {
                     str += `"${param}", `
-                } else if (typeof param === 'object' && param instanceof RadonScriptWrapper) {
+                } else if (typeof param === 'object' && param instanceof RadonScript) {
                     str += `${param.toString(left, indent, level + 1)}${left}${" ".repeat(indent * level)}, `
                 } else {
                     str += param.toString() + ", "
@@ -186,8 +225,8 @@ export class RadonScript extends RadonClass {
     }
 }
 
-export class RadonScriptWrapper {
-    protected readonly ops?: RadonScript;
+export class RadonScript {
+    protected readonly ops?: RadonOperator;
     public readonly inputType?: RadonAny;
     public readonly outputType?: RadonAny;
     constructor (output: RadonAny) {
@@ -210,6 +249,9 @@ export class RadonScriptWrapper {
     }
     public argsCount(): number {
         return this.ops?.argsCount() || 0;
+    }
+    public disect(level = 0): [number, string, string][] {
+        return this.ops?.disect(level) || [[level, "RadonAny", ""]]
     }
     public encode(): any[] {
         return this.ops?.encode() || [];
@@ -251,13 +293,13 @@ export class RadonScriptWrapper {
     }
     public toString(left = "", indent = 0, level = 0): string {
         var lf = left !== "" ? "\n" : ""
-        return `RadonScript(${this.inputType?.constructor.name || ""})${lf}${this.ops?.toString(left, indent, level + 1)}`
+        return `RadonOperator(${this.inputType?.constructor.name || ""})${lf}${this.ops?.toString(left, indent, level + 1)}`
     }
 }
 
 export abstract class RadonAny extends RadonClass {
     protected _pushOperator<OutputType extends RadonAny>(
-        outputType: { new(ops?: RadonScript): OutputType; }, 
+        outputType: { new(ops?: RadonOperator): OutputType; }, 
         params: any[],
     ): OutputType {
         var name
@@ -277,7 +319,7 @@ export abstract class RadonAny extends RadonClass {
         if (!opcode) {
             throw Error(`Fatal: unknown Radon Operator opcode '${name}'`)
         } else {
-            return new outputType(new RadonScript(
+            return new outputType(new RadonOperator(
                 opcode, 
                 [...params], 
                 this?.prev
@@ -301,7 +343,7 @@ export class RadonArray<ItemsType extends RadonAny = RadonAny> extends RadonAny 
         if (!(innerScript instanceof RadonBoolean)) {
             throw new EvalError(`Inner script must fetch a RadonBoolean value`)
         } 
-        return this._pushOperator(RadonArray<ItemsType>, [new RadonScriptWrapper(innerScript)])
+        return this._pushOperator(RadonArray<ItemsType>, [new RadonScript(innerScript)])
     }
     /**
      * Fetch the item at the given `index` as a `RadonArray` object.
@@ -375,10 +417,10 @@ export class RadonArray<ItemsType extends RadonAny = RadonAny> extends RadonAny 
      * Must accept as input the same data type as the one of the items being iterated. 
      * @returns A `RadonArray` object containing the mapped values. 
      */
-    public map(innerScript: RadonScript) {
+    public map(innerScript: RadonOperator) {
         return this._pushOperator(RadonArray, [innerScript])
     }
-    // public map<OutputItemsType extends RadonAny>(innerScript: RadonScript<OutputItemsType>) {
+    // public map<OutputItemsType extends RadonAny>(innerScript: RadonOperator<OutputItemsType>) {
     //     // todo: check script's input type matches array's items type, if any ??
     //     return this._pushOperator(RadonArray<OutputItemsType>, [innerScript])
     // }
@@ -399,7 +441,7 @@ export class RadonArray<ItemsType extends RadonAny = RadonAny> extends RadonAny 
      * @returns A `RadonArray` object.
      */
     // TODO
-    // public sort(innerScript?: RadonScript<RadonString | RadonInteger>) {
+    // public sort(innerScript?: RadonOperator<RadonString | RadonInteger>) {
     //     return this._pushOperator(RadonArray<ItemsType>, [innerScript])
     // }
     /**
@@ -658,7 +700,7 @@ export class RadonMap extends RadonAny {
      * by the given `innerScript`.
      */
     // TODO
-    // public alter<AlteredOutputType extends RadonAny>(innerScript: RadonScript<AlteredOutputType>, ...keys: string[]) {
+    // public alter<AlteredOutputType extends RadonAny>(innerScript: RadonOperator<AlteredOutputType>, ...keys: string[]) {
     //     return this._pushOperator(RadonMap, [innerScript, ...keys])
     // }
     /**
@@ -785,7 +827,7 @@ export class RadonString extends RadonAny {
      * @returns 
      */
     public match<OutputType extends RadonAny = RadonString>(
-        outputType: { new(prev?: RadonScript): OutputType; }, 
+        outputType: { new(prev?: RadonOperator): OutputType; }, 
         matchingMap: Map<string, any>, 
         defaultValue: any
     ) {

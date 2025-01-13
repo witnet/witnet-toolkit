@@ -11,7 +11,7 @@
     "witnet-toolkit": "dist/bin/toolkit.js"
   },
   "files": [
-    "assets/witnet.proto.json",
+    "witnet/witnet.proto.json",
     "dist"
   ],
   "exports": {
@@ -30,7 +30,7 @@
   },
   "types": "./dist/lib/radon",
   "scripts": {
-    "build": "tsc -p tsconfig.json && npx pbjs --target json assets/witnet.proto -o assets/witnet.proto.json",
+    "build": "npx pbjs --target json witnet/witnet.proto -o witnet/witnet.proto.json && tsc -p tsconfig.json",
     "prepare": "pnpm run build",
     "test": "node ./src/bin/toolkit.js update"
   },
