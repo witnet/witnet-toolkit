@@ -1,6 +1,7 @@
 export * from "./node"
 export * from "./provider"
 export * from "./reporter"
+export * from "./wallet"
 
 export { 
     Balance, 
