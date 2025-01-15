@@ -103,7 +103,7 @@ export class Provider implements IProvider {
             .callApiMethod<Record<PublicKeyHashString, Balance>>(Methods.GetBalance, {
                 all: true,
             }).then((balances: Record<PublicKeyHashString, Balance>) => {
-                var reverseCompare = (a: (string | number)[], b: (string | number)[]) => {
+                const reverseCompare = (a: (string | number)[], b: (string | number)[]) => {
                     if (a[1] < b[1]) return 1;
                     else if (a[1] > b[1]) return -1;
                     else return 0;

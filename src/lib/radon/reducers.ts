@@ -37,7 +37,7 @@ export class RadonReducer {
     }
 
     public toJSON(): any {
-        var json: any = {
+        const json: any = {
             reducer: Opcodes[this.opcode],
         }
         if (this.filters && this.filters.length > 0) {
@@ -47,7 +47,7 @@ export class RadonReducer {
     }
     
     public toProtobuf(): any {
-        var protobuf: any = {
+        const protobuf: any = {
             reducer: this.opcode,
         }
         if (this.filters && this.filters.length > 0) {

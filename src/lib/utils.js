@@ -1,13 +1,14 @@
-const cbor = require("cbor")
+import { decode as cborDecode } from "cbor"
+
 const os = require("os")
 const crypto = require("crypto")
 const { exec } = require("child_process")
 const net = require("net")
 const helpers = require("./helpers")
 
-var protoBuf = require("protobufjs")
-var protoRoot = protoBuf.Root.fromJSON(require("../../witnet/witnet.proto.json"))
-var RADRequest = protoRoot.lookupType("RADRequest")
+const protoBuf = require("protobufjs")
+const protoRoot = protoBuf.Root.fromJSON(require("../../witnet/witnet.proto.json"))
+const RADRequest = protoRoot.lookupType("RADRequest")
 
 import { RadonRequest } from "./radon/artifacts"
 import { RadonRetrieval } from "./radon/retrievals"
@@ -49,8 +50,8 @@ export function decodeRequest(hexString) {
     if (retrieval?.script) specs.script = decodeScript(toHexString(retrieval.script))
     return new RadonRetrieval(retrieval.kind, specs)
   })
-  var decodeFilter = (f) => {
-    if (f?.args && f.args.length > 0) return new RadonFilter(f.op, cbor.decode(f.args))
+  const decodeFilter = (f) => {
+    if (f?.args && f.args.length > 0) return new RadonFilter(f.op, cborDecode(f.args))
     else return new RadonFilter(f.op);
   }
   return new RadonRequest({
@@ -61,17 +62,17 @@ export function decodeRequest(hexString) {
 }
 
 export function decodeScript(hexString) {
-  const buffer = fromHexString(hexString)
-  const array = cbor.decode(buffer)
+  const buffer = helpers.fromHexString(hexString)
+  const array = cborDecode(buffer)
   return parseScript(array)
 }
 
 export function encodeRequest(payload) {
-  var errMsg = RADRequest.verify(payload)
+  const errMsg = RADRequest.verify(payload)
   if (errMsg) {
     throw Error(errMsg);
   } else {
-    var message = RADRequest.fromObject(payload);
+    const message = RADRequest.fromObject(payload);
     return RADRequest.encode(message).finish()
   }
 }
@@ -147,11 +148,11 @@ function parseScriptOperator(script, opcode, args) {
     script = new RadonClass()
   }
   if (opcode) {
-    var operator = RadonOperators[opcode].split(/(?=[A-Z])/).slice(1).join("")
+    let operator = RadonOperators[opcode].split(/(?=[A-Z])/).slice(1).join("")
     operator = operator.charAt(0).toLowerCase() + operator.slice(1)
     switch (operator) {
       case "filter": case "map": case "sort": case "alter":
-        var innerScript = parseScript(args)
+        const innerScript = parseScript(args)
         return script[operator](innerScript, ...args.slice(1));
       
       // case "alter":

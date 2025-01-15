@@ -1,4 +1,4 @@
-const cbor = require("cbor")
+import { encode as cborEncode } from "cbor"
 
 export enum Opcodes {
     Mode = 0x08,
@@ -22,7 +22,7 @@ export class RadonFilter {
     }
 
     public toJSON(): any {
-        var json: any = {
+        const json: any = {
             op: Opcodes[this.opcode],
         }
         if (this.args) {
@@ -32,11 +32,11 @@ export class RadonFilter {
     }
     
     public toProtobuf(): any {
-        var protobuf: any = {
+        const protobuf: any = {
             op: this.opcode,
         }
         if (this.args) {
-            protobuf.args = cbor.encode(this.args)
+            protobuf.args = cborEncode(this.args)
         }
         return protobuf
     }
