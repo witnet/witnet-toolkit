@@ -1,4 +1,4 @@
-const legacy = require(".")
+const legacy = require("witnet-toolkit/assets").legacy
 module.exports = {
   legacy: {
     requests: { ...legacy.requests, ...require("./requests") },
