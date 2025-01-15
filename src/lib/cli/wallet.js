@@ -77,7 +77,7 @@ module.exports = {
 
 function address(flags) {
     // TODO
-    var wallet = new toolkit.Wallet(process.env.WITNET_TOOLKIT_MASTER_KEY || "masterkey")
+    const wallet = new toolkit.Wallet(process.env.WITNET_TOOLKIT_MASTER_KEY || "masterkey")
     console.info(helpers.colors.lgreen("twit1f0am8c97q2ygkz3q6jyd2x29s8zaxqlxcqltxx"))
     qrcode.generate("twit1f0am8c97q2ygkz3q6jyd2x29s8zaxqlxcqltxx")
 }

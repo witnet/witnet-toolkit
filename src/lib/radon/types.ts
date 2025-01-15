@@ -1,4 +1,4 @@
-const cbor = require("cbor")
+import { encode as cborEncode } from "cbor"
 const helpers = require("../helpers")
 
 import { Opcodes as RadonReducerOpcodes } from './reducers'
@@ -95,13 +95,13 @@ export class RadonOperator extends RadonClass {
         this.params = params || []
     }
     public argsCount(): number { 
-        var maxCount: number = 0
+        let maxCount: number = 0
         this.params?.forEach(param => {
             if (typeof param === 'string') {
-                count = helpers.wildcards.getWildcardsCountFromString(param)
+                const count = helpers.wildcards.getWildcardsCountFromString(param)
                 if (count > maxCount) maxCount = count
             } else if (typeof param === 'object' && param instanceof RadonScript) {
-                var count = param.argsCount()
+                const count = param.argsCount()
                 if (count > maxCount) maxCount = count
             }
         })
@@ -111,13 +111,13 @@ export class RadonOperator extends RadonClass {
         )
     }
     public disect(level = 0): [number, string, string][] {
-        var result = this?.prev?.disect(level) || []
-        var operator = RadonOperators[this.opcode]
-        var inputType = `Radon${operator.split(/(?=[A-Z])/)[0]}`
-        var radonCall = operator.split(/(?=[A-Z])/).slice(1).join('')
+        const result = this?.prev?.disect(level) || []
+        const operator = RadonOperators[this.opcode]
+        const inputType = `Radon${operator.split(/(?=[A-Z])/)[0]}`
+        let radonCall = operator.split(/(?=[A-Z])/).slice(1).join('')
         radonCall = radonCall.charAt(0).toLowerCase() + radonCall.slice(1)
-        var args = ""
-        var script
+        let args = ""
+        let script
         if (this.params && this.params[0] !== undefined) {
             this.params.map(param => {
                 if (typeof param !== 'object' || !(param instanceof RadonScript)) {
@@ -130,7 +130,7 @@ export class RadonOperator extends RadonClass {
             else args = args.slice(0, -2)
         }
         if (script) {
-            var outputType = `${(script as RadonScript).outputType?.constructor.name || "RadonAny"}`
+            const outputType = `${(script as RadonScript).outputType?.constructor.name || "RadonAny"}`
             radonCall += `(${args}`
             result.push([level, inputType, radonCall])
             result.push(...(script as RadonScript).disect(level + 1))
@@ -142,18 +142,16 @@ export class RadonOperator extends RadonClass {
         return result
     }
     public encode(): any[] { 
-        var encoded
+        let encoded
         if (this?.params && this.params[0] !== undefined) {
-            var args = this.params.map(param => {
+            const args = this.params.map(param => {
                 if (typeof param === 'object') {
                     if (param instanceof RadonAny) {
-                        var aux = param.prev?.encode()
-                        return aux
+                        return param.prev?.encode()
                     } else if (param instanceof RadonOperator) {
                         return param.encode()
                     } else if (param instanceof RadonScript) {
-                        var aux2 = param.encode()
-                        return aux2
+                        return param.encode()
                     }
                 } else {
                     return param
@@ -203,9 +201,9 @@ export class RadonOperator extends RadonClass {
         )
     }
     public toString(left = "", indent = 4, level = 0): string { 
-        var lf = left !== "" ? "\n" : ""
-        var str = this?.prev?.toString(left, indent, level) || ""
-        var methodName = RadonOperators[this.opcode].split(/(?=[A-Z])/).slice(1).join('')
+        const lf = left !== "" ? "\n" : ""
+        let str = this?.prev?.toString(left, indent, level) || ""
+        let methodName = RadonOperators[this.opcode].split(/(?=[A-Z])/).slice(1).join('')
         methodName = methodName.charAt(0).toLowerCase() + methodName.slice(1)
         str += `${left}${" ".repeat(indent * level)}.${methodName}(`
         if (this.params && this.params[0] !== undefined) { 
@@ -240,7 +238,7 @@ export class RadonScript {
             "Map": RadonMap,
             "String": RadonString,
         }
-        var input = output?.prev
+        let input = output?.prev
         while (input?.prev) input = input?.prev
         const inputType = Object.entries(radonTypes).find(([prefix, _]) => input && RadonOperators[input.opcode].startsWith(prefix))
         if (inputType && inputType[1]) this.inputType = new inputType[1]()
@@ -289,10 +287,10 @@ export class RadonScript {
         }
     }
     public toBytecode(): string {
-        return Utils.toHexString(Object.values(Uint8Array.from(cbor.encode(this.encode()))))
+        return Utils.toHexString(Object.values(Uint8Array.from(cborEncode(this.encode()))))
     }
     public toString(left = "", indent = 0, level = 0): string {
-        var lf = left !== "" ? "\n" : ""
+        const lf = left !== "" ? "\n" : ""
         return `RadonOperator(${this.inputType?.constructor.name || ""})${lf}${this.ops?.toString(left, indent, level + 1)}`
     }
 }
@@ -302,11 +300,11 @@ export abstract class RadonAny extends RadonClass {
         outputType: { new(ops?: RadonOperator): OutputType; }, 
         params: any[],
     ): OutputType {
-        var name
+        let name
         try {
             throw new Error();
         } catch (err) {
-            var result = (err as Error)
+            const result = (err as Error)
             name = result.stack?.split(' at ')[2]
                 .split(' ')[0]
                 .split('.')
@@ -315,7 +313,7 @@ export abstract class RadonAny extends RadonClass {
                 .split(/(?=[A-Z])/).slice(1)
                 .join('')
         }
-        var opcode = RadonOperators[name as keyof typeof RadonOperators]
+        const opcode = RadonOperators[name as keyof typeof RadonOperators]
         if (!opcode) {
             throw Error(`Fatal: unknown Radon Operator opcode '${name}'`)
         } else {

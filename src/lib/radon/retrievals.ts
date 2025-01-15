@@ -1,4 +1,4 @@
-const cbor = require("cbor")
+import { encode as cborEncode } from "cbor"
 const helpers = require("../helpers")
 
 import graphQlCompress from "graphql-query-compress"
@@ -145,7 +145,7 @@ export class RadonRetrieval {
         }
         if (this.url) json.url = this.url
         if (this.headers && this.headers.length > 0) {
-            json.headers = this.headers.map(header => { var obj: any = {}; obj[header[0]] = header[1]; return obj; })
+            json.headers = this.headers.map(header => { const obj: any = {}; obj[header[0]] = header[1]; return obj; })
         }
         if (this.body) json.body = this.body
         if (this.script) json.script = this.script.toString()
@@ -161,10 +161,10 @@ export class RadonRetrieval {
             protobuf.headers = this.headers.map(header => { return { left: header[0], right: header[1] }})
         }
         if (this.body) {
-            var utf8Array = helpers.toUtf8Array(this.body)
+            const utf8Array = helpers.toUtf8Array(this.body)
             protobuf.body = utf8Array
         }
-        protobuf.script = Object.values(Uint8Array.from(cbor.encode(this.script?.encode() || [])))
+        protobuf.script = Object.values(Uint8Array.from(cborEncode(this.script?.encode() || [])))
         return protobuf
     }
 

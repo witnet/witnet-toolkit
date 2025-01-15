@@ -76,27 +76,27 @@ async function holders(flags) {
     flags.limit = parseInt(flags?.limit) || FLAGS_DEFAULT_LIMIT
     provider = new toolkit.Provider(flags?.provider)
     
-    var records = Object.entries(await helpers.prompter(provider.balances()))
+    let records = Object.entries(await helpers.prompter(provider.balances()))
     console.info(`> Showing ${flags.limit} out of ${records.length} records:`)
-    var records = 
     helpers.traceTable(
         records.slice(0, flags.limit).map(([ address, balance ], index) => [ 
             index + 1,
              address, 
              balance / 10 ** 9
         ]), {
-        headlines: [ "RANK", "HOLDERS", "BALANCE (Wits)", ],
-        humanizers: [ ,, (x) => helpers.commas(Math.floor(x)), ],
-        colors: [ , helpers.colors.lgreen, helpers.colors.lyellow, ]
-    })
+            headlines: [ "RANK", "HOLDERS", "BALANCE (Wits)", ],
+            humanizers: [ ,, (x) => helpers.commas(Math.floor(x)), ],
+            colors: [ , helpers.colors.lgreen, helpers.colors.lyellow, ]
+        }
+    )
 }
 
 async function blocks(flags, options) {
     if (!flags) flags = {}
     flags.limit = parseInt(flags?.limit) || FLAGS_DEFAULT_LIMIT
-    var provider = new toolkit.Provider(flags?.provider)
-    // var records = await helpers.prompter(provider.blocks(options?.from || - flags.limit, flags.limit))
-    var records = await provider.blocks(options?.from || - flags.limit, flags.limit)
+    const provider = new toolkit.Provider(flags?.provider)
+    // const records = await helpers.prompter(provider.blocks(options?.from || - flags.limit, flags.limit))
+    const records = await provider.blocks(options?.from || - flags.limit, flags.limit)
     helpers.traceTable(
         records.map(record => [
             record[0],
@@ -108,32 +108,32 @@ async function blocks(flags, options) {
 }
 
 async function constants(flags) {
-    var provider = new toolkit.Provider(flags?.provider)
+    const provider = new toolkit.Provider(flags?.provider)
     console.info(await provider.constants())
 }
 
 async function protocol(flags) {
-    var provider = new toolkit.Provider(flags?.provider)
+    const provider = new toolkit.Provider(flags?.provider)
     console.info(JSON.stringify(await provider.protocol(), null, 2))
 }
 
 async function wips(flags) {
-    var provider = new toolkit.Provider(flags?.provider)
+    const provider = new toolkit.Provider(flags?.provider)
     console.info(await provider.wips())
 }
 
 async function status(flags) {
-    var provider = new toolkit.Provider(flags?.provider)
+    const provider = new toolkit.Provider(flags?.provider)
     console.info(await provider.syncStatus())
 }
 
 async function mempool(flags) {
-    var provider = new toolkit.Provider(flags?.provider)
+    const provider = new toolkit.Provider(flags?.provider)
     console.info(await provider.mempool())
 }
 
 async function priorities(flags) {
-    var provider = new toolkit.Provider(flags?.provider)
+    const provider = new toolkit.Provider(flags?.provider)
     console.info(await provider.priorities())
 }
 
@@ -141,9 +141,9 @@ async function powers(flags, args) {
     if (!flags) flags = {}
     flags.limit = parseInt(flags?.limit) || FLAGS_DEFAULT_LIMIT
     if (args && args[0] && Object.values(toolkit.StakingCapability)?.includes(args[0])) {
-        var provider = new toolkit.Provider(flags?.provider)
-        // var records = await helpers.prompter(provider.ranks(args[0].toLowerCase()))
-        var records = await provider.ranks(args[0].toLowerCase())
+        const provider = new toolkit.Provider(flags?.provider)
+        // const records = await helpers.prompter(provider.ranks(args[0].toLowerCase()))
+        const records = await provider.ranks(args[0].toLowerCase())
         helpers.traceTable(
             records.map(record => [ 
                 record.rank, 
@@ -165,9 +165,9 @@ async function powers(flags, args) {
 async function stakers(flags) {
     if (!flags) flags = {}
     flags.limit = parseInt(flags?.limit) || FLAGS_DEFAULT_LIMIT
-    var provider = new toolkit.Provider(flags?.provider)
-    // var records = await helpers.prompter(provider.stakers())
-    var records = await provider.stakers()
+    const provider = new toolkit.Provider(flags?.provider)
+    // const records = await helpers.prompter(provider.stakers())
+    const records = await provider.stakers()
     helpers.traceTable(
         records.map((record, index) => [ 
             index + 1,
@@ -195,8 +195,8 @@ async function stakers(flags) {
 async function supply(flags) {
     if (!flags) flags = {}
     flags.limit = parseInt(flags?.limit) || FLAGS_DEFAULT_LIMIT
-    var reporter = new toolkit.Reporter(flags?.provider)
-    var data = await reporter.supplyInfo()
+    const reporter = new toolkit.Reporter(flags?.provider)
+    const data = await reporter.supplyInfo()
     helpers.traceTable(
         [
             // [ "Current time", data.current_time ],

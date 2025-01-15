@@ -113,8 +113,8 @@ function init() {
 /// CLI SUBMODULE COMMANDS ============================================================================================
 
 function assets(flags, args, options) {
-    var { requests, templates, retrievals } = loadAssets(flags)
-    var selection = {}
+    const { requests, templates, retrievals } = loadAssets(flags)
+    const selection = {}
     if (options?.requests) {
         selection = { requests }
     }
@@ -133,8 +133,8 @@ function assets(flags, args, options) {
 /// -------------------------------------------------------------------------------------------------------------------
 
 function check(flags) {
-    var { requests, templates, retrievals } = loadAssets(flags)
-    var [requests, templates, retrievals] = [
+    let { requests, templates, retrievals } = loadAssets(flags)
+    [ requests, templates, retrievals ] = [
         helpers.countLeaves(toolkit.RadonRequest, requests),
         helpers.countLeaves(toolkit.RadonTemplate, templates),
         helpers.countLeaves(toolkit.RadonRetrieval, retrievals),
@@ -157,10 +157,10 @@ function decode(flags, args, options) {
     if (args.length === 0) {
         throw "No Radon asset was specified."
     }
-    var asset = args[0]
+    const asset = args[0]
     if (helpers.isHexString(asset)) {
         try {
-            var request = toolkit.RadonRequest.from(asset)
+            const request = toolkit.RadonRequest.from(asset)
             traceWitnetRadonRequest(request, options)
 
         } catch {
@@ -169,13 +169,13 @@ function decode(flags, args, options) {
             }
         }
     } else {
-        var args = args.slice(1)
+        args = args.slice(1)
         flattenWitnetArtifacts(assets)
             .filter(craft => craft.key.toLowerCase().endsWith(asset.toLowerCase()))
             .forEach(craft => {
-                var artifact = craft.artifact
-                var artifactArgs = args
-                var prefix = ""
+                let artifact = craft.artifact
+                let artifactArgs = args
+                let prefix = ""
                 if (artifact instanceof toolkit.RadonRequest) {
                     prefix = "RadonRequest::"
 
@@ -216,10 +216,10 @@ async function dryrun(flags, args, options, settings) {
     if (args.length === 0) {
         throw "No Radon asset was specified."
     }
-    var asset = args[0]
+    const asset = args[0]
     if (helpers.isHexString(asset)) {
         try {
-            var request = toolkit.RadonRequest.from(asset)
+            const request = toolkit.RadonRequest.from(asset)
             await traceWitnetRadonRequestDryRun(request, options, settings)
 
         } catch {
@@ -228,12 +228,12 @@ async function dryrun(flags, args, options, settings) {
             }
         }
     } else {
-        var args = args.slice(1)
-        var crafts = flattenWitnetArtifacts(assets).filter(craft => craft.key.toLowerCase().endsWith(asset.toLowerCase()))
-        for (var index in crafts) {
-            var artifact = crafts[index].artifact
-            var artifactArgs = args
-            var prefix = ""
+        args = args.slice(1)
+        const crafts = flattenWitnetArtifacts(assets).filter(craft => craft.key.toLowerCase().endsWith(asset.toLowerCase()))
+        for (let index in crafts) {
+            let artifact = crafts[index].artifact
+            let artifactArgs = args
+            let prefix = ""
             if (artifact instanceof toolkit.RadonRequest) {
                 prefix = "RadonRequest::"
 
@@ -281,8 +281,8 @@ async function dryrun(flags, args, options, settings) {
 /// CLI SUBMODULE INTERNAL METHODS ------------------------------------------------------------------------------------
 
 const extractTypeName = (str) => str ? str.split(/(?=[A-Z])/).slice(1).join("") : "Any"
-const stringifyFilter = (x, c) => { var color = c || helpers.colors.lcyan; return color(`${toolkit.RadonFilters.Opcodes[x.opcode]}(${x.args ? JSON.stringify(x.args) : ""})`) }
-const stringifyReducer = (x, c) => { var color = c || helpers.colors.lcyan; return color(`${toolkit.RadonReducers.Opcodes[x.opcode]}()`) }
+const stringifyFilter = (x, c) => { const color = c || helpers.colors.lcyan; return color(`${toolkit.RadonFilters.Opcodes[x.opcode]}(${x.args ? JSON.stringify(x.args) : ""})`) }
+const stringifyReducer = (x, c) => { const color = c || helpers.colors.lcyan; return color(`${toolkit.RadonReducers.Opcodes[x.opcode]}()`) }
 
 function loadAssets(flags) {
     return flags?.legacy ? require(`${WITNET_ASSETS_PATH}`)?.legacy : {
@@ -315,7 +315,7 @@ function traceWitnetArtifacts(assets, args, indent = "") {
     const prefix = `${indent}   `
     Object.keys(assets).forEach((key, index) => {
         const isLast = index === Object.keys(assets).length - 1
-        var color = args.find(arg => key.toLowerCase().indexOf(arg.toLowerCase()) >= 0) ? helpers.colors.lcyan : helpers.colors.cyan
+        const color = args.find(arg => key.toLowerCase().indexOf(arg.toLowerCase()) >= 0) ? helpers.colors.lcyan : helpers.colors.cyan
         if (assets[key] instanceof toolkit.RadonRequest) {
             console.info(`${prefix}${color(key)}`);
 
@@ -372,9 +372,9 @@ function traceWitnetRadonRequest(request, options) {
         console.info(`${indent}│  ${helpers.colors.white("RETRIEVE DATA")}     │`) // ├ ┤
         console.info(`${indent}└──┬─┬───────────────┘`)
         request.retrieve.forEach((source, sourceIndex) => {
-            var authority = source.authority?.toUpperCase().split('.').slice(-2).join('.') || (source.method === toolkit.RadonRetrieve.Methods.RNG ? "WIT/RNG" : "")
-            var corner = sourceIndex === request.retrieve.length - 1 ? "└" : "├"
-            var sep = sourceIndex === request.retrieve.length - 1 ? " " : "│"
+            const authority = source.authority?.toUpperCase().split('.').slice(-2).join('.') || (source.method === toolkit.RadonRetrieve.Methods.RNG ? "WIT/RNG" : "")
+            const corner = sourceIndex === request.retrieve.length - 1 ? "└" : "├"
+            const sep = sourceIndex === request.retrieve.length - 1 ? " " : "│"
             console.info(
                 `${indent}   │ ${corner}─ ${helpers.colors.white("[ ")}${helpers.colors.white(`Data source #${sourceIndex + 1}`)
                 }  ${" ".repeat(3 - sourceIndex.toString().length)}${helpers.colors.lgreen(authority)} ${helpers.colors.white("]")}`
@@ -392,7 +392,7 @@ function traceWitnetRadonRequest(request, options) {
                     console.info(`${indent}   │ ${sep}    > HTTP body:      ${helpers.colors.green(source.body)}`)
                 }
                 if (source?.script) {
-                    var steps = source.script.disect()
+                    const steps = source.script.disect()
                     console.info(
                         `${indent}   │ ${sep}    > Radon script:   ${helpers.colors.lyellow(`[ `)
                         }${helpers.colors.yellow(steps[0][1])}${" ".repeat(12 - steps[0][1].length)
@@ -409,7 +409,7 @@ function traceWitnetRadonRequest(request, options) {
                             }`
                         )
                     })
-                    var outputType = source.script.outputType.constructor.name || `RadonAny`
+                    const outputType = source.script.outputType.constructor.name || `RadonAny`
                     console.info(
                         `${indent}   │ ${sep}                      ${helpers.colors.lyellow("[ ")
                         }${helpers.colors.yellow(outputType)
@@ -437,8 +437,8 @@ function traceWitnetRadonRequest(request, options) {
 }
 
 async function traceWitnetRadonRequestDryRun(request, options, settings) {
-    var bytecode = request.toBytecode()
-    var report = await helpers
+    const bytecode = request.toBytecode()
+    const report = await helpers
         .toolkitRun(settings, ['try-data-request', '--hex', bytecode.startsWith('0x') ? bytecode.slice(2) : bytecode])
         .catch((err) => {
             let errorMessage = err.message.split('\n').slice(1).join('\n').trim()
@@ -454,7 +454,7 @@ async function traceWitnetRadonRequestDryRun(request, options, settings) {
     } else {
         report = JSON.parse(report)
     }
-    var result = report?.aggregate.result
+    const result = report?.aggregate.result
     const resultType = Object.keys(result)[0]
     const resultValue = Object.values(result)[0]
     if (options?.json) {
@@ -484,10 +484,10 @@ async function traceWitnetRadonRequestDryRun(request, options, settings) {
     console.info(`${indent}│ Execution time: ${helpers.colors.green(execTimeMs)} ${" ".repeat(flexbar.length + 19 - execTimeMs.length)} │`)
     console.info(`${indent}└──┬─┬───────────────────────────${flexbar}──────┘`)
     request.retrieve.forEach((source, sourceIndex) => {
-        var authority = source.authority?.toUpperCase().split('.').slice(-2).join('.') || (source.method === toolkit.RadonRetrieve.Methods.RNG ? "WIT/RNG" : "")
-        var corner = sourceIndex === request.retrieve.length - 1 ? "└" : "├"
-        var sep = sourceIndex === request.retrieve.length - 1 ? " " : "│"
-        var color = report.retrieve[sourceIndex].result?.RadonError
+        const authority = source.authority?.toUpperCase().split('.').slice(-2).join('.') || (source.method === toolkit.RadonRetrieve.Methods.RNG ? "WIT/RNG" : "")
+        const corner = sourceIndex === request.retrieve.length - 1 ? "└" : "├"
+        const sep = sourceIndex === request.retrieve.length - 1 ? " " : "│"
+        const color = report.retrieve[sourceIndex].result?.RadonError
             ? (options?.verbose ? helpers.colors.lgray : helpers.colors.gray)
             : (options?.verbose ? helpers.colors.lgreen : helpers.colors.green)
         if (options?.verbose) {
@@ -524,12 +524,12 @@ async function traceWitnetRadonRequestDryRun(request, options, settings) {
                 console.info(`${indent}   │ ${sep}    > HTTP body:      ${helpers.colors.green(source.body)}`)
             }
             const printData = (headline, data, color) => {
-                var type = Object.keys(data)[0]
-                var data = typeof data[type] === 'object' || Array.isArray(data[type]) ? JSON.stringify(data[type]) : data[type]
-                var lines = data.match(/.{1,96}/g).slice(0, 256)
+                const type = Object.keys(data)[0]
+                const data = typeof data[type] === 'object' || Array.isArray(data[type]) ? JSON.stringify(data[type]) : data[type]
+                const lines = data.match(/.{1,96}/g).slice(0, 256)
                 if (lines.length === 256) lines[255] += "..."
-                var typeColor = (type === "RadonError") ? helpers.colors.red : helpers.colors.yellow
-                var lineColor = (type === "RadonError") ? helpers.colors.gray : color
+                const typeColor = (type === "RadonError") ? helpers.colors.red : helpers.colors.yellow
+                const lineColor = (type === "RadonError") ? helpers.colors.gray : color
                 console.info(
                     `${indent}   │ ${sep}    > ${headline}${" ".repeat(15 - headline.length)} \x1b[1;m${typeColor(`[ `)}\x1b[0m${typeColor(type)}${" ".repeat(12 - type.length)}\x1b[1;m${typeColor(` ]`)}\x1b[0m ${lineColor(lines[0])}`)
                 lines.slice(1).forEach(line => {
@@ -551,13 +551,13 @@ async function traceWitnetRadonRequestDryRun(request, options, settings) {
     console.info(`${indent}│ ${helpers.colors.white("Aggregated result")}${flexspc} │`) // ├ ┤
     console.info(`${indent}├──────────────────────────────${flexbar}─┤`)
     if (options?.verbose) {
-        var partial_index = 0
-        var partial_results = report.aggregate?.partial_results
+        let partial_index = 0
+        const partial_results = report.aggregate?.partial_results
         request.aggregate?.filters.forEach(filter => {
-            var color = (partial_results && partial_results[partial_index]?.RadonArray) ? helpers.colors.mcyan : helpers.colors.gray
-            var items = (partial_results && partial_results[partial_index]?.RadonArray) ? ` over ${partial_results[partial_index]?.RadonArray.length} sources` : ""
+            const color = (partial_results && partial_results[partial_index]?.RadonArray) ? helpers.colors.mcyan : helpers.colors.gray
+            const items = (partial_results && partial_results[partial_index]?.RadonArray) ? ` over ${partial_results[partial_index]?.RadonArray.length} sources` : ""
             partial_index += 1
-            var filter = stringifyFilter(filter, color)
+            const filter = stringifyFilter(filter, color)
             console.info(
                 `${indent}│ Radon filter:   ${filter}${
                     helpers.colors.cyan(items)
@@ -566,9 +566,9 @@ async function traceWitnetRadonRequestDryRun(request, options, settings) {
                 } │`
             )
         })
-        var color = (partial_results && partial_results[partial_index]?.RadonArray) ? helpers.colors.mcyan : helpers.colors.gray
-        var items = (partial_results && partial_results[partial_index]?.RadonArray) ? ` over ${partial_results[partial_index]?.RadonArray.length} sources` : ""
-        var reducer = stringifyReducer(request.aggregate, color)
+        const color = (partial_results && partial_results[partial_index]?.RadonArray) ? helpers.colors.mcyan : helpers.colors.gray
+        const items = (partial_results && partial_results[partial_index]?.RadonArray) ? ` over ${partial_results[partial_index]?.RadonArray.length} sources` : ""
+        const reducer = stringifyReducer(request.aggregate, color)
         console.info(
             `${indent}│ Radon reducer:  ${reducer}${
                 helpers.colors.cyan(items)}${" ".repeat(flexbar.length + 22 - reducer.length - items.length)
@@ -577,11 +577,11 @@ async function traceWitnetRadonRequestDryRun(request, options, settings) {
     }
     console.info(`${indent}│ Result size:    ${helpers.colors.cyan("xxx bytes")}${" ".repeat(flexbar.length + 13 - 9)} │`)
     console.info(`${indent}└────┬─────────────────────────${flexbar}─┘`)
-    var printMapItem = (indent, width, key, value, indent2 = "") => {
-        if (key) var key = `${indent2}"${key}": `
-        else var key = `${indent2}`
-        var type = extractTypeName(Object.keys(value)[0])
-        var value = Object.values(value)[0]
+    const printMapItem = (indent, width, key, value, indent2 = "") => {
+        if (key) key = `${indent2}"${key}": `
+        else key = `${indent2}`
+        const type = extractTypeName(Object.keys(value)[0])
+        const value = Object.values(value)[0]
         if (["Map", "Array",].includes(type)) {
             if (key.length > width - 12) {
                 console.info(
@@ -611,8 +611,8 @@ async function traceWitnetRadonRequestDryRun(request, options, settings) {
                     value = JSON.stringify(value)
                 }
                 type = `[ ${type}${" ".repeat(7 - type.length)} ]`
-                var result = key + value
-                var spaces = width - 12 - result.length
+                const result = key + value
+                const spaces = width - 12 - result.length
                 if (result.length > width - 15) {
                     value = value.slice(0, width - 15 - key.length) + "..."
                     spaces = 0
@@ -621,20 +621,20 @@ async function traceWitnetRadonRequestDryRun(request, options, settings) {
             }
         }
     }
-    var printResult = (indent, width, resultType, resultValue) => {
+    const printResult = (indent, width, resultType, resultValue) => {
         resultType = extractTypeName(resultType)
         resultValue = typeof resultValue === 'object' || Array.isArray(resultValue) ? JSON.stringify(resultValue) : resultValue
         if (["Map", "Array",].includes(resultType)) {
             console.info(`${indent}     └─ ${helpers.colors.lyellow(`[ ${resultType}${" ".repeat(7 - resultType.length)} ]`)}`)
-            var obj = JSON.parse(resultValue)
+            const obj = JSON.parse(resultValue)
             Object.entries(obj).forEach(([key, value]) => printMapItem(indent, width, resultType === "Map" ? key : null, value))
         } else {
             if (resultType === "Bytes") {
                 resultValue = JSON.parse(resultValue).map(char => ('00' + char.toString(16)).slice(-2)).join("")
             }
-            var color = resultType.indexOf("Error") > -1 ? helpers.colors.gray : helpers.colors.lcyan
-            var typeText = resultType.indexOf("Error") > -1 ? `\x1b[1;98;41m  Error  \x1b[0m` : helpers.colors.lyellow(`[ ${resultType} ]`)
-            var lines = resultValue.match(/.{1,96}/g).slice(0, 256)
+            const color = resultType.indexOf("Error") > -1 ? helpers.colors.gray : helpers.colors.lcyan
+            const typeText = resultType.indexOf("Error") > -1 ? `\x1b[1;98;41m  Error  \x1b[0m` : helpers.colors.lyellow(`[ ${resultType} ]`)
+            const lines = resultValue.match(/.{1,96}/g).slice(0, 256)
             console.info(`${indent}     └─ ${typeText} ${color(lines[0])}`)
             lines.slice(1).forEach(line => {
                 console.info(`${indent}             ${" ".repeat(resultType.length)}${color(line)}`)
