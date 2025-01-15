@@ -1,3 +1,7 @@
+const helpers = require("../helpers")
+const qrcode = require('qrcode-terminal');
+const toolkit = require("../../../dist");
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /// CLI SUBMODULE CONSTANTS ===========================================================================================
 
@@ -14,7 +18,7 @@ module.exports = {
     },
     router: {
         address: {
-            hint: "Show wallet's public key hash"
+            hint: "Show wallet's public key hash address."
         },
         balance: {
             hint: "Show wallet's available balance.",
@@ -63,10 +67,19 @@ module.exports = {
             hint: "Lorem ipsum.",
         },
     },
-    subcommands: {},
+    subcommands: {
+        address,
+    },
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /// CLI SUBMODULE COMMANDS ============================================================================================
+
+function address(flags) {
+    // TODO
+    var wallet = new toolkit.Wallet(process.env.WITNET_TOOLKIT_MASTER_KEY || "masterkey")
+    console.info(helpers.colors.lgreen("twit1f0am8c97q2ygkz3q6jyd2x29s8zaxqlxcqltxx"))
+    qrcode.generate("twit1f0am8c97q2ygkz3q6jyd2x29s8zaxqlxcqltxx")
+}
 
 
