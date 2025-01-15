@@ -14,11 +14,11 @@ module.exports = {
         limit: { hint: "Limit output records (default: 100)", param: ":number", },
     },
     router: {
-        dataRequests: {
-            hint: "Report most successful data requests.",
+        miners: {
+            hint: "Report most successful miners.",
         },
-        validators: {
-            hint: "Report most successful validators.",
+        requests: {
+            hint: "Report most successful data requests.",
         },
         witnesses: {
             hint: "Report most successful witnesses.",
