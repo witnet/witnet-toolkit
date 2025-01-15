@@ -53,7 +53,7 @@ export class Provider implements IProvider {
     constructor(url?: string) {
 
         this.endpoints = []
-        if (url) {
+        if (url !== undefined) {
             const urls = url.replaceAll(',', ';').split(';')
             urls.forEach(url => {
                 const [schema, ] = helpers.parseURL(url)
@@ -166,9 +166,18 @@ export class Provider implements IProvider {
     
     /// Get a full list of current stake entries  Query the amount of nanowits staked by an address.
     public async stakers(): Promise<Array<StakeEntry>> {
-        return this.callApiMethod<Array<StakeEntry>>(Methods.QueryStakes, {
-            all: true,
-        })
+        return this
+            .callApiMethod<Array<StakeEntry>>(Methods.QueryStakes, {
+                all: true,
+            })
+            .then((stakers: Array<StakeEntry>) => {
+                return stakers.sort((a, b) => {
+                    if (a.value.coins < b.value.coins) return 1;
+                    else if (a.value.coins > b.value.coins) return -1;
+                    else return 0;
+                })
+            })
+        
     }
     
     /// Get node status
