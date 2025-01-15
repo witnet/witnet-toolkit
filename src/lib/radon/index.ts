@@ -3,7 +3,7 @@ export * as RadonReducers from './reducers'
 export * as RadonRetrieve from './retrievals'
 
 export { RadonRequest, RadonRequestTemplate as RadonTemplate } from './artifacts'
-export { RadonRetrieval as RadonDataSource } from './retrievals'
+export { RadonRetrieval } from './retrievals'
 
 export {
     RadonArray,
@@ -13,6 +13,7 @@ export {
     RadonInteger,
     RadonString,
     RadonMap,
+    RadonScript as RadonScriptWrapper
 } from './types'
 
 import { RadonAny, RadonString, RadonOperator } from './types'

@@ -1,7 +1,7 @@
 {
   "name": "witnet-toolkit",
   "version": "2.1.0-beta.0",
-  "description": "JS/TS library and CLI tooling for Web3 devs willing to interact with the Witnet network without actually running a Witnet node.",
+  "description": "JS/TS library and CLI tooling for Web3 buidlers willing to interact with the Wit/Oracle blockchain.",
   "author": "Witnet Foundation",
   "license": "MIT",
   "private": false,
@@ -13,7 +13,10 @@
   "files": [
     "witnet/witnet.proto.json",
     "witnet/assets",
-    "dist"
+    "dist",
+    "src/bin",
+    "src/lib/cli",
+    "src/lib/helpers.js"
   ],
   "exports": {
     ".": {
@@ -25,9 +28,11 @@
   "types": "./dist/lib/radon",
   "scripts": {
     "build": "npx pbjs --target json witnet/witnet.proto -o witnet/witnet.proto.json && tsc -p tsconfig.json",
+    "fmt": "eslint --ext .js,.ts,.cjs . --ignore-path .gitignore && solhint --max-warnings 0 \"witnet/migrations/contracts/**/*.sol\"",
+    "fmt!": "eslint --ext .js,.ts,.cjs . --fix --ignore-path .gitignore && solhint --max-warnings 0 \"witnet/migrations/contracts/**/*.sol\" --fix",
     "postintall": "npx witnet --update --version radon init",
     "prepare": "pnpm run build",
-    "test": "cross-env-shell WITNET_TOOLKIT_REQUIRE_PATH='../../../witnet' node ./src/bin/toolkit.js"
+    "test": "cross-env-shell WITNET_TOOLKIT_ASSETS_PATH='../../../witnet' node ./src/bin/toolkit.js"
   },
   "dependencies": {
     "axios": "1.7.9",
@@ -35,11 +40,17 @@
     "crypto": "^1.0.1",
     "dotenv": "^16.4.1",
     "graphql-query-compress": "1.2.4",
+    "protobufjs": "^7.4.0",
     "qrcode-terminal": "^0.12.0"
   },
   "devDependencies": {
     "@types/node": "^22.10.2",
     "cross-env": "7.0.3",
+    "eslint": "^9.16.0",
+    "eslint-config-standard": "^17.1.0",
+    "eslint-plugin-import": "^2.27.5",
+    "eslint-plugin-n": "^17.15.0",
+    "eslint-plugin-promise": "^7.2.1",
     "protobufjs-cli": "^1.1.3",
     "typescript": "^5.7.2"
   }
