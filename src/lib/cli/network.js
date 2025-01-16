@@ -67,7 +67,7 @@ module.exports = {
     },
     subcommands: {
         blocks, constants, protocol, wips, status, mempool, priorities,
-        holders, powers, stakers, supply,
+        holders, powers, stakers, supply: supplyInfo, providers,
     },
 };
 
@@ -89,7 +89,7 @@ async function holders(flags) {
         ]), {
             headlines: [ "RANK", "HOLDERS", "BALANCE (Wits)", ],
             humanizers: [ ,, (x) => helpers.commas(Math.floor(x)), ],
-            colors: [ , helpers.colors.lgreen, helpers.colors.lyellow, ]
+            colors: [ , helpers.colors.lgreen, helpers.colors.myellow, ]
         }
     )
 }
@@ -156,7 +156,7 @@ async function powers(flags, args) {
             ]),
             {
                 headlines: [ "RANK", "VALIDATORS", `${args[0].toUpperCase()[0]}_POWER (aged)`, "Staker", ],
-                colors: [, helpers.colors.lgreen, helpers.colors.yellow,, ],
+                colors: [, helpers.colors.lgreen, args[0] === "mining" ? helpers.colors.mcyan : helpers.colors.mmagenta,, ],
                 humanizers: [,, helpers.commas,, ],
             },
         )
@@ -183,23 +183,42 @@ async function stakers(flags) {
         ]),
         {
             headlines: [ 
-                "RANK", "STAKERS", "STAKE (Wits)", "Delegate", "Nonce",  "LM_Epoch", "LW_Epoch",
+                "RANK", "STAKERS", "STAKE (Wits)", "Validator", "Nonce",  "LM_Epoch", "LW_Epoch",
             ],
             humanizers: [
                 ,, (x) => helpers.commas(Math.floor(parseFloat(x))),, helpers.commas, helpers.commas, helpers.commas, 
             ],
             colors: [
-                , helpers.colors.lgreen, helpers.colors.lyellow,,, helpers.colors.lgray, helpers.colors.cyan, 
+                , helpers.colors.lgreen, helpers.colors.myellow,,, helpers.colors.mcyan, helpers.colors.mmagenta, 
             ],
         },
     )
 }
 
-async function supply(flags) {
+async function supplyInfo(flags) {
     if (!flags) flags = {}
     flags.limit = parseInt(flags?.limit) || FLAGS_DEFAULT_LIMIT
     const reporter = new toolkit.Reporter(flags?.provider)
     const data = await reporter.supplyInfo()
+    console.info(`> Supply info at epoch ${helpers.colors.lyellow(helpers.commas(data.epoch))}:`)
+    const records = []
+    records.push([ "Minted blocks", helpers.toFixedTrunc(100 * data.blocks_minted / data.epoch, 2) + " %" ])
+    records.push([ "Minted rewards", helpers.whole_wits(data.blocks_minted_reward, 2) ])
+    if (data.burnt_supply) {
+        records.push([ "Burnt supply", helpers.whole_wits(data.burnt_supply, 2) ])
+    };
+    if (data.current_locked_supply) {
+        records.push([ "Locked supply", helpers.whole_wits(data.current_locked_supply, 2) ])
+    }
+    if (data.current_staked_supply) {
+        records.push([ "Staked supply", helpers.whole_wits(data.current_staked_supply, 2) ])
+    }
+    records.push([ "Circulating supply", helpers.whole_wits(data.current_unlocked_supply, 2) ])
+    helpers.traceTable(records, {
+        headlines: [ ":KEY", "VALUE", ],
+        colors: [helpers.colors.white, helpers.colors.myellow, ]
+    })
+}
 
 function providers(flags) {
     if (!flags) flags = {}

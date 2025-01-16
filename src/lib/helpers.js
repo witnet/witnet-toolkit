@@ -7,16 +7,43 @@ const commas = (number) => {
         : `${parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",")}.${parts[1]}`
     return result 
 }
+
+function toFixedTrunc(x, n) {
+    const v = (typeof x === 'string' ? x : x.toString()).split('.');
+    if (n <= 0) return v[0];
+    let f = v[1] || '';
+    if (f.length > n) return `${v[0]}.${f.substr(0,n)}`;
+    while (f.length < n) f += '0';
+    return `${v[0]}.${f}`
+  }
+
+const whole_wits = (number, digits) => {
+    const lookup = [
+        { value: 1, symbol: " nWits" },
+        { value: 1e3, symbol: " μWits" },
+        { value: 1e6, symbol: " mWits" },
+        { value: 1e9, symbol: "  Wits" },
+        { value: 1e12, symbol: " KWits" },
+        { value: 1e15, symbol: " MWits" },
+    ];
+    const regexp = /\.0+$|(?<=\.[0-9])0+$/;
+    const item = lookup.findLast(item => number >= item.value);
+    return item ? toFixedTrunc(commas(number / item.value), digits)./*replace(regexp, "")*/concat(item.symbol) : "(no Wits)";
+}
+
 const lcyan = (str) => `\x1b[96m${str}\x1b[0m`
 const lgray = (str) => `\x1b[1;90m${str}\x1b[0m`
 const lgreen = (str) => `\x1b[1;92m${str}\x1b[0m`
+const lmagenta = (str) => `\x1b[1;95m${str}\x1b[0m`
 const lyellow = (str) => `\x1b[1;93m${str}\x1b[0m`
 const mcyan = (str) => `\x1b[96m${str}\x1b[0m`
 const mgreen = (str) => `\x1b[92m${str}\x1b[0m`
+const mmagenta = (str) => `\x1b[95m${str}\x1b[0m`
 const myellow = (str) => `\x1b[93m${str}\x1b[0m`
 const cyan = (str) => `\x1b[36m${str}\x1b[0m`
 const gray = (str) => `\x1b[90m${str}\x1b[0m`
 const green = (str) => `\x1b[32m${str}\x1b[0m`
+const magenta = (str) => `\x1b[35m${str}\x1b[0m`
 const normal = (str) => `\x1b[98m${str}\x1b[0m`
 const red = (str) => `\x1b[31m${str}\x1b[0m`
 const white = (str) => `\x1b[1;98m${str}\x1b[0m`
@@ -24,11 +51,11 @@ const yellow = (str) => `\x1b[33m${str}\x1b[0m`
 
 module.exports = {
     colors: {
-        cyan, gray, green, red, white, yellow, normal,
-        lcyan, lgray, lgreen, lyellow,
-        mcyan, mgreen, myellow,
+        cyan, gray, green, magenta, red, white, yellow, normal,
+        lcyan, lgray, lgreen, lmagenta, lyellow,
+        mcyan, mgreen, mmagenta, myellow,
     },
-    commas,
+    commas, whole_wits, toFixedTrunc,
     countLeaves,
     deleteExtraFlags, extractFromArgs,
     fromHexString, isHexString, isHexStringOfLength, toHexString,
@@ -468,7 +495,7 @@ function traceTable(records, options) {
                 ? this.colors.green 
                 : (Number(data) === data && data % 1 !== 0 // is float number?
                     ? this.colors.yellow 
-                    : this.colors.normal
+                    : (x) => x
                 )
             }
             data = stringify(data, options?.humanizers, j)
