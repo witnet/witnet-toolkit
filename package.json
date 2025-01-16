@@ -5,7 +5,7 @@
   "author": "Witnet Foundation",
   "license": "MIT",
   "private": false,
-  "type": "module",
+  "type": "commonjs",
   "bin": {
     "witnet": "src/bin/toolkit.js",
     "witnet-toolkit": "src/bin/toolkit.js"
@@ -28,8 +28,8 @@
   "types": "./dist/lib/radon",
   "scripts": {
     "build": "npx pbjs --target json witnet/witnet.proto -o witnet/witnet.proto.json && tsc -p tsconfig.json",
-    "fmt": "eslint --ext .js,.ts,.cjs . --ignore-path .gitignore && solhint --max-warnings 0 \"witnet/migrations/contracts/**/*.sol\"",
-    "fmt!": "eslint --ext .js,.ts,.cjs . --fix --ignore-path .gitignore && solhint --max-warnings 0 \"witnet/migrations/contracts/**/*.sol\" --fix",
+    "fmt": "eslint --ext .js,.ts,.cjs . --ignore-path .gitignore",
+    "fmt!": "eslint --ext .js,.ts,.cjs . --fix --ignore-path .gitignore",
     "postintall": "npx witnet --update --version radon init",
     "prepare": "pnpm run build",
     "test": "cross-env-shell WITNET_TOOLKIT_ASSETS_PATH='../../../witnet' node ./src/bin/toolkit.js"

@@ -218,7 +218,7 @@ function showUsageEnvars() {
 }
 
 function showUsageFlags(flags) {
-    const flags = Object.entries(flags)
+    flags = Object.entries(flags)
     if (flags.length > 0) {
         console.info(`\nFLAGS:`)
         const maxLength = flags
@@ -251,7 +251,7 @@ function showUsageHeadline(cmd, subcmd, params, options) {
 }
 
 function showUsageOptions(options) {
-    const options = Object.entries(options)
+    options = Object.entries(options)
     if (options.length > 0) {
         console.info(`\nOPTIONS:`)
         const maxLength = options
@@ -439,7 +439,7 @@ function traceTable(records, options) {
     const numColumns = reduceMax(records.map(record => record?.length || 1))
     const table = transpose(records, numColumns)
     options.widths = options?.widths || table.map((column, index) => {
-        const maxWidth = reduceMax(column.map(field => stringify(field, options?.humanizers, index).length))
+        let maxWidth = reduceMax(column.map(field => stringify(field, options?.humanizers, index).length))
         if (options?.headlines && options.headlines[index]) {
             maxWidth = max(maxWidth, options.headlines[index].replaceAll(':', '').length)
         }
