@@ -33,7 +33,7 @@ export {
 } from "./helpers"
 
 export function decodeRequest(hexString) {
-  const buffer = fromHexString(hexString)
+  const buffer = helpers.fromHexString(hexString)
   const obj = RADRequest.decode(buffer)
   const retrieve = obj.retrieve.map(retrieval => {
     const specs = {}
@@ -47,7 +47,7 @@ export function decodeRequest(hexString) {
     if (retrieval?.body && retrieval.body.length > 0) { 
       specs.body = utf8ArrayToStr(Object.values(retrieval.body)) 
     }
-    if (retrieval?.script) specs.script = decodeScript(toHexString(retrieval.script))
+    if (retrieval?.script) specs.script = decodeScript(helpers.toHexString(retrieval.script))
     return new RadonRetrieval(retrieval.kind, specs)
   })
   const decodeFilter = (f) => {

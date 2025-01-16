@@ -114,7 +114,7 @@ function init() {
 
 function assets(flags, args, options) {
     const { requests, templates, retrievals } = loadAssets(flags)
-    const selection = {}
+    let selection = {}
     if (options?.requests) {
         selection = { requests }
     }
@@ -438,7 +438,7 @@ function traceWitnetRadonRequest(request, options) {
 
 async function traceWitnetRadonRequestDryRun(request, options, settings) {
     const bytecode = request.toBytecode()
-    const report = await helpers
+    var report = await helpers
         .toolkitRun(settings, ['try-data-request', '--hex', bytecode.startsWith('0x') ? bytecode.slice(2) : bytecode])
         .catch((err) => {
             let errorMessage = err.message.split('\n').slice(1).join('\n').trim()
@@ -449,12 +449,12 @@ async function traceWitnetRadonRequestDryRun(request, options, settings) {
             }
             throw errorMessage || err
         })
-    if (!report) {
+        if (!report) {
         throw "No dry-report?"
     } else {
         report = JSON.parse(report)
     }
-    const result = report?.aggregate.result
+    var result = report?.aggregate.result
     const resultType = Object.keys(result)[0]
     const resultValue = Object.values(result)[0]
     if (options?.json) {
@@ -525,7 +525,7 @@ async function traceWitnetRadonRequestDryRun(request, options, settings) {
             }
             const printData = (headline, data, color) => {
                 const type = Object.keys(data)[0]
-                const data = typeof data[type] === 'object' || Array.isArray(data[type]) ? JSON.stringify(data[type]) : data[type]
+                data = typeof data[type] === 'object' || Array.isArray(data[type]) ? JSON.stringify(data[type]) : data[type]
                 const lines = data.match(/.{1,96}/g).slice(0, 256)
                 if (lines.length === 256) lines[255] += "..."
                 const typeColor = (type === "RadonError") ? helpers.colors.red : helpers.colors.yellow
@@ -557,7 +557,7 @@ async function traceWitnetRadonRequestDryRun(request, options, settings) {
             const color = (partial_results && partial_results[partial_index]?.RadonArray) ? helpers.colors.mcyan : helpers.colors.gray
             const items = (partial_results && partial_results[partial_index]?.RadonArray) ? ` over ${partial_results[partial_index]?.RadonArray.length} sources` : ""
             partial_index += 1
-            const filter = stringifyFilter(filter, color)
+            filter = stringifyFilter(filter, color)
             console.info(
                 `${indent}│ Radon filter:   ${filter}${
                     helpers.colors.cyan(items)
@@ -580,8 +580,8 @@ async function traceWitnetRadonRequestDryRun(request, options, settings) {
     const printMapItem = (indent, width, key, value, indent2 = "") => {
         if (key) key = `${indent2}"${key}": `
         else key = `${indent2}`
-        const type = extractTypeName(Object.keys(value)[0])
-        const value = Object.values(value)[0]
+        type = extractTypeName(Object.keys(value)[0])
+        value = Object.values(value)[0]
         if (["Map", "Array",].includes(type)) {
             if (key.length > width - 12) {
                 console.info(
@@ -611,8 +611,8 @@ async function traceWitnetRadonRequestDryRun(request, options, settings) {
                     value = JSON.stringify(value)
                 }
                 type = `[ ${type}${" ".repeat(7 - type.length)} ]`
-                const result = key + value
-                const spaces = width - 12 - result.length
+                result = key + value
+                spaces = width - 12 - result.length
                 if (result.length > width - 15) {
                     value = value.slice(0, width - 15 - key.length) + "..."
                     spaces = 0
