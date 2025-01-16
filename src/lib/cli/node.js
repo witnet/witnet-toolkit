@@ -2,7 +2,12 @@
 /// CLI SUBMODULE CONSTANTS ===========================================================================================
 
 module.exports = {
-    flags: {},
+    flags: {
+        provider: {
+            hint: "Public Wit/Oracle JSON-RPC provider, other than default",
+            param: ":http-url",
+        },
+    },
     router: {
         address: {
             hint: "Show node address."
@@ -16,6 +21,9 @@ module.exports = {
         },
         peers: {
             hint: "List node peers.",
+        },
+        providers: {
+            hint: "Show the underlying Wit/Oracle RPC provider(s) being used."
         },
         masterKey: {
             hint: "Export node's master key.",

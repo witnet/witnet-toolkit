@@ -49,6 +49,9 @@ module.exports = {
         protocol: {
             hint: "Known protocol versions and which one is currently enforced.",   
         },
+        providers: {
+            hint: "Show the underlying Wit/Oracle RPC provider(s) being used."
+        },
         stakers: {
             hint: "List active stake entries at present time.",
         },
@@ -197,17 +200,11 @@ async function supply(flags) {
     flags.limit = parseInt(flags?.limit) || FLAGS_DEFAULT_LIMIT
     const reporter = new toolkit.Reporter(flags?.provider)
     const data = await reporter.supplyInfo()
-    helpers.traceTable(
-        [
-            // [ "Current time", data.current_time ],
-            [ "Current epoch", helpers.commas(data.epoch) ],
-            [ "Minted blocks", helpers.commas(data.blocks_minted) ],
-            [ "Block rewards", helpers.commas(Math.floor(data.blocks_minted_reward / 10 ** 15)) + " MWits" ],
-            [ "Unlocked supply", helpers.commas(Math.floor(data.current_unlocked_supply / 10 ** 15)) + " MWits" ],
-            [ "Maximum supply", helpers.commas(Math.floor(data.maximum_supply / 10 ** 15)) + " MWits" ],
-        ], {
-            headlines: [ ":KEY", "VALUE", ],
-            colors: [helpers.colors.white, helpers.colors.lyellow, ]
-        }
-    )
+
+function providers(flags) {
+    if (!flags) flags = {}
+    const provider = new toolkit.Provider(flags?.provider)
+    provider.endpoints.forEach(url => {
+        console.info(helpers.colors.yellow(url))
+    })
 }
