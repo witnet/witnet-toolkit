@@ -7,13 +7,15 @@ const WITNET_ASSETS_PATH = process.env.WITNET_TOOLKIT_ASSETS_PATH || "../../../.
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /// CLI SUBMODULE CONSTANTS ===========================================================================================
 
+const isModuleInitialized = fs.existsSync('./witnet/assets/index.js')
+
 module.exports = {
     flags: {
         legacy: {
             hint: 'Inherits Radon assets from imported Witnet package',
         },
     },
-    router: fs.existsSync('./witnet/assets/index.js') ? {
+    router: isModuleInitialized ? {
         assets: {
             hint: "List Radon artficats declared within your project.",
             params: "[ASSET_SUBSTRS ...]",
@@ -77,6 +79,43 @@ module.exports = {
             options: {},
         },
     } : {
+        decode: {
+            hint: "Break down details of a Radon artifact.",
+            params: "BYTECODE | RAD_HASH", 
+            options: {
+                json: {
+                    hint: 'Outputs data in JSON format',
+                },
+                headline: {
+                    hint: 'Settles output report headline',
+                    param: ':string'
+                },
+                indent: {
+                    hint: 'Prefixes given number of white spaces for every output line',
+                    param: ':number'
+                },
+            },
+        },
+        dryrun: {
+            hint: "Simulate resolution to a Radon artifact as if solved by the Wit/Oracle.",
+            params: "BYTECODE | RAD_HASH",
+            options: {
+                json: {
+                    hint: 'Outputs data in JSON format',
+                },
+                headline: {
+                    hint: 'Settles output report headline',
+                    param: ':string'
+                },
+                indent: {
+                    hint: 'Prefixes given number of white spaces for every output line',
+                    param: ':number'
+                },
+                verbose: {
+                    hint: 'Outputs detailed dry-run report',
+                },
+            },
+        },
         init: {
             hint: "Initialize Witnet Radon workspace within your project."
         },
@@ -158,7 +197,7 @@ function decode(flags, args, options) {
         throw "No Radon asset was specified."
     }
     const asset = args[0]
-    if (helpers.isHexString(asset)) {
+    if (helpers.isHexString(asset) || !isModuleInitialized) {
         try {
             const request = toolkit.RadonRequest.from(asset)
             traceWitnetRadonRequest(request, options)
@@ -217,7 +256,7 @@ async function dryrun(flags, args, options, settings) {
         throw "No Radon asset was specified."
     }
     const asset = args[0]
-    if (helpers.isHexString(asset)) {
+    if (helpers.isHexString(asset) || !isModuleInitialized) {
         try {
             const request = toolkit.RadonRequest.from(asset)
             await traceWitnetRadonRequestDryRun(request, options, settings)
