@@ -15,6 +15,10 @@ module.exports = {
             hint: "Derive spending address from BIP-32 path",
             param: "m/:path"
         },
+        provider: {
+            hint: "Public Wit/Oracle JSON-RPC provider, other than default",
+            param: ":http-url",
+        },
     },
     router: {
         address: {
@@ -22,6 +26,9 @@ module.exports = {
         },
         balance: {
             hint: "Show wallet's available balance.",
+        },
+        providers: {
+            hint: "Show the underlying Wit/Oracle RPC provider(s) being used."
         },
         stake: {
             hint: "Stake specified amount of Wits by using given authorization code.",
@@ -68,7 +75,7 @@ module.exports = {
         },
     },
     subcommands: {
-        address,
+        address, providers,
     },
 };
 
@@ -77,9 +84,17 @@ module.exports = {
 
 function address(flags) {
     // TODO
-    const wallet = new toolkit.Wallet(process.env.WITNET_TOOLKIT_MASTER_KEY || "masterkey")
+    if (!flags) flags = {}
+    const provider = new toolkit.Provider(flags?.provider)
+    const wallet = new toolkit.Wallet(process.env.WITNET_TOOLKIT_MASTER_KEY || "masterkey", provider)
     console.info(helpers.colors.lgreen("twit1f0am8c97q2ygkz3q6jyd2x29s8zaxqlxcqltxx"))
     qrcode.generate("twit1f0am8c97q2ygkz3q6jyd2x29s8zaxqlxcqltxx")
 }
 
-
+function providers(flags) {
+    const provider = new toolkit.Provider(flags?.provider)
+    const wallet = new toolkit.Wallet(process.env.WITNET_TOOLKIT_MASTER_KEY || "masterkey", provider)
+    wallet.provider.endpoints.forEach(url => {
+        console.info(helpers.colors.yellow(url))
+    })
+}
