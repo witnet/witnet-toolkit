@@ -25,7 +25,7 @@ export enum Methods {
     GetPkh = "getPkh",
     GetPublicKey = "getPublicKey",
     GetSuperblock = "getSuperblock",
-    GetSupplyInfo = "getSupplyInfo",
+    GetSupplyInfo = "getSupplyInfo2",
     GetTransaction = "getTransaction",
     GetUtxoInfo = "getUtxoInfo",
     InitializePeers = "initializePeers",
@@ -473,20 +473,18 @@ export type SupplyInfo = {
     blocks_minted: u32;
     //WIT minted through block creation
     blocks_minted_reward: u64;
-    //Number of blocks missing
-    blocks_missing: u32;
-    //WIT missing because a block was not created
-    blocks_missing_reward: u64;
-    //Amount of in-flight data requests
-    in_flight_requests: u32;
-    //Supply currently locked in data requests
-    locked_wits_by_requests: u64;
-    //Current unlocked supply
-    current_unlocked_supply: u64;
+    //Amount of nanowits that have been burnt so far
+    burnt_supply: u64;
     //Current locked supply
     current_locked_supply: u64;
-    //Maximum supply: the number of nanowits that will ever exist
-    maximum_supply: u64;
+    //Current staked supply
+    current_staked_supply: u64;
+    //Current unlocked supply
+    current_unlocked_supply: u64;
+    //Initial supply
+    initial_supply: u64;
+    //WIT currently locked as collateral by in-flight data requests
+    requests_in_flight_collateral: u64;
   };
 
 // Node synchronization status
