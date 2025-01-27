@@ -2,84 +2,181 @@ const helpers = require("../helpers")
 const toolkit = require("../../../dist");
 
 const FLAGS_DEFAULT_LIMIT = 100
+const OPTIONS_DEFAULT_SINCE = -2048
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /// CLI SUBMODULE CONSTANTS ===========================================================================================
 
 module.exports = {
+    envars: {
+        WITNET_TOOLKIT_PROVIDER_URL: "=> Wit/Oracle RPC provider(s) to connect to, if no otherwise specified."
+    },
     flags: {
         limit: { 
-            hint: "Limit output records (default: 100)", 
-            param: ":number", 
+            hint: "Limits number of output records (default: 100)", 
+            param: "LIMIT", 
         },
         provider: {
             hint: "Public Wit/Oracle JSON-RPC provider, other than default",
-            param: ":http-url",
+            param: "PROVIDER_URL",
+        },
+        verbose: {
+            hint: "Outputs detailed information"
         },
     },
     router: {
         blocks: {
-            hint: "List block hashes within given epoch range.",
+            hint: "List recently validated blocks.",
             options: {
-                from: { hint: "Range start epoch (default: -1)", param: ":epoch | :relative", }, 
+                count: { hint: "Just count the number of entries (ignoring limit)" },
+                offset: {
+                    hint: "Skips first matching entries (default: 0)",
+                    param: "OFFSET",
+                },
+                since: {
+                    hint: "Since this epoch (default: -<LIMIT>)",
+                    param: "EPOCH|MINUS_EPOCHS",
+                },
             },
         },
         constants: {
             hint: "Show network consensus constants.",
         },
+        // "dataProviders*": {
+        //     hint: "List data providers queried at least once by data requests during last <RANGE> epochs.",
+        //     params: "[RANGE]",
+        // },
+        fees: {
+            hint: "Estimate transaction fees based on recent network activity.",
+            params: '"vtt" | "drt" | "st" | "ut"',
+            options: {
+                eti: {
+                    hint: "Expected time before inclusion (default: 60 seconds)",
+                    param: "ETI_SECONDS",
+                },
+                weight: { 
+                    hint: "Assuming this transaction weight (default: 1)", 
+                    param: "TX_WEIGHT",
+                },
+            },
+        },
         holders: {
-            hint: "List addresses with available Wits to spend.",
-            options: {},
+            hint: "List addresses holding Wits within specified range.",
+            options: { 
+                count: { hint: "Just count the number of entries (ignoring limit)" },
+                "min-balance": { 
+                    hint: "Having at least this amount of unlocked Wits (default: 1 Wit)",
+                    param: "WITS",
+                },
+                "max-balance": {
+                    hint: "Having at most this amount of unlocked Wits",
+                    param: "WITS",
+                },
+            },
+        },
+        knownPeers: {
+            hint: "Get a full list of peers as known by the Wit/Oracle RPC provider(s)",
         },
         mempool: {
             hint: "Dump current transactions mempool.",
-            options: {},
-        },
-        powers: {
-            hint: "Rank validators by their current staking power for given capability.",
-            params: "mining | witnessing",
-        },
-        priorities: {
-            hint: "Estimate transacting priorities based on recent network activity.",
-            params: "vtt | drt",
+            params: '["vtt" | "drt" | "st" | "ut"]',
             options: {
-                weight: { hint: "Estimate fees instead for given transaction weight", },
+                count: { hint: "Just count the number of entries (ignoring limit)" },
+                offset: {
+                    hint: "Skips first matching entries (default: 0)",
+                    param: "OFFSET",
+                },
             },
         },
-        protocol: {
-            hint: "Known protocol versions and which one is currently enforced.",   
+        provider: {
+            hint: "Show the underlying Wit/Oracle RPC provider being used."
         },
-        providers: {
-            hint: "Show the underlying Wit/Oracle RPC provider(s) being used."
+        senate: {
+            hint: "List distinct identities that have lately validated at least one block.",
+            options: {
+                count: { hint: "Just count the number of entries (ignoring limit)" },
+                since: {
+                    hint: "At or after the specified epoch (default: -2048)",
+                    param: "EPOCH|MINUS_EPOCHS",
+                },
+            },
         },
         stakers: {
             hint: "List active stake entries at present time.",
+            options: {
+                count: { hint: "Just count the number of entries (ignoring limit)" },
+                offset: {
+                    hint: "Skips first matching entries (default: 0)",
+                    param: "OFFSET",
+                },
+                validator: { hint: "Filter by validator address", param: "WIT_ADDRESS", },
+                withdrawer: { hint: "Filter by withdrawer address", param: "WIT_ADDRESS", },
+            },
         },
-        status: {
-            hint: "Report RPC provider's network sync status.",
+        "stats*": {
+            hint: "Report network stats.",
         },
-        supply: {
-            hint: "Get current unlocked and maximum Wit supply of the network.",
+        supplyInfo: {
+            hint: "Get network's Wit supply information.",
+        },
+        syncStatus: {
+            hint: "Report the sync status of the network's Wit/Oracle RPC provider being used.",
+        },
+        validators: {
+            hint: "List network validators ordered by their current mining power.",
+            options: {
+                distinct: { hint: "Include only first appearance per validator", },
+                witnessing: { hint: "Order by witnessing power instead", },
+            },
+        },
+        versions: {
+            hint: "Known protocol versions and which one is currently live.",   
         },
         wips: {
-            hint: "Show signaled and currently activated WIPs on the network.",
+            hint: "Show currently activated WIPs on the network.",
+            options: {
+                pending: { hint: "Only shows pending upgrades, if any", },
+            },
         },
     },
     subcommands: {
-        blocks, constants, protocol, wips, status, mempool, priorities,
-        holders, powers, stakers, supply: supplyInfo, providers,
+        blocks, constants, holders, knownPeers,
+        mempool, fees: priorities, provider,
+        senate, stakers, supplyInfo, syncStatus, 
+        validators, versions, wips,
     },
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /// CLI SUBMODULE COMMANDS ============================================================================================
 
+async function blocks(flags, _args, options) {
+    if (!flags) flags = {}
+    flags.limit = parseInt(flags?.limit) || FLAGS_DEFAULT_LIMIT
+    const provider = new toolkit.Provider(flags?.provider)
+    // const records = await helpers.prompter(provider.blocks(options?.from || - flags.limit, flags.limit))
+    const records = await provider.blocks(parseInt(options?.from) || - flags.limit, flags.limit)
+    helpers.traceTable(
+        records.map(record => [
+            record[0],
+            record[1],
+        ]), {
+        headlines: [ "EPOCH", "BLOCK HASHES", ], 
+        humanizers: [ helpers.commas, ],
+        colors: [, helpers.colors.gray, ]
+    })
+}
+
+async function constants(flags) {
+    const provider = new toolkit.Provider(flags?.provider)
+    console.info(await provider.constants())
+}
+
 async function holders(flags) {
     if (!flags) flags = {}
     flags.limit = parseInt(flags?.limit) || FLAGS_DEFAULT_LIMIT
-    provider = new toolkit.Provider(flags?.provider)
-    
-    let records = Object.entries(await helpers.prompter(provider.balances()))
+    const provider = new toolkit.Provider(flags?.provider)
+    let records = Object.entries(await helpers.prompter(provider.holders()))
     console.info(`> Showing ${flags.limit} out of ${records.length} records:`)
     helpers.traceTable(
         records.slice(0, flags.limit).map(([ address, balance ], index) => [ 
@@ -89,45 +186,17 @@ async function holders(flags) {
         ]), {
             headlines: [ "RANK", "HOLDERS", "BALANCE (Wits)", ],
             humanizers: [ ,, (x) => helpers.commas(Math.floor(x)), ],
-            colors: [ , helpers.colors.lgreen, helpers.colors.myellow, ]
+            colors: [ , helpers.colors.mgreen, helpers.colors.myellow, ]
         }
     )
 }
 
-async function blocks(flags, options) {
+async function knownPeers(flags) {
     if (!flags) flags = {}
     flags.limit = parseInt(flags?.limit) || FLAGS_DEFAULT_LIMIT
     const provider = new toolkit.Provider(flags?.provider)
-    // const records = await helpers.prompter(provider.blocks(options?.from || - flags.limit, flags.limit))
-    const records = await provider.blocks(options?.from || - flags.limit, flags.limit)
-    helpers.traceTable(
-        records.map(record => [
-            record[0],
-            record[1],
-        ]), {
-        headlines: [ "EPOCH", "BLOCK HASHES", ], 
-        colors: [, helpers.colors.cyan, ]
-    })
-}
-
-async function constants(flags) {
-    const provider = new toolkit.Provider(flags?.provider)
-    console.info(await provider.constants())
-}
-
-async function protocol(flags) {
-    const provider = new toolkit.Provider(flags?.provider)
-    console.info(JSON.stringify(await provider.protocol(), null, 2))
-}
-
-async function wips(flags) {
-    const provider = new toolkit.Provider(flags?.provider)
-    console.info(await provider.wips())
-}
-
-async function status(flags) {
-    const provider = new toolkit.Provider(flags?.provider)
-    console.info(await provider.syncStatus())
+    const knownPeers = await provider.knownPeers()
+    console.info(knownPeers)
 }
 
 async function mempool(flags) {
@@ -140,56 +209,58 @@ async function priorities(flags) {
     console.info(await provider.priorities())
 }
 
-async function powers(flags, args) {
+function provider(flags) {
     if (!flags) flags = {}
-    flags.limit = parseInt(flags?.limit) || FLAGS_DEFAULT_LIMIT
-    if (args && args[0] && Object.values(toolkit.StakingCapability)?.includes(args[0])) {
-        const provider = new toolkit.Provider(flags?.provider)
-        // const records = await helpers.prompter(provider.ranks(args[0].toLowerCase()))
-        const records = await provider.ranks(args[0].toLowerCase())
-        helpers.traceTable(
-            records.map(record => [ 
-                record.rank, 
-                record.validator, 
-                record.power ,
-                record.withdrawer, 
-            ]),
-            {
-                headlines: [ "RANK", "VALIDATORS", `${args[0].toUpperCase()[0]}_POWER (aged)`, "Staker", ],
-                colors: [, helpers.colors.lgreen, args[0] === "mining" ? helpers.colors.mcyan : helpers.colors.mmagenta,, ],
-                humanizers: [,, helpers.commas,, ],
-            },
-        )
-    } else {
-        throw `Only possible values: "mining" | "witnessing"`
-    }
+    const provider = new toolkit.Provider(flags?.provider)
+    provider.endpoints.forEach(url => {
+        console.info(helpers.colors.yellow(url))
+    })
 }
 
-async function stakers(flags) {
-    if (!flags) flags = {}
+async function senate(flags = {}, _args = [], options = {}) {
+    flags.limit = parseInt(flags?.limit) || FLAGS_DEFAULT_LIMIT
+    options.since = parseInt(options?.since) || OPTIONS_DEFAULT_SINCE
+
+}
+
+async function stakers(flags = {}, _args = [], options = {}) {
     flags.limit = parseInt(flags?.limit) || FLAGS_DEFAULT_LIMIT
     const provider = new toolkit.Provider(flags?.provider)
     // const records = await helpers.prompter(provider.stakers())
-    const records = await provider.stakers()
+    const records = await provider.stakers(options?.validator, options?.withdrawer)
     helpers.traceTable(
         records.map((record, index) => [ 
             index + 1,
             record.key.withdrawer, 
             record.value.coins / 10 ** 9,
             record.key.validator, 
-            record.value.nonce, 
-            record.value.epochs.mining,
-            record.value.epochs.witnessing,
+            ...(
+                options?.verbose 
+                    ? [ record.value.nonce, record.value.epochs.mining, record.value.epochs.witnessing, ]
+                    : []
+            )
         ]),
         {
             headlines: [ 
-                "RANK", "STAKERS", "STAKE (Wits)", "Validator", "Nonce",  "LM_Epoch", "LW_Epoch",
+                "RANK", "STAKERS", "Validator", "STAKE (Wits)", ...(
+                    options?.verbose 
+                        ? [ "Nonce",  "LM_Epoch", "LW_Epoch", ]
+                        : []
+                ),
             ],
             humanizers: [
-                ,, (x) => helpers.commas(Math.floor(parseFloat(x))),, helpers.commas, helpers.commas, helpers.commas, 
+                ,,, (x) => helpers.commas(Math.floor(parseFloat(x))), ...(
+                    options?.verbose
+                        ? [ helpers.commas, helpers.commas, helpers.commas, ]
+                        : []
+                ),
             ],
             colors: [
-                , helpers.colors.lgreen, helpers.colors.myellow,,, helpers.colors.mcyan, helpers.colors.mmagenta, 
+                , helpers.colors.mgreen,, helpers.colors.myellow, ...(
+                    options?.verbose
+                        ? [ , helpers.colors.mcyan, helpers.colors.mmagenta, ]
+                        : []
+                ),
             ],
         },
     )
@@ -200,9 +271,9 @@ async function supplyInfo(flags) {
     flags.limit = parseInt(flags?.limit) || FLAGS_DEFAULT_LIMIT
     const reporter = new toolkit.Reporter(flags?.provider)
     const data = await reporter.supplyInfo()
-    console.info(`> Supply info at epoch ${helpers.colors.lyellow(helpers.commas(data.epoch))}:`)
+    console.info(`> Supply info at epoch ${helpers.colors.white(helpers.commas(data.epoch))}:`)
     const records = []
-    records.push([ "Minted blocks", helpers.toFixedTrunc(100 * data.blocks_minted / data.epoch, 2) + " %" ])
+    records.push([ "Minted blocks", helpers.toFixedTrunc(100 * data.blocks_minted / data.epoch, 1) + " %" ])
     records.push([ "Minted rewards", helpers.whole_wits(data.blocks_minted_reward, 2) ])
     if (data.burnt_supply) {
         records.push([ "Burnt supply", helpers.whole_wits(data.burnt_supply, 2) ])
@@ -215,15 +286,146 @@ async function supplyInfo(flags) {
     }
     records.push([ "Circulating supply", helpers.whole_wits(data.current_unlocked_supply, 2) ])
     helpers.traceTable(records, {
-        headlines: [ ":KEY", "VALUE", ],
-        colors: [helpers.colors.white, helpers.colors.myellow, ]
+        headlines: [ ":KPI", "VALUE", ],
+        colors: [helpers.colors.mgreen, helpers.colors.myellow, ],
+        // indent: "  ",
     })
 }
 
-function providers(flags) {
-    if (!flags) flags = {}
+async function syncStatus(flags) {
     const provider = new toolkit.Provider(flags?.provider)
-    provider.endpoints.forEach(url => {
-        console.info(helpers.colors.yellow(url))
-    })
+    const syncStatus = await provider.syncStatus()
+    helpers.traceTable(
+        [[
+            syncStatus.node_state || '',
+            syncStatus.current_epoch,
+            syncStatus.chain_beacon.checkpoint,
+            syncStatus.chain_beacon.hashPrevBlock,
+        ]], {
+            headlines: [
+                ":STATUS",
+                "Current epoch", 
+                "Checkpoint epoch",
+                "Checkpoint block hash",
+            ],
+            humanizers: [ , helpers.commas, helpers.commas, ],
+            colors: [ helpers.colors.mgreen, helpers.colors.white,, helpers.colors.gray, ]
+        },
+    )
+}
+
+async function validators(flags = {}, args =  [], options = {}) {
+    flags.limit = parseInt(flags?.limit) || FLAGS_DEFAULT_LIMIT
+    const provider = new toolkit.Provider(flags?.provider)
+    const capability = options?.witnessing ? toolkit.StakingCapability.Witnessing : toolkit.StakingCapability.Mining
+    let records = await provider.powers(capability)
+    // TODO: implement distinct filter on rpc server side ...
+    if (options?.distinct) {
+        const validators = []
+        records = records.filter(entry => {
+            if (!validators.includes(entry.validator)) {
+                validators.push(entry.validator)
+                return true
+            } else {
+                return false
+            }
+        })
+    }
+    helpers.traceTable(
+        records.slice(flags.limit).map(record => [ 
+            record.rank, 
+            record.validator, 
+            record.withdrawer, 
+            record.power,
+        ]),
+        {
+            headlines: [ "G_RANK", "VALIDATORS", "Withdrawers", `${args[0].toUpperCase()[0] + args[0].slice(1)} power`, ],
+            colors: [, helpers.colors.mgreen, helpers.colors.green, args[0] === "mining" ? helpers.colors.mcyan : helpers.colors.mmagenta, ],
+            humanizers: [,,, helpers.commas, ],
+        },  
+    )
+}
+
+async function versions(flags) {
+    const provider = new toolkit.Provider(flags?.provider)
+    const protocolInfo = await provider.protocolInfo()
+    if (
+        protocolInfo?.all_checkpoints_periods
+        && protocolInfo?.all_versions?.efv 
+        && Object.keys(protocolInfo.all_versions.efv).length > 0
+    ) {
+        const records = Object.fromEntries(
+            Object.entries(protocolInfo.all_checkpoints_periods)
+                .sort(([a,], [b, ]) => { if (a < b) return 1; else if (b > a) return -1; else return 0 })
+                .map(([version, period]) => [ version, { period }])
+        )
+        Object.entries(protocolInfo.all_versions.efv).map(([key, epoch]) => {
+            if (records[key]) records[key].epoch = epoch
+        })
+        helpers.traceTable(Object.entries(records).map(([key, props]) => [ key, props?.epoch, props?.period, ]), {
+            headlines: [
+                ":Version",
+                "Activation epoch",
+                ":Block time (secs)",
+            ],
+            humanizers: [, helpers.commas, ],
+            colors: [ helpers.colors.mgreen, helpers.colors.white, helpers.colors.normal, ],
+        })
+    }
+    console.info(`> Current protocol version is ${helpers.colors.mgreen(protocolInfo.current_version)}.`)
+}
+
+
+async function wips(flags, _args, options) {
+    const provider = new toolkit.Provider(flags?.provider)
+    const wips = await provider.wips()
+    if (!options?.pending) {
+        // console.info(`> Active WIP upgrades at epoch ${helpers.colors.white(helpers.commas(wips.epoch))}:`)
+        const active_upgrades = Object.entries(wips.active_upgrades).map(([ wip, epoch, ]) => [
+            wip,
+            epoch,
+        ])
+        helpers.traceTable(active_upgrades, {
+            headlines: [":WIP", "Activation epoch", ],
+            humanizers: [, helpers.commas, ],
+            colors: [ helpers.colors.mcyan, helpers.colors.white, ],
+        })
+    }
+    if (wips.pending_upgrades || options?.pending) {
+        if (wips.pending_upgrades.length === 0) {
+            console.info(`> No pending WIP upgrades at epoch ${helpers.colors.white(helpers.commas(wips.epoch))}.`)
+        
+        } else {
+            console.info(`Pending WIP upgrades at epoch ${helpers.colors.white(helpers.commas(wips.epoch))}:`)
+            const pending_upgrades = wips.pending_upgrades.map(upgrade => {
+                return [
+                    upgrade.wip,
+                    upgrade.bit,
+                    upgrade.init,
+                    upgrade.votes,
+                    upgrade.period,
+                    // upgrade.end,
+                ]
+            })
+            helpers.traceTable(pending_upgrades, {
+                headlines: [
+                    ":WIP",
+                    "WIP_BIT",
+                    "From epoch",
+                    "Aye votes",
+                    "Duration",
+                    // "Deadline",
+                ],
+                humanizers: [,, helpers.commas, helpers.commas, helpers.commas, helpers.commas, ],
+                colors: [ 
+                    helpers.colors.lcyan, 
+                    helpers.colors.mcyan,
+                    helpers.colors.white,
+                    helpers.colors.myellow,
+                    helpers.colors.mgreen,
+                    // helpers.colors.myellow,
+                ],
+            })
+        }
+    }
 }
