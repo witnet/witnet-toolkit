@@ -7,12 +7,11 @@ require('dotenv').config()
 const fs = require('fs')
 const os = require('os')
 const path = require('path')
-const readline = require('readline')
 
 const {
     colors, 
     deleteExtraFlags, extractFromArgs, 
-    showUsage, showUsageError, showUsageSubcommand, 
+    showUsage, showUsageError, showUsageSubcommand, showVersion,
     toolkitRun, 
 } = require("../lib/helpers")
 
@@ -79,20 +78,6 @@ function checkToolkitIsDownloaded (toolkitBinPath) {
 
 /// HELPER FUNCTIONS ================================================================================================
 
-async function prompt (question) {
-  const readlineInterface = readline.createInterface({
-    input: process.stdin,
-    output: process.stdout
-  })
-
-  return new Promise((resolve, _) => {
-    readlineInterface.question(`${question} `, (response) => {
-      readlineInterface.close()
-      resolve(response.trim())
-    })
-  })
-}
-
 async function downloadToolkit (toolkitDownloadName, toolkitFileName, toolkitBinPath, platform, arch) {
   const downloadUrl = guessDownloadUrl(toolkitDownloadName)
   console.info('Downloading', downloadUrl, 'into', toolkitBinPath)
@@ -129,12 +114,6 @@ https://discord.gg/2rTFYXHmPm `)
 }
 
 
-
-function decodeUint8Arrays(_obj, key, value) {
-  return ['body', 'script', ].includes(key) ? JSON.stringify(value) : value
-}
-
-
 /// COMMAND HANDLERS ================================================================================================
 
 async function installCommand (settings) {
@@ -142,7 +121,7 @@ async function installCommand (settings) {
     // Skip confirmation if install is forced
     if (!settings.force) {
       console.info(`The witnet_toolkit ${version} native binary hasn't been downloaded yet (this is a requirement).`)
-      const will = await prompt("Do you want to download it now? (Y/n)")
+      const will = await helpers.prompt("Do you want to download it now? (Y/n)")
 
       // Abort if not confirmed
       if (!['', 'y'].includes(will.toLowerCase())) {
@@ -156,6 +135,9 @@ async function installCommand (settings) {
 }
 
 async function forcedInstallCommand (settings) {
+  if (!fs.existsSync('.env_witnet')) {
+   fs.cpSync("node_modules/witnet-toolkit/.env_witnet", ".env_witnet") 
+  }
   return downloadToolkit(
     settings.paths.toolkitDownloadName,
     settings.paths.toolkitFileName,
@@ -166,18 +148,6 @@ async function forcedInstallCommand (settings) {
     .catch((err) => {
       console.error(`Error updating witnet_toolkit binary:`, err)
     })
-}
-
-
-function tasksFromMatchingFiles (args, matcher) {
-  return fs.readdirSync(args[2])
-    .filter((filename) => filename.match(matcher))
-    .map((filename) => [args[0], args[1], path.join(args[2], filename)])
-}
-
-function tasksFromArgs (args) {
-  // Ensure that no task contains arguments starting with `0x`
-  return args.map(arg => arg.replace(/^0x/gm, ''))
 }
 
 async function versionCommand (settings) {
@@ -201,32 +171,6 @@ async function fallbackBinaryCommand (settings, args) {
 
 /// PROCESS SETTINGS ===============================================================================================
 
-let force;
-let forceIndex = args.indexOf('--force');
-if (forceIndex >= 2) {
-  // If the `--force` flag is found, process it, but remove it from args so it doesn't get passed down to the binary
-  force = args[forceIndex]
-  args.splice(forceIndex, 1)
-}
-
-let help = false
-if (args.includes('--help')) {
-  help = true
-  args.splice(args.indexOf('--help'), 1)
-}
-
-let showVersion = false
-if (args.includes('--version')) {
-  showVersion = true
-  args.splice(args.indexOf('--version'), 1)
-}
-
-let update = false
-if (args.includes('--update')) {
-  update = true
-  args.splice(args.indexOf('--update'), 1)
-}
-
 const settings = {
   paths: {
     toolkitBinPath,
@@ -241,7 +185,27 @@ const settings = {
     platform,
     arch,
   },
-  force, help, showVersion, update,
+}
+let forceIndex = args.indexOf('--force');
+if (forceIndex >= 2) {
+  // If the `--force` flag is found, process it, but remove it from args so it doesn't get passed down to the binary
+  settings.force = args[forceIndex]
+  args.splice(forceIndex, 1)
+}
+
+if (args.includes('--help')) {
+  settings.help = true
+  args.splice(args.indexOf('--help'), 1)
+}
+
+if (args.includes('--version')) {
+  settings.showVersion = true
+  args.splice(args.indexOf('--version'), 1)
+}
+
+if (args.includes('--update')) {
+  settings.update = true
+  args.splice(args.indexOf('--update'), 1)
 }
 
 
@@ -256,7 +220,7 @@ const mainRouter = {
 
 async function main () {
   if (settings.showVersion) {
-    console.info(`\x1b[1;96mWitnet Toolkit v${require("../../package.json").version}\x1b[0m`)
+    showVersion()
   }
   // Run installCommand before anything else, mainly to ensure that the witnet_toolkit binary
   // has been downloaded, unless we're intentionally installing or updating the binary.
@@ -273,12 +237,12 @@ async function main () {
     var cmd = args[2]
     const module = require(`../lib/cli/${args[2]}`)
     var [args, flags, ] = extractFromArgs(args.slice(3), module.flags)
+    if (settings?.force) flags.force = true
     if (args && args[0] && module.subcommands && module?.router[args[0]]) {
       var subcmd = args[0]
-      var params = module.router[subcmd]?.params
       var options = module.router[subcmd]?.options
       if (settings?.help) {
-        showUsageSubcommand(cmd, subcmd, module.flags, params, options)
+        showUsageSubcommand(cmd, subcmd, module)
       
       } else {
         var [args, options, ] = extractFromArgs(args.slice(1), options)
@@ -287,11 +251,11 @@ async function main () {
           await module.subcommands[subcmd](flags, args, options, settings)
       
         } catch (e) {
-          showUsageError(cmd, subcmd, module.flags, params, options, e)
+          showUsageError(cmd, subcmd, module, e)
         }
       }
     } else {
-      showUsage(cmd, module.flags, module.router)
+      showUsage(cmd, module)
     }
     process.exit(0)
   
@@ -301,16 +265,17 @@ async function main () {
   console.info("USAGE:")
   console.info(`    ${colors.white("npx witnet")} [FLAGS] <COMMAND>`)
   console.info("\nFLAGS:")
+  console.info("    --force     Avoids asking the user to confirm operation")
   console.info("    --help      Describes command or subcommand usage")
   console.info("    --update    Forces update of underlying binaries")
   console.info("    --version   Prints toolkit name and version as first line")
   console.info("\nCOMMANDS:")
-  console.info("    fetch        Fetch public data from the Wit/Oracle blockchain.")
-  console.info("    network      Dynamic information from the Wit/Oracle P2P network.")
-  console.info("    node         Interact with a private Wit/Oracle node, if reachable.")
-  console.info("    radon        Manage Radon requests and templates within your project.")
-  console.info("    scoreboard   Historical scoreboards from the Wit/Oracle blockchain.")
-  console.info("    wallet       Simple CLI wallet for spending and staking your Wits.")
+  console.info("    farm        Interact with your private Wit/Oracle nodes, if reachable.")
+  console.info("    history     Historical scoreboards from the Wit/Oracle blockchain.")
+  console.info("    inspect     Inspect public data from the Wit/Oracle blockchain.")
+  console.info("    network     Dynamic information from the Wit/Oracle P2P network.")
+  console.info("    radon       Manage Radon requests and templates within your project.")
+  console.info("    wallet      Simple CLI wallet for spending and staking your Wits.")
 }
 
 main()

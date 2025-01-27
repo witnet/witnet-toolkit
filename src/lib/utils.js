@@ -3,14 +3,13 @@ import { decode as cborDecode } from "cbor"
 const os = require("os")
 const crypto = require("crypto")
 const { exec } = require("child_process")
-const net = require("net")
 const helpers = require("./helpers")
 
 const protoBuf = require("protobufjs")
 const protoRoot = protoBuf.Root.fromJSON(require("../../witnet/witnet.proto.json"))
 const RADRequest = protoRoot.lookupType("RADRequest")
 
-import { RadonRequest } from "./radon/artifacts"
+import { RadonRequest, RadonRequestTemplate as RadonTemplate } from "./radon/artifacts"
 import { RadonRetrieval } from "./radon/retrievals"
 import { RadonReducer } from "./radon/reducers"
 import { RadonFilter } from "./radon/filters"
@@ -32,7 +31,7 @@ export {
   toUtf8Array, utf8ArrayToStr,
 } from "./helpers"
 
-export function decodeRequest(hexString) {
+export function decodeRadonRequest(hexString) {
   const buffer = helpers.fromHexString(hexString)
   const obj = RADRequest.decode(buffer)
   const retrieve = obj.retrieve.map(retrieval => {
@@ -47,7 +46,7 @@ export function decodeRequest(hexString) {
     if (retrieval?.body && retrieval.body.length > 0) { 
       specs.body = utf8ArrayToStr(Object.values(retrieval.body)) 
     }
-    if (retrieval?.script) specs.script = decodeScript(helpers.toHexString(retrieval.script))
+    if (retrieval?.script) specs.script = decodeRadonScript(helpers.toHexString(retrieval.script))
     return new RadonRetrieval(retrieval.kind, specs)
   })
   const decodeFilter = (f) => {
@@ -61,13 +60,13 @@ export function decodeRequest(hexString) {
   })
 }
 
-export function decodeScript(hexString) {
+export function decodeRadonScript(hexString) {
   const buffer = helpers.fromHexString(hexString)
   const array = cborDecode(buffer)
   return parseScript(array)
 }
 
-export function encodeRequest(payload) {
+export function encodeRADRequest(payload) {
   const errMsg = RADRequest.verify(payload)
   if (errMsg) {
     throw Error(errMsg);
@@ -94,6 +93,29 @@ export async function execDryRun(bytecode, ...flags) {
       })
   }
 }
+
+export function flattenWitnetArtifacts (tree, headers) {
+    if (!headers) headers = []
+    const matches = []
+    for (const key in tree) {
+      if (
+        tree[key] instanceof RadonRequest
+          || tree[key] instanceof RadonTemplate 
+          || tree[key] instanceof RadonRetrieval
+      ) {
+        matches.push({
+          key,
+          artifact: tree[key],
+        })
+      } else if (typeof tree[key] === "object") {
+        matches.push(...flattenWitnetArtifacts(
+          tree[key],
+          [...headers, key]
+        ))
+      }
+    }
+    return matches
+  };
 
 export function sha256(buffer) {
   const hash = crypto.createHash('sha256')
