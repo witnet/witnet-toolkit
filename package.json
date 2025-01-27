@@ -39,6 +39,7 @@
     "cbor": "10.0.3",
     "dotenv": "^16.4.1",
     "graphql-query-compress": "1.2.4",
+    "lodash.merge": "^4.6.2",
     "protobufjs": "^7.4.0",
     "qrcode-terminal": "^0.12.0"
   },

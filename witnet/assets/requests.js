@@ -4,7 +4,7 @@ const templates = require("./templates")
 module.exports = {
   WitOracleRequestPriceUsdtWit9: new Witnet.RadonRequest({
     retrieve: [
-      Witnet.RadonRetrieve.HttpGet({
+      Witnet.RadonRetrievals.HttpGet({
         url: "https://api-cloud.bitmart.com/spot/v1/ticker?symbol=WIT_USDT",
         script: Witnet.RadonScript(Witnet.RadonString)
           .parseJSONMap()
@@ -16,7 +16,7 @@ module.exports = {
           .multiply(1e9)
           .round(),
       }),
-      Witnet.RadonRetrieve.HttpGet({
+      Witnet.RadonRetrievals.HttpGet({
         url: "https://data.gateapi.io/api2/1/ticker/wit_usdt",
         script: Witnet.RadonScript(Witnet.RadonString)
           .parseJSONMap()
@@ -25,7 +25,7 @@ module.exports = {
           .multiply(1e9)
           .round(),
       }),
-      Witnet.RadonRetrieve.HttpGet({
+      Witnet.RadonRetrievals.HttpGet({
         url: "https://www.mexc.com/open/api/v2/market/ticker?symbol=WIT_USDT",
         script: Witnet.RadonScript(Witnet.RadonString)
           .parseJSONMap()
@@ -41,7 +41,7 @@ module.exports = {
     tally: Witnet.RadonReducers.PriceTally(),
   }),
   WitOracleRequestRandomness: new Witnet.RadonRequest({
-    retrieve: Witnet.RadonRetrieve.RNG(),
+    retrieve: Witnet.RadonRetrievals.RNG(),
     tally: Witnet.RadonReducers.ConcatHash(),
   }),
 }
