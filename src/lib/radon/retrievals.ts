@@ -24,7 +24,7 @@ export enum Methods {
 
 export interface Specs {
     url?: string,
-    headers?: Map<string, string>,
+    headers?: Record<string, string>,
     body?: string,
     script?: RadonAny,
 }
@@ -34,7 +34,7 @@ export class RadonRetrieval {
     public readonly method: Methods;
     public readonly authority?: string;
     public readonly body?: string;
-    public readonly headers?: string[][];
+    public readonly headers?: Record<string, string>;
     public readonly path?: string;
     public readonly query?: string;
     public readonly schema?: string;
@@ -43,11 +43,11 @@ export class RadonRetrieval {
     
     constructor(method: Methods, specs?: Specs) {
         if (method === Methods.RNG && (specs?.url || specs?.headers?.size || specs?.body)) {
-            throw EvalError("\x1b[1;33mRadonRetrieval: badly specified RNG\x1b[0m");
+            throw TypeError("RadonRetrieval: RNG accepts no URLs or headers");
         } else if (!specs?.url && (method == Methods.HttpPost || method == Methods.HttpGet)) {
-            throw EvalError("\x1b[1;33mRadonRetrieval: URL must be specified\x1b[0m");
+            throw TypeError("RadonRetrieval: URL must be specified");
         } else if (specs?.body && method == Methods.HttpGet) {
-            throw EvalError("\x1b[1;33mRadonRetrieval: body cannot be specified in HTTP-GET queries\x1b[0m")
+            throw TypeError("RadonRetrieval: body cannot be specified in HTTP-GET queries")
         }
         this.method = method
         if (specs?.url) {
@@ -62,21 +62,14 @@ export class RadonRetrieval {
                 } catch {}
             }
         }
-        if (specs?.headers) {
-            this.headers = []
-            if (specs.headers instanceof Map) {
-                specs.headers.forEach((value: string, key: string) => this.headers?.push([key, value]))
-            } else {
-                this.headers = specs.headers
-                // Object.entries(specs.headers).forEach((entry: any) => this.headers?.push(entry))
-            }
-        }
+        this.headers = specs?.headers
         this.body = specs?.body
         if (specs?.script) this.script = new RadonScript(specs?.script)
         this.argsCount = Math.max(
             helpers.wildcards.getWildcardsCountFromString(this?.url),
             helpers.wildcards.getWildcardsCountFromString(this?.body),
-            ...this.headers?.map(header => helpers.wildcards.getWildcardsCountFromString(header[1])) ?? [],
+            ...Object.keys(this?.headers || {}).map(key => helpers.wildcards.getWildcardsCountFromString(key)) ?? [],
+            ...Object.values(this?.headers || {}).map(value => helpers.wildcards.getWildcardsCountFromString(value)) ?? [],
             this.script?.argsCount() || 0,
         )
     }
@@ -90,23 +83,17 @@ export class RadonRetrieval {
      */
     public foldArgs(...args: string[]): RadonRetrieval {
         if (this.argsCount === 0) {
-            throw new EvalError(`\x1b[1;33mRadonRetrieval: cannot fold unparameterized retrieval\x1b[0m`)
+            throw new TypeError(`RadonRetrieval: cannot fold unparameterized retrieval`)
         } else if (args.length > this.argsCount) {
-            throw new EvalError(`\x1b[1;33mRadonRetrieval: too may args passed: ${args.length} > ${this.argsCount}\x1b[0m`)
-        }
-        let headers: Map<string, string> = new Map();
-        if (this.headers) {
-            this.headers.forEach(header => {
-                headers.set(
-                    helpers.wildcards.replaceWildcards(header[0], args),
-                    helpers.wildcards.replaceWildcards(header[1], args),
-                )
-            })
+            throw new TypeError(`RadonRetrieval: too may args passed: ${args.length} > ${this.argsCount}`)
         }
         return new RadonRetrieval(this.method, {
             url: helpers.wildcards.replaceWildcards(this.url, args),
             body: helpers.wildcards.replaceWildcards(this.body, args),
-            headers,
+            headers: Object.fromEntries(Object.entries(this.headers || {}).map(([key, value]) => [
+                helpers.wildcards.replaceWildcards(key, args),
+                helpers.wildcards.replaceWildcards(value, args),
+            ])),
             script: this.script?.replaceWildcards(...args),
         })
     }
@@ -117,22 +104,16 @@ export class RadonRetrieval {
     public spawnRetrievals(...values: string[]): RadonRetrieval[] {
         const _spawned: RadonRetrieval[] = []
         if (this.argsCount == 0) {
-            throw new EvalError(`\x1b[1;33mRadonRetrieval: cannot spawn from unparameterized retrieval\x1b[0m`);
+            throw new TypeError(`RadonRetrieval: cannot spawn from unparameterized retrieval`);
         }
         values.forEach(value => {
-            let headers: Map<string, string> = new Map()
-            if (this.headers) {
-                this.headers.forEach(header => {
-                    headers.set(
-                        helpers.spliceWildcard(header[0], 0, value, this.argsCount),
-                        helpers.spliceWildcard(header[1], 0, value, this.argsCount),
-                    )
-                })
-            }
             _spawned.push(new RadonRetrieval(this.method, {
-                url: helpers.spliceWildcard(this.url, 0, value, this.argsCount),
-                body: helpers.spliceWildcard(this.body, 0, value, this.argsCount),
-                headers, 
+                url: helpers.wildcards.spliceWildcard(this.url, 0, value, this.argsCount),
+                body: helpers.wildcards.spliceWildcard(this.body, 0, value, this.argsCount),
+                headers: Object.fromEntries(Object.entries(this.headers || {}).map(([headerKey, headerValue]) => [
+                    helpers.wildcards.spliceWildcard(headerKey, 0, value, this.argsCount),
+                    helpers.wildcards.spliceWildCard(headerValue, 0, value, this.argsCount),
+                ])),
                 script: this.script?.spliceWildcard(0, value)
             }))
         })
@@ -144,8 +125,8 @@ export class RadonRetrieval {
             kind: Methods[this.method],
         }
         if (this.url) json.url = this.url
-        if (this.headers && this.headers.length > 0) {
-            json.headers = this.headers.map(header => { const obj: any = {}; obj[header[0]] = header[1]; return obj; })
+        if (this.headers) {
+            json.headers = this.headers;
         }
         if (this.body) json.body = this.body
         if (this.script) json.script = this.script.toString()
@@ -157,8 +138,11 @@ export class RadonRetrieval {
             kind: this.method,
         }
         if (this.url) protobuf.url = this.url
-        if (this.headers && this.headers.length > 0) {
-            protobuf.headers = this.headers.map(header => { return { left: header[0], right: header[1] }})
+        if (this.headers) {
+            protobuf.headers = Object.entries(this.headers).map(([headerKey, headerValue]) => { return { 
+                left: headerKey, 
+                right: headerValue,
+            }})
         }
         if (this.body) {
             const utf8Array = helpers.toUtf8Array(this.body)
@@ -185,7 +169,7 @@ function countOps(items: any[]): number {
 export function RNG (script?: RadonAny) { 
     const retrieval = new RadonRetrieval(Methods.RNG, { script }); 
     if (retrieval?.script && retrieval?.script?.inputType?.constructor.name !== "RadonBytes") {
-        throw new EvalError("RNG script must expect a [RadonBytes] value as input")
+        throw new TypeError("RNG scripts require [RadonBytes] as input type")
     }
     return retrieval
 };
@@ -197,7 +181,7 @@ export function RNG (script?: RadonAny) {
  */
 export function HttpGet (specs: {
     url: string,
-    headers?: Map<string, string>,
+    headers?: Record<string, string>,
     script?: RadonAny,
     tuples?: Map<string, string[]>
 }) {
@@ -217,7 +201,7 @@ export function HttpGet (specs: {
  */
 export function HttpHead (specs: {
     url: string,
-    headers?: Map<string, string>,
+    headers?: Record<string, string>,
     script?: RadonAny,
 }) {
     return new RadonRetrieval(
@@ -237,7 +221,7 @@ export function HttpHead (specs: {
 export function HttpPost (specs?: {
     url: string,
     body: string,
-    headers?: Map<string, string>,
+    headers?: Record<string, string>,
     script?: RadonAny,
 }) {
     return new RadonRetrieval(
@@ -263,7 +247,9 @@ export function GraphQLQuery (specs: {
     return new RadonRetrieval(Methods.HttpPost, {
         url: specs.url, 
         body: `{\"query\":\"${graphQlCompress(specs.query).replaceAll('"', '\\"')}\"}`,
-        headers: new Map<string,string>().set("Content-Type", "application/json;charset=UTF-8"),
+        headers: {
+            "Content-Type": "application/json;charset=UTF-8"
+        },
         script: specs?.script,
     });
 };
@@ -286,7 +272,7 @@ export function CrossChainRPC  (specs: {
             params: specs.rpc?.params,
             id: 1,
         }).replaceAll('\\\\', '\\'),
-        headers: new Map<string,string>().set("Content-Type", "application/json;charset=UTF-8"),
+        headers: { "Content-Type": "application/json;charset=UTF-8" },
         script: specs?.script,
     });
 };
