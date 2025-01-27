@@ -18,13 +18,13 @@ class Class {
     
     constructor(specs: Specs) {
         if (!specs.retrieve || !Array.isArray(specs.retrieve) || specs.retrieve.length == 0) {
-            throw EvalError("\x1b[1;33mArtifact: cannot build if no sources are specified\x1b[0m")
+            throw TypeError("RadonArtifact: cannot build if no retrievals are passed")
         }
         specs.retrieve?.forEach((retrieval, index) => {
             if (retrieval === undefined) {
-                throw EvalError(`\x1b[1;31mArtifact: RadonRetrieval #${index}\x1b[1;33m: undefined\x1b[0m`)
+                throw TypeError(`RadonArtifact: retrieval #${index} is undefined`)
             } else if (!(retrieval instanceof RadonRetrieval)) {
-                throw EvalError(`\x1b[1;31mArtifact: RadonRetrieval #${index}\x1b[1;33m: invalid type\x1b[0m`)
+                throw TypeError(`RadonArtifact: retrieval #${index}: invalid type`)
             }
         })
         this.retrieve = specs.retrieve;
@@ -42,7 +42,7 @@ class Class {
 export class RadonRequest extends Class {   
     
     public static from(hexString: string) {
-        return Utils.decodeRequest(hexString)
+        return Utils.decodeRadonRequest(hexString)
     }
     
     constructor(specs: { 
@@ -58,7 +58,7 @@ export class RadonRequest extends Class {
         })
         let argsCount = retrieve.map(retrieval => retrieval.argsCount).reduce((prev, curr) => prev + curr)
         if (argsCount > 0) {
-            throw EvalError("\x1b[1;33mRadonRequest: parameterized retrievals were passed\x1b[0m")
+            throw TypeError("RadonRequest: parameterized retrievals were passed")
         }
     }
     
@@ -67,11 +67,11 @@ export class RadonRequest extends Class {
     }
     
     public radHash(): string {
-        return Utils.sha256(Utils.encodeRequest(this.toProtobuf()))//.slice(0, 40)
+        return Utils.sha256(Utils.encodeRADRequest(this.toProtobuf()))//.slice(0, 40)
     }
     
     public toBytecode(): string {
-        return Utils.toHexString(Utils.encodeRequest(this.toProtobuf()))
+        return Utils.toHexString(Utils.encodeRADRequest(this.toProtobuf()))
     }
 
     public toJSON(): any {
@@ -98,13 +98,13 @@ export class RadonRequest extends Class {
 
 export class RadonRequestTemplate extends Class {
     public readonly argsCount: number;
-    public readonly tests?: Map<string, Args>;
+    public readonly tests?: Record<string, Args>;
     constructor(specs: { 
             retrieve: RadonRetrieval | RadonRetrieval[], 
             aggregate?: RadonReducer, 
             tally?: RadonReducer,
         },
-        tests?: Map<string, Args>
+        tests?: Record<string, Args>
     ) {
         const retrieve = Array.isArray(specs.retrieve) ? specs.retrieve as RadonRetrieval[] : [ specs.retrieve ]
         super({
@@ -114,7 +114,7 @@ export class RadonRequestTemplate extends Class {
         })
         this.argsCount = retrieve.map(retrieval => retrieval?.argsCount).reduce((prev, curr) => Math.max(prev, curr), 0)
         if (this.argsCount == 0) {
-            throw EvalError("\x1b[1;33mRadonRequestTemplate: no parameterized retrievals were passed\x1b[0m")
+            throw TypeError("RadonRequestTemplate: no parameterized retrievals were passed")
         }
         if (tests) {
             Object.keys(tests).forEach(test => {
@@ -127,11 +127,11 @@ export class RadonRequestTemplate extends Class {
                         Object(tests)[test] = Array(retrieve.length).fill(testArgs)
                         testArgs = Object(tests)[test]
                     } else if (testArgs?.length != retrieve.length) {
-                        throw EvalError(`\x1b[1;33mRadonRequestTemplate: arguments mismatch in test \x1b[1;31m'${test}'\x1b[1;33m: ${testArgs?.length} tuples given vs. ${retrieve.length} expected\x1b[0m`)
+                        throw TypeError(`RadonRequestTemplate: arguments mismatch in test '${test}': ${testArgs?.length} tuples given vs. ${retrieve.length} expected`)
                     }
                     testArgs?.forEach((subargs, index)=> {
                         if (subargs.length < retrieve[index].argsCount) {
-                            throw EvalError(`\x1b[1;33mRadonRequestTemplate: arguments mismatch in test \x1b[1;31m'${test}'\x1b[1;33m: \x1b[1;37mRetrieval #${index}\x1b[1;33m: ${subargs?.length} parameters given vs. ${retrieve[index].argsCount} expected\x1b[0m`)
+                            throw TypeError(`\x1b[1;33mRadonRequestTemplate: arguments mismatch in test \x1b[1;31m'${test}'\x1b[1;33m: \x1b[1;37mRetrieval #${index}\x1b[1;33m: ${subargs?.length} parameters given vs. ${retrieve[index].argsCount} expected\x1b[0m`)
                         }
                     })
                 }
@@ -143,11 +143,11 @@ export class RadonRequestTemplate extends Class {
     public buildRequest(...args: string[][]): RadonRequest {
         const retrieve: RadonRetrieval[] = []
         if (args.length !== this.retrieve.length) {
-            throw new EvalError(`\x1b[1;33mRadonRequest: mismatching args vectors (${args.length} != ${this.retrieve.length}): [${args}]}\x1b[0m`)
+            throw new TypeError(`RadonRequest: mismatching args vectors (${args.length} != ${this.retrieve.length}): [${args}]}`)
         }
         this.retrieve.forEach((retrieval, index) => {
             if (retrieval.argsCount !== args[index].length) {
-                throw new EvalError(`\x1b[1;33mRadonRequest: mismatching args passed to retrieval #${index + 1} (${args[index].length} != ${retrieval.argsCount}): [${args[index]}]\x1b[0m`)
+                throw new TypeError(`RadonRequest: mismatching args passed to retrieval #${index + 1} (${args[index].length} != ${retrieval.argsCount}): [${args[index]}]`)
             }
             retrieve.push(retrieval.foldArgs(...args[index]))
         })
@@ -162,7 +162,7 @@ export class RadonRequestTemplate extends Class {
         const retrieve: RadonRetrieval[] = []
         this.retrieve.forEach((retrieval, index) => {
             if (retrieval.argsCount !== args.length) {
-                throw new EvalError(`\x1b[1;33mRadonRequest: mismatching args passed to retrieval #${index + 1} (${args.length} != ${retrieval.argsCount}): [${args}]\x1b[0m`)
+                throw new TypeError(`RadonRequest: mismatching args passed to retrieval #${index + 1} (${args.length} != ${retrieval.argsCount}): [${args}]`)
             }
             retrieve.push(retrieval.foldArgs(...args))
         })
