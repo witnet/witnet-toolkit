@@ -37,7 +37,7 @@ export enum Methods {
     Priority = "priority",
     Protocol = "protocol",
     Providers = "providers",
-    QueryRanks = "ranks",
+    QueryStakingPowers = "queryPowers",
     QueryStakes = "queryStakes",
     Rewind = "rewind",
     SearchDataRequests = "searchDataRequests",

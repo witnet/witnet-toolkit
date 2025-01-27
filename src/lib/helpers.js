@@ -1,4 +1,10 @@
 const { exec } = require("child_process");
+const net = require("net")
+const readline = require('readline')
+
+const colorstrip = (str) => str.replace(
+        /[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g, ''
+);
 
 const commas = (number) => {
     parts = number.toString().split('.')
@@ -6,7 +12,7 @@ const commas = (number) => {
         ? `${parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",")}`
         : `${parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",")}.${parts[1]}`
     return result 
-}
+};
 
 function toFixedTrunc(x, n) {
     const v = (typeof x === 'string' ? x : x.toString()).split('.');
@@ -15,7 +21,7 @@ function toFixedTrunc(x, n) {
     if (f.length > n) return `${v[0]}.${f.substr(0,n)}`;
     while (f.length < n) f += '0';
     return `${v[0]}.${f}`
-  }
+};
 
 const whole_wits = (number, digits) => {
     const lookup = [
@@ -29,9 +35,9 @@ const whole_wits = (number, digits) => {
     const regexp = /\.0+$|(?<=\.[0-9])0+$/;
     const item = lookup.findLast(item => number >= item.value);
     return item ? toFixedTrunc(commas(number / item.value), digits)./*replace(regexp, "")*/concat(item.symbol) : "(no Wits)";
-}
+};
 
-const lcyan = (str) => `\x1b[96m${str}\x1b[0m`
+const lcyan = (str) => `\x1b[1;96m${str}\x1b[0m`
 const lgray = (str) => `\x1b[1;90m${str}\x1b[0m`
 const lgreen = (str) => `\x1b[1;92m${str}\x1b[0m`
 const lmagenta = (str) => `\x1b[1;95m${str}\x1b[0m`
@@ -39,6 +45,7 @@ const lyellow = (str) => `\x1b[1;93m${str}\x1b[0m`
 const mcyan = (str) => `\x1b[96m${str}\x1b[0m`
 const mgreen = (str) => `\x1b[92m${str}\x1b[0m`
 const mmagenta = (str) => `\x1b[95m${str}\x1b[0m`
+const mred = (str) => `\x1b[91m${str}\x1b[0m`
 const myellow = (str) => `\x1b[93m${str}\x1b[0m`
 const cyan = (str) => `\x1b[36m${str}\x1b[0m`
 const gray = (str) => `\x1b[90m${str}\x1b[0m`
@@ -53,18 +60,18 @@ module.exports = {
     colors: {
         cyan, gray, green, magenta, red, white, yellow, normal,
         lcyan, lgray, lgreen, lmagenta, lyellow,
-        mcyan, mgreen, mmagenta, myellow,
+        mcyan, mgreen, mmagenta, mred, myellow,
     },
-    commas, whole_wits, toFixedTrunc,
+    colorstrip, commas, whole_wits, toFixedTrunc, 
     countLeaves,
     deleteExtraFlags, extractFromArgs,
     fromHexString, isHexString, isHexStringOfLength, toHexString,
     parseURL, ipIsPrivateOrLocalhost,
-    showUsage, showUsageError, showUsageSubcommand,
+    showUsage, showUsageError, showUsageSubcommand, showVersion,
     toolkitRun,
-    toUpperCamelCase,
-    toUtf8Array, utf8ArrayToStr,
-    prompter, traceHeader, traceTable,
+    toUpperCamelCase, toUtf8Array, utf8ArrayToStr,
+    prompt, prompter, 
+    traceChecklists, traceHeader, traceTable,
     wildcards: {
         isWildcard,
         getWildcardsCountFromString,
@@ -212,35 +219,46 @@ function parseURL(url) {
     }
 }
 
-function showUsage(cmd, flags, router) {
+function showUsage(cmd, module) {//flags, router) {
     showUsageHeadline(cmd)
-    if (flags) showUsageFlags(flags)
-    if (router) showUsageRouter(router)
+    if (module?.flags) showUsageFlags(module.flags)
+    if (module?.router) showUsageRouter(module.router)
+    if (module?.envars) showUsageEnvars(module.envars)
 }
 
 function showUsageRouter(router) {
     const cmds = Object.entries(router)
     if (cmds.length > 0) {
         console.info(`\nSUBCOMMANDS:`)
+        const maxLength = cmds.map(cmd => cmd[0].length).reduce((prev, curr) => curr > prev ? curr : prev)
         cmds.forEach(cmd => {
-            console.info("  ", `${cmd[0]}${" ".repeat(12 - cmd[0].length)}`, "  ", cmd[1].hint)
+            console.info("  ", `${cmd[0]}${" ".repeat(maxLength - cmd[0].length)}`, "  ", cmd[1].hint)
         })
     }
 }
 
-function showUsageError(cmd, subcmd, flags, params, options, error) {
-    showUsageSubcommand(cmd, subcmd, flags, params, options)
+function showUsageError(cmd, subcmd, module, error) { // flags, params, options, error) {
+    showUsageSubcommand(cmd, subcmd, module, error) // flags, params, options)
     if (error) {
         console.info(`\nERROR:`)
         console.error(error?.stack?.split('\n')[0] || error)
     }
 }
 
-function showUsageEnvars() {
-    if (!process.env.WITNET_TOOLKIT_MASTER_KEY || !process.env.WITNET_TOOLKIT_PROVIDER_URL) {
+function showUsageEnvars(envars) {
+    envars = Object.entries(envars)
+    if (envars.length > 0) {
         console.info(`\nENVARS:`)
-        console.info("  ", `${yellow("WITNET_TOOLKIT_MASTER_KEY")}  `, "  ", "Master key used for spending Wits and signing transactions.")
-        console.info("  ", `${yellow("WITNET_TOOLKIT_PROVIDER_URL")}`, "  ", "Settle or change URL to a global Wit/Oracle RPC provider, or private node.")
+        const maxWidth = envars
+            .map(([envar,]) => envar.length)
+            .reduce((prev, curr) => curr > prev ? curr : prev)
+        envars.forEach(([envar, hint]) => {
+            if (envar.toUpperCase().indexOf("KEY") < 0 && process.env[envar]) {
+                console.info("  ", `${yellow(envar.toUpperCase())}${" ".repeat(maxWidth - envar.length)}`, ` => Settled to "${myellow(process.env[envar])}"`)
+            } else {
+                console.info("  ", `${yellow(envar.toUpperCase())}${" ".repeat(maxWidth - envar.length)}`, ` ${hint}`)
+            }
+        })
     }
 }
 
@@ -252,15 +270,17 @@ function showUsageFlags(flags) {
             .map(flag => flag[1].param ? flag[1].param.length + flag[0].length + 3 : flag[0].length)
             .reduce((prev, curr) => curr > prev ? curr : prev);
         flags.forEach(flag => {
-            const str = `${flag[0]}${flag[1].param ? ` <${flag[1].param}>` : ""}`
-            console.info("  ", `--${str}${" ".repeat(maxLength - str.length)}`, "  ", flag[1].hint)
+            const str = `${flag[0]}${flag[1].param ? gray(` <${flag[1].param}>`) : ""}`
+            console.info("  ", `--${str}${" ".repeat(maxLength - colorstrip(str).length)}`, "  ", flag[1].hint)
         })
     }
 }
 
-function showUsageHeadline(cmd, subcmd, params, options) {
+function showUsageHeadline(cmd, subcmd, module) { // params, options) {
     console.info("USAGE:")
     if (subcmd) {
+        let params = module.router[subcmd]?.params
+        const options = module.router[subcmd]?.options
         if (params) {
             const optionalize = (str) => str.endsWith(' ...]') ? `[<${str.slice(1, -5)}> ...]` : (
                 str[0] === '[' ? `[<${str.slice(1, -1)}>]` : `<${str}>`
@@ -271,9 +291,13 @@ function showUsageHeadline(cmd, subcmd, params, options) {
                 params = optionalize(params)
             }
         }
-        console.info(`    ${white(`npx witnet ${cmd} ${subcmd}`)} [FLAGS] ${params ? green(params) + " " : ""}${options && Object.keys(options).length > 0 ? "[OPTIONS]" : ""}`)
+        console.info(`   ${white(`npx witnet ${cmd}`)} [FLAGS] ${white(subcmd)} ${params ? green(params) + " " : ""}${options && Object.keys(options).length > 0 ? "[OPTIONS]" : ""}`)
+        if (module?.router[subcmd]?.hint) {
+            console.info(`\nDESCRIPTION:`)
+            console.info(`   ${module.router[subcmd].hint}`)
+        }
     } else {
-        console.info(`    ${white(`npx witnet ${cmd}`)} [FLAGS] <SUBCOMMAND> ... [OPTIONS]`)
+        console.info(`   ${white(`npx witnet ${cmd}`)} [FLAGS] <SUBCOMMAND> ... [OPTIONS]`)
     }
 }
 
@@ -286,18 +310,22 @@ function showUsageOptions(options) {
             .reduce((prev, curr) => curr > prev ? curr : prev);
         options.forEach(option => {
             if (option[1].hint) {
-                const str = `${option[0]}${option[1].param ? ` <${option[1].param}>` : ""}`
-                console.info("  ", `--${str}${" ".repeat(maxLength - str.length)}`, "  ", option[1].hint)
+                const str = `${option[0]}${option[1].param ? gray(` <${option[1].param}>`) : ""}`
+                console.info("  ", `--${str}${" ".repeat(maxLength - colorstrip(str).length)}`, "  ", option[1].hint)
             }
         })
     }
 }
 
-function showUsageSubcommand(cmd, subcmd, flags, params, options) {
-    showUsageHeadline(cmd, subcmd, params, options)
-    if (flags) showUsageFlags(flags)
-    if (options) showUsageOptions(options)
-    showUsageEnvars()
+function showUsageSubcommand(cmd, subcmd, module) { // flags, params, options) {
+    showUsageHeadline(cmd, subcmd, module) // params, options)
+    if (module?.flags) showUsageFlags(module?.flags)
+    if (module?.router[subcmd]?.options) showUsageOptions(module.router[subcmd]?.options)
+    if (module?.envars) showUsageEnvars(module?.envars)
+}
+
+function showVersion() {
+    console.info(`${mcyan(`Wit/Oracle Toolkit CLI v${require("../../package.json").version}`)}`)
 }
 
 function getWildcardsCountFromString(str) {
@@ -434,6 +462,19 @@ function utf8ArrayToStr(array) {
     return out;
 }
 
+async function prompt (question) {
+    const readlineInterface = readline.createInterface({
+        input: process.stdin,
+        output: process.stdout
+    })
+    return new Promise((resolve, _) => {
+        readlineInterface.question(`${question} `, (response) => {
+            readlineInterface.close()
+            resolve(response.trim())
+        })
+    })
+}
+
 async function prompter(promise) {
     const loading = (function() {
         const h = ['|', '/', '-', '\\'];
@@ -452,9 +493,32 @@ async function prompter(promise) {
         })
 }
 
-function traceHeader(headline, indent = "", color = normal) {
-    console.info(`${indent}${color(headline.toUpperCase())}`)
-    console.info(`${indent}${"-".repeat(headline.length)}`)
+function traceChecklists(checklists) {
+    if (checklists && Object.keys(checklists).length > 0) {
+        const headlines = ["NODES", ...Object.keys(checklists).map(key => `:${key}`), ]
+        checklists = Object.values(checklists)
+        const urls = Object.keys(checklists[0])
+        const records = urls.map(url => {
+            const errors = checklists.filter(checklist => checklist[url] instanceof Error).length
+            return [
+                errors === checklists.length ? red(url) : (errors > 0 ? myellow(url) : mcyan(url)),
+                ...checklists.map(checklist => checklist[url] instanceof Error
+                    ? red(checklist[url])
+                    : (checklist[url] === true ? lcyan("Aye") : cyan("Nay"))
+                )
+            ]
+        });
+        traceTable(records, {
+            headlines,
+            maxColumnWidth: 31,
+        })
+    }
+}
+
+function traceHeader(headline, color = normal, indent = "", ) {
+    console.info(`${indent}┌─${"─".repeat(headline.length)}─┐`)
+    console.info(`${indent}│ ${color(headline)} │`)
+    console.info(`${indent}└─${"─".repeat(headline.length)}─┘`)
 }
 
 function traceTable(records, options) {
@@ -463,25 +527,28 @@ function traceTable(records, options) {
     const min = (a, b) => a < b ? a : b
     const reduceMax = (numbers) => numbers.reduce((curr, prev) => prev > curr ? prev : curr, 0)
     if (!options) options = {}
+    const indent = options?.indent || ""
     const numColumns = reduceMax(records.map(record => record?.length || 1))
+    const maxColumnWidth = options?.maxColumnWidth || 80
     const table = transpose(records, numColumns)
     options.widths = options?.widths || table.map((column, index) => {
-        let maxWidth = reduceMax(column.map(field => stringify(field, options?.humanizers, index).length))
+        let maxWidth = reduceMax(column.map(field => colorstrip(stringify(field, options?.humanizers, index)).length))
         if (options?.headlines && options.headlines[index]) {
-            maxWidth = max(maxWidth, options.headlines[index].replaceAll(':', '').length)
+            maxWidth = max(maxWidth, colorstrip(options.headlines[index].replaceAll(':', '')).length)
         }
-        return min(maxWidth, 66)
+        return min(maxWidth, maxColumnWidth)
     })
     let headline = options.widths.map(maxWidth => "─".repeat(maxWidth))
-    console.info(`┌─${headline.join("─┬─")}─┐`)
+    console.info(`${indent}┌─${headline.join("─┬─")}─┐`)
     if (options?.headlines) {
         headline = options.widths.map((maxWidth, index) => {
             const caption = options.headlines[index].replaceAll(':', '')
-            return `${this.colors.white(caption)}${" ".repeat(maxWidth - caption.length)}`
+            const captionLength = colorstrip(caption).length
+            return `${white(caption)}${" ".repeat(maxWidth - captionLength)}`
         })
-        console.info(`│ ${headline.join(" │ ")} │`)
+        console.info(`${indent}│ ${headline.join(" │ ")} │`)
         headline = options.widths.map(maxWidth => "─".repeat(maxWidth))
-        console.info(`├─${headline.join("─┼─")}─┤`)
+        console.info(`${indent}├─${headline.join("─┼─")}─┤`)
     }
     for (let i = 0; i < records.length; i ++) {
         let line = ""
@@ -492,24 +559,31 @@ function traceTable(records, options) {
               color = options.colors[j]  
             } else {
               color = typeof data === 'string' 
-                ? this.colors.green 
+                ? green 
                 : (Number(data) === data && data % 1 !== 0 // is float number?
-                    ? this.colors.yellow 
+                    ? yellow 
                     : (x) => x
                 )
             }
             data = stringify(data, options?.humanizers, j)
+            if (colorstrip(data).length > maxColumnWidth) {
+                while (colorstrip(data).length > maxColumnWidth - 3) {
+                    data = data.slice(0, -1)
+                }
+                data += "..."
+            }
+            let dataLength = colorstrip(data).length
             if (options?.headlines && options.headlines[j][0] === ':') {
-                data = `${color(data)}${" ".repeat(options.widths[j] - data.length)}`
+                data = `${color(data)}${" ".repeat(options.widths[j] - dataLength)}`
             } else {
-                data = `${" ".repeat(options.widths[j] - data.length)}${color(data)}`
+                data = `${" ".repeat(options.widths[j] - dataLength)}${color(data)}`
             }
             line += `│ ${data} `
         }
-        console.info(`${line}│`)
+        console.info(`${indent}${line}│`)
     }
     headline = options.widths.map(maxWidth => "─".repeat(maxWidth))
-    console.info(`└─${headline.join("─┴─")}─┘`)
+    console.info(`${indent}└─${headline.join("─┴─")}─┘`)
 }
 
 function transpose(records, numColumns) {
