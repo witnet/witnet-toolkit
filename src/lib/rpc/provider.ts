@@ -29,7 +29,7 @@ export interface IProvider {
     getStake(withdrawer: PublicKeyHashString): Promise<Stake>;
     getStakingPowers(pkh: PublicKeyHashString, capability: StakingCapability): Promise<Array<StakingPower>>;
     getSuperblock(epoch: Epoch): Promise<Superblock>;
-    getUtxoInfo(pkh: PublicKeyHashString): Promise<UtxoInfo>;
+    getUtxoInfo(pkh: PublicKeyHashString, smallestFirst?: boolean): Promise<Array<UtxoMetadata>>;
         
     sendRawDataRequest(drt: DataRequestTransaction): Promise<Boolean>;
     sendRawValueTransfer(vtt: ValueTransferTransaction): Promise<Boolean>;
@@ -258,8 +258,17 @@ export class Provider implements IProvider {
     }
     
     /// Get utxos
-    public getUtxoInfo(pkh: PublicKeyHashString): Promise<UtxoInfo> {
-        return this.callApiMethod<UtxoInfo>(Methods.GetUtxoInfo, [pkh, ]);
+    public getUtxoInfo(pkh: PublicKeyHashString, smallestFirst = true): Promise<Array<UtxoMetadata>> {
+        return this
+            .callApiMethod<UtxoInfo>(Methods.GetUtxoInfo, [pkh, ])
+            .then((result: UtxoInfo) => {
+                const inversor = smallestFirst ? 1 : -1
+                return result.utxos.sort((a, b) => {
+                    if (a.value > b.value) return inversor;
+                    else if (a.value < b.value) return - inversor;
+                    else return 0;
+                })
+            })
     }
     
     /// ---------------------------------------------------------------------------------------------------------------

@@ -1,7 +1,10 @@
+const moment = require("moment")
 const helpers = require("../helpers")
 const toolkit = require("../../../dist");
 
 const FLAGS_DEFAULT_LIMIT = 100
+
+const { gray, lyellow, mgreen, myellow, yellow, white,} = helpers.colors;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /// CLI SUBMODULE CONSTANTS ===========================================================================================
@@ -70,9 +73,18 @@ module.exports = {
             hint: "List withdrawers currently delegating stake to the specified address.",
             params: "WIT_ADDRESS",
         },
+        utxos: {
+            hint: "List UTXOs from the specified address.",
+            params: "WIT_ADDRESS",
+            options: {
+                "smallest-first": {
+                    hint: "Selects smallest UTXOs first (default: false)",
+                },
+            }
+        }
     },
     subcommands: {
-        balance, block, dataRequest, superblock, transaction, validators, withdrawers,
+        balance, block, dataRequest, superblock, transaction, validators, withdrawers, utxos,
     },
 }
 
@@ -136,6 +148,44 @@ async function transaction(flags = {}, args) {
     const provider = new toolkit.Provider(flags?.provider)
     const transaction = await provider.getTransaction(txHash)
     console.info(transaction)
+}
+
+async function utxos(flags = {}, args = [], options = {}) {
+    const now = Math.floor(Date.now() / 1000)
+    const provider = new toolkit.Provider(flags?.provider)
+    let utxos = await provider.getUtxoInfo(args[0], options["smallest-first"] || false)
+    const totalUtxos = utxos.length
+    let totalBalance = 0
+    if (!flags?.verbose) {
+        utxos = utxos
+            .filter(utxo => utxo.timelock <= now)
+            .map(utxo => { 
+                totalBalance += utxo.value
+                return [
+                    utxo.output_pointer,
+                    utxo.value,
+                ]
+            });
+        helpers.traceTable(utxos, {
+            headlines: [ "UTXOs", "Value (Nanowits)", ],
+            humanizers: [ , helpers.commas ],
+            colors: [ , myellow, ]
+        })
+    } else {
+        utxos = utxos
+            .map(utxo => {
+                totalBalance += utxo.value
+                return [
+                    utxo.output_pointer,
+                    utxo.timelock > now ? gray(helpers.commas(utxo.value)) : myellow(helpers.commas(utxo.value)),
+                    utxo.timelock > now ? gray(moment.unix(now - utxo.timelock).toNow(true)) : ""
+                ]
+            });
+        helpers.traceTable(utxos, {
+            headlines: [ "UTXOs", "Value (Nanowits)", "Time lock", ],
+        })
+    }
+    console.info(`^ Showing ${utxos.length} out of ${totalUtxos} records: ${lyellow(helpers.whole_wits(totalBalance, 3))}`)
 }
 
 async function validators(flags = {}, args) {
