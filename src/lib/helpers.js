@@ -67,6 +67,7 @@ module.exports = {
     deleteExtraFlags, extractFromArgs,
     fromHexString, isHexString, isHexStringOfLength, toHexString,
     parseURL, ipIsPrivateOrLocalhost,
+    min: (a, b) => (a < b) ? a : b,
     showUsage, showUsageError, showUsageSubcommand, showVersion,
     toolkitRun,
     toUpperCamelCase, toUtf8Array, utf8ArrayToStr,

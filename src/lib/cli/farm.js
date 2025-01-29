@@ -100,9 +100,15 @@ async function addresses(flags = {}) {
 async function authorize(flags = {}, args) {
     if (args.length === 0) {
         throw "Withdrawer address must be specified."
+    
     } else {
         const farm = new toolkit.NodeFarm(flags?.nodes)
-        const authCodes = Object.entries(await farm.authorizeStakes(args[0].toLowerCase())).map(([url, [validator, authorization]]) => [ url, validator, authorization ])
+        const authCodes = Object.entries(await farm.authorizeStakes(args[0].toLowerCase()))
+            .map(([url, [validator, authorization]]) => [ 
+                url, 
+                validator, 
+                authorization.signature.signature.Secp256k1.der 
+            ])
         if (authCodes.length === 1) {
             const authorization = authCodes[0][2]
             const validator = authCodes[0][1]
@@ -127,11 +133,19 @@ async function balances(flags = {}) {
     helpers.traceTable(
         Object.entries(balances).map(([ url, [pkh, balance]]) => [
             pkh instanceof Error ? red(url) : mcyan(url),
-            pkh instanceof Error ? red(pkh) : mcyan(pkh),
-            balance instanceof Error ? red(balance) : myellow(Math.floor(parseInt(balance?.total || balance) / 10 ** 9))
+            pkh instanceof Error ? red(pkh) : lcyan(pkh),
+            ...(balance instanceof Error 
+                ? new Array(4).fill(gray("n/a"))
+                : [
+                    gray(Math.floor(balance.locked / 10 ** 9)),
+                    yellow(Math.floor(balance.staked / 10 ** 9)),
+                    myellow(Math.floor(balance.unlocked / 10 ** 9)),
+                    lyellow(Math.floor((balance.locked + balance.staked + balance.unlocked) / 10 ** 9)),
+                ]
+            ),
         ]), {
-            headlines: [ "NODES", ":Public Key Hash", "Balance (Wits)" ],
-            humanizers: [ ,, helpers.commas ],
+            headlines: [ "NODES", ":Validator address", "Locked (Wits)", "Staked (Wits)", "Unlocked (Wits)", "BALANCE (Wits)" ],
+            humanizers: [ ,, helpers.commas, helpers.commas, helpers.commas, helpers.commas ],
             maxColumnWidth: 48,
         },
     )

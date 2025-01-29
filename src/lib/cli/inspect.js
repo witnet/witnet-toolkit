@@ -2,7 +2,7 @@ const moment = require("moment")
 const helpers = require("../helpers")
 const toolkit = require("../../../dist");
 
-const FLAGS_DEFAULT_LIMIT = 100
+const FLAGS_LIMIT_DEFAULT = 100
 
 const { gray, lyellow, mgreen, myellow, yellow, white,} = helpers.colors;
 
@@ -45,7 +45,7 @@ module.exports = {
                 limit: { hint: "Limit output records (default: 100)", param: "LIMIT", },
                 since: {
                     hint: "Number of past epochs to search for (default: 256; max: 2048)",
-                    param: "EPOCH"
+                    param: "EPOCH|MINUS_EPOCHS"
                 },
                 "min-unitary-reward": {
                     hint: "Filters out those providing less unitary reward than specified",
@@ -74,11 +74,11 @@ module.exports = {
             params: "WIT_ADDRESS",
         },
         utxos: {
-            hint: "List UTXOs from the specified address.",
+            hint: "List UTXOs available to the specified address.",
             params: "WIT_ADDRESS",
             options: {
                 "smallest-first": {
-                    hint: "Selects smallest UTXOs first (default: false)",
+                    hint: "Outputs smallest UTXOs first (default: false)",
                 },
             }
         }
@@ -95,9 +95,21 @@ async function balance(flags = {}, args) {
     if (args.length === 0) {
         throw "No WIT_ADDRESS was specified."
     }
+    const pkh = args[0]
     const provider = new toolkit.Provider(flags?.provider)
-    const balance = await provider.getBalance(args[0])
-    console.info(balance)
+    const balance = await provider.getBalance(pkh)
+    const records = []
+    records.push([ 
+        Math.floor(balance.locked / 10 ** 9), 
+        Math.floor(balance.staked / 10 ** 9), 
+        Math.floor(balance.unlocked / 10 ** 9),
+        Math.floor((balance.locked + balance.staked + balance.unlocked) / 10 ** 9)
+    ])
+    helpers.traceTable(records, {
+        headlines: [ "Locked (Wits)", "Staked (Wits)", "Unlocked (Wits", "BALANCE (Wits)" ],
+        humanizers: [ helpers.commas, helpers.commas, helpers.commas, helpers.commas ],
+        colors: [ gray, yellow, myellow, lyellow ],
+    })
 }
 
 async function block(flags = {}, args) {
@@ -185,7 +197,7 @@ async function utxos(flags = {}, args = [], options = {}) {
             headlines: [ "UTXOs", "Value (Nanowits)", "Time lock", ],
         })
     }
-    console.info(`^ Showing ${utxos.length} out of ${totalUtxos} records: ${lyellow(helpers.whole_wits(totalBalance, 3))}`)
+    console.info(`^ Listed ${utxos.length} out of ${totalUtxos} UTXOs: ${lyellow(helpers.whole_wits(totalBalance, 2))}`)
 }
 
 async function validators(flags = {}, args) {
