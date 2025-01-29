@@ -3,7 +3,7 @@ const helpers = require("../helpers")
 
 import { IProvider, Provider, ProviderError } from "./provider"
 import { 
-    Balance, 
+    Balance2, 
     Epoch, 
     Methods, 
     NodeStats, 
@@ -16,7 +16,7 @@ import {
 
 export interface INodeFarm extends IProvider {
     addresses(): Promise<Record<string, PublicKeyHashString>>
-    balances(): Promise<Record<string, [PublicKeyHashString, Balance]>>
+    balances(): Promise<Record<string, [PublicKeyHashString, Balance2]>>
     masterKeys(): Promise<Record<string, [PublicKeyHashString, string]>>
     syncStatus(): Promise<Record<string, SyncStatus>>
 
@@ -46,13 +46,13 @@ export class NodeFarm extends Provider implements INodeFarm {
         })
     }
 
-    protected async batchApiPkhMethod<T>(method: string, ...params: Array<any>): Promise<Record<string, [PublicKeyHashString, T]>> {
+    protected async batchApiPkhMethod<T>(method: string, params?: any): Promise<Record<string, [PublicKeyHashString, T]>> {
         return this.addresses()
             .then(async (addresses: Record<string, Error | string>) => {
                 const promises = Object.entries(addresses).map(async ([url, pkh]) => [
                     url, [
                         pkh,
-                        pkh instanceof Error ? undefined : await this.callApiMethod<T>(url, method, [pkh, ...params])
+                        pkh instanceof Error ? undefined : await this.callApiMethod<T>(url, method, { pkh, ...params })
                     ],
                 ]);
                 return Promise.all(promises)
@@ -153,8 +153,8 @@ export class NodeFarm extends Provider implements INodeFarm {
         return this.batchApiMethod<PublicKeyHashString>(Methods.GetPkh)
     }
 
-    public async balances(): Promise<Record<string, [PublicKeyHashString, Balance]>> {
-        return this.batchApiPkhMethod<Balance>(Methods.GetBalance)
+    public async balances(): Promise<Record<string, [PublicKeyHashString, Balance2]>> {
+        return this.batchApiPkhMethod<Balance2>(Methods.GetBalance2)
     }
 
     public async masterKeys(): Promise<Record<string, [PublicKeyHashString, string]>> {

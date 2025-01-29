@@ -10,19 +10,17 @@ import {
 } from "./types"
 
 export interface IProvider {
-    balances(): Promise<Record<PublicKeyHashString, Nanowits>> 
-    blocks(epoch: Epoch, limit: number): Promise<Array<[number, Hash/*, PublicKeyHashString*/]>>;
+    blocks(since: Epoch, limit: number): Promise<Array<[number, Hash/*, PublicKeyHashString*/]>>;
     constants(): Promise<ConsensusConstants>;
-    knownPeers(): Promise<Array<PeerAddr>>;
+    holders(limit?: number): Promise<Record<PublicKeyHashString, Balance2>> 
     mempool(): Promise<Mempool>;
+    powers(params?: QueryPowersParams): Promise<Array<StakingPower>>;
     priorities(): Promise<Priorities>;
-    protocol(): Promise<ProtocolInfo>;
-    ranks(capability: StakingCapability): Promise<Array<any>>;
-    stakers(): Promise<Array<StakeEntry>>; 
-    syncStatus(): Promise<SyncStatus>;
+    protocolInfo(): Promise<ProtocolInfo>;
+    syncStatus(): Promise<any>;
     wips(): Promise<SignalingInfo>;
 
-    getBalance(pkh: PublicKeyHashString): Promise<Balance>;
+    getBalance(pkh: PublicKeyHashString): Promise<Balance2>;
     getBlock(blockHash: Hash, showTransactionHashes?: boolean): Promise<Block>;
     getDataRequest(drTxHash: Hash): Promise<DataRequestReport>;
     getTransaction(txHash: Hash): Promise<Transaction>;
@@ -41,6 +39,7 @@ export class ProviderError extends Error {
     readonly params: any[];
     constructor(method: string, params: any[], error?: any) {
         super(`${method}(${JSON.stringify(params)}): ${JSON.stringify(error)})`)
+        delete error?.stack
         this.error = error
         this.method = method
         this.params = params
@@ -49,9 +48,8 @@ export class ProviderError extends Error {
 
 export class Provider implements IProvider {
     readonly endpoints: string[]
-    private headers: AxiosHeaders
+    protected headers: AxiosHeaders
     constructor(url?: string) {
-
         this.endpoints = []
         if (url !== undefined) {
             const urls = url.replaceAll(',', ';').split(';')
@@ -63,7 +61,7 @@ export class Provider implements IProvider {
             })
             this.endpoints = urls
         } else {
-            this.endpoints.push(process.env.WITNET_TOOLKIT_PROVIDER_URL || "http://3.133.4.38:21339")
+            this.endpoints.push(process.env.WITNET_TOOLKIT_PROVIDER_URL || "https://rpc-01.witnet.io")
         }
         this.headers = new AxiosHeaders({ 
             "Content-Type": "application/json" 
@@ -98,38 +96,42 @@ export class Provider implements IProvider {
     }
     
     /// ---------------------------------------------------------------------------------------------------------------
-    public balances(): Promise<Record<PublicKeyHashString, Nanowits>> {
-        return this
-            .callApiMethod<Record<PublicKeyHashString, Balance>>(Methods.GetBalance, {
-                all: true,
-            }).then((balances: Record<PublicKeyHashString, Balance>) => {
-                const reverseCompare = (a: (string | number)[], b: (string | number)[]) => {
-                    if (a[1] < b[1]) return 1;
-                    else if (a[1] > b[1]) return -1;
-                    else return 0;
-                }
-                return Object.fromEntries(
-                    Object.entries(balances)
-                        .map(([pkh, balance]) => {
-                            return [pkh, balance.total]
-                        })
-                        .sort(reverseCompare)
-                )
-            })
-    }
-
+   
     /**
      * Get the list of block hashes within given range, as known by the provider.
-     * @param {number} epoch - First epoch for which to return block hashes. If negative, return block hashes from the last n epochs.
+     * @param {number} since - First epoch for which to return block hashes. If negative, return block hashes from the last n epochs.
          * @param {number} limit - Number of block hashes to return. If negative, return the last n block hashes from this epoch range.
      */
-    public async blocks(epoch = -1, limit = 1,): Promise<Array<[number, Hash]>> {
-        return this.callApiMethod<[Number, Hash]>(Methods.GetBlockChain, [epoch, limit, ]);
+    public async blocks(since: number = -1, limit: number = 1,): Promise<Array<[number, Hash]>> {
+        return this.callApiMethod<[Number, Hash]>(Methods.GetBlockChain, [since, limit, ]);
     }
     
     /// Get consensus constants used by the node
     public async constants(): Promise<ConsensusConstants> {
         return this.callApiMethod<ConsensusConstants>(Methods.GetConsensusConstants);
+    }
+
+    /// Get limited list of currently top holders, as known by the provider.
+    public async holders(minBalance = 0, maxBalance?: number): Promise<Record<PublicKeyHashString, Balance2>> {
+        return this
+            .callApiMethod<Record<PublicKeyHashString, Balance>>(Methods.GetBalance2, {
+                all: {
+                    minBalance,
+                    ... maxBalance ? { maxBalance } : {}
+                }
+            }).then((balances: Record<PublicKeyHashString, Balance2>) => {
+                const reverseCompare = (a: Balance2, b: Balance2) => {
+                    const a_tot = a.locked + a.unlocked + a.staked
+                    const b_tot = b.locked + b.unlocked + b.staked
+                    if (a_tot < b_tot) return 1;
+                    else if (a_tot > b_tot) return -1;
+                    else return 0;
+                }
+                return Object.fromEntries(
+                    Object.entries(balances)
+                        .sort((a: (string | Balance2)[], b: (string | Balance2)[]) => reverseCompare(a[1] as Balance2, b[1] as Balance2))
+                );
+            })
     }
     
     /// Get list of known peers
@@ -148,16 +150,16 @@ export class Provider implements IProvider {
     }
     
     /// Get information about protocol versions and which version is currently being enforced.
-    public async protocol(): Promise<ProtocolInfo> {
+    public async protocolInfo(): Promise<ProtocolInfo> {
         return this.callApiMethod<ProtocolInfo>(Methods.Protocol)
     }
     
     /// Get a full list of staking powers ordered by rank
-    public async ranks(capability = StakingCapability.Mining): Promise<Array<StakingPower>> {
+    public async powers(params = { capability: StakingCapability.Mining }): Promise<Array<StakingPower>> {
         return this
-            .callApiMethod<Array<StakingPower>>(Methods.QueryRanks, [capability, ])
-            .then((ranks: Array<StakingPower>) => {
-                return ranks.map((entry, index) => {
+            .callApiMethod<Array<StakingPower>>(Methods.QueryStakingPowers, [params.capability, ])
+            .then((powers: Array<StakingPower>) => {
+                return powers.map((entry, index) => {
                     entry.rank = index + 1
                     return entry
                 })
@@ -191,8 +193,8 @@ export class Provider implements IProvider {
     
     /// ---------------------------------------------------------------------------------------------------------------
     /// Get balance
-    public async getBalance(pkh: PublicKeyHashString, simple = false): Promise<Balance> {
-        return this.callApiMethod<Balance>(Methods.GetBalance, [pkh, simple, ]);
+    public async getBalance(pkh: PublicKeyHashString): Promise<Balance2> {
+        return this.callApiMethod<Balance2>(Methods.GetBalance2, { pkh });
     }
     
     /**
@@ -210,42 +212,6 @@ export class Provider implements IProvider {
     
     public async getDataRequest(drTxHash: Hash): Promise<DataRequestReport> {
         return this.callApiMethod<DataRequestReport>(Methods.DataRequestReport, [drTxHash, ])
-    }
-
-    public async getStake(withdrawer: PublicKeyHashString): Promise<Stake> {
-        return this
-            .callApiMethod<Array<StakeEntry>>(Methods.QueryStakes, {
-                withdrawer
-            }).then((stakes: Array<StakeEntry>) => {
-                const total = stakes.map(stake => stake.value.coins).reduce((prev, curr) => prev + curr, 0) as Nanowits;
-                const stake: Stake = {
-                    total,
-                    delegates: stakes
-                        .sort((a, b) => {
-                            if (a.value.coins < b.value.coins) return 1;
-                            else if (a.value.coins > b.value.coins) return -1;
-                            else return 0;
-                        }).map(stake => {
-                            const delegate: StakeDelegate = {
-                                coins: stake.value.coins,
-                                validator: stake.key.validator,
-                            }
-                            return delegate
-                        })
-                }
-                return stake
-            })
-    }
-
-    public async getStakingPowers(pkh: PublicKeyHashString, capability = StakingCapability.Mining): Promise<Array<StakingPower>> {
-        return this
-            .ranks(capability)
-            .then((ranks: Array<StakingPower>) => {
-                return ranks.filter(record => 
-                    record.validator.toLowerCase() === pkh.toLowerCase()
-                        || record.withdrawer.toLowerCase() === pkh.toLowerCase()
-                )
-            })
     }
     
     /// Get the blocks that pertain to the superblock index

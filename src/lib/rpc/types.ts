@@ -1,4 +1,5 @@
 export type f64 = number;
+export type i32 = number;
 export type i64 = number;
 export type u8 = number;
 export type u16 = number;
@@ -6,7 +7,7 @@ export type u32 = number;
 export type u64 = number;
 export type usize = number;
 
-export type Epoch = u32;
+export type Epoch = i32;
 export type Err = string;
 export type Hash = string;
 export type HexString = string;
@@ -18,6 +19,7 @@ export enum Methods {
     ClearPeers = "clearPeers",
     DataRequestReport = "dataRequestReport",
     GetBalance = "getBalance",
+    GetBalance2 = "getBalance2",
     GetBlockChain = "getBlockChain",
     GetBlock = "getBlock",
     GetConsensusConstants = "getConsensusConstants",
@@ -52,6 +54,13 @@ export type Balance = {
     //Total amount of node's funds after last block
     total: u64;
 };
+
+// Balance struct in Wit/w containing locked, unlocked and staked balance 
+export type Balance2 = {
+    locked: u64,
+    staked: u64,
+    unlocked: u64,
+}
 
 //Struct that count the positives votes of a WIP
 export type BitVotesCounter = {

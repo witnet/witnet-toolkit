@@ -1,8 +1,11 @@
 const helpers = require("../helpers")
 const toolkit = require("../../../dist");
 
-const FLAGS_DEFAULT_LIMIT = 100
+const FLAGS_LIMIT_MAX = 2048
+const FLAGS_LIMIT_DEFAULT = 32
 const OPTIONS_DEFAULT_SINCE = -2048
+
+const { white, gray, lyellow, mgreen, myellow, yellow, } = helpers.colors;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /// CLI SUBMODULE CONSTANTS ===========================================================================================
@@ -13,7 +16,7 @@ module.exports = {
     },
     flags: {
         limit: { 
-            hint: "Limits number of output records (default: 100)", 
+            hint: `Limits number of output records (default: ${FLAGS_LIMIT_DEFAULT})`, 
             param: "LIMIT", 
         },
         provider: {
@@ -28,13 +31,8 @@ module.exports = {
         blocks: {
             hint: "List recently validated blocks.",
             options: {
-                count: { hint: "Just count the number of entries (ignoring limit)" },
-                offset: {
-                    hint: "Skips first matching entries (default: 0)",
-                    param: "OFFSET",
-                },
                 since: {
-                    hint: "Since this epoch (default: -<LIMIT>)",
+                    hint: "Since the specified epoch (default: -<LIMIT>-2)",
                     param: "EPOCH|MINUS_EPOCHS",
                 },
             },
@@ -61,9 +59,8 @@ module.exports = {
             },
         },
         holders: {
-            hint: "List addresses holding Wits within specified range.",
+            hint: "List identities holding Wits within the specified range.",
             options: { 
-                count: { hint: "Just count the number of entries (ignoring limit)" },
                 "min-balance": { 
                     hint: "Having at least this amount of unlocked Wits (default: 1 Wit)",
                     param: "WITS",
@@ -150,67 +147,86 @@ module.exports = {
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /// CLI SUBMODULE COMMANDS ============================================================================================
 
-async function blocks(flags, _args, options) {
-    if (!flags) flags = {}
-    flags.limit = parseInt(flags?.limit) || FLAGS_DEFAULT_LIMIT
+async function blocks(flags = {}, _args = [], options = {}) {
+    flags.limit = helpers.min(parseInt(flags?.limit) || FLAGS_LIMIT_DEFAULT, FLAGS_LIMIT_MAX)
+    console.log(flags)
     const provider = new toolkit.Provider(flags?.provider)
     // const records = await helpers.prompter(provider.blocks(options?.from || - flags.limit, flags.limit))
-    const records = await provider.blocks(parseInt(options?.from) || - flags.limit, flags.limit)
-    helpers.traceTable(
-        records.map(record => [
-            record[0],
-            record[1],
-        ]), {
-        headlines: [ "EPOCH", "BLOCK HASHES", ], 
-        humanizers: [ helpers.commas, ],
-        colors: [, helpers.colors.gray, ]
-    })
+    const records = await provider.blocks(parseInt(options?.since) || - flags.limit - 2, flags.limit)
+    if (records.length > 0) {
+        helpers.traceTable(
+            records.slice(0, flags.limit).map(record => [
+                record[0],
+                record[1],
+            ]), {
+            headlines: [ "EPOCH", "BLOCK HASHES", ], 
+            humanizers: [ helpers.commas, ],
+            colors: [, helpers.colors.gray, ]
+        })
+        console.info(`^ Listed ${records.length} blocks for a range of ${flags.limit} epochs.`)
+        
+    } else {
+        console.info(
+            `> No blocks found in specified range (since: ${
+                options?.since || - flags.limit
+            }, limit: ${
+                flags.limit
+            }).`
+        )
+    }
 }
 
-async function constants(flags) {
+async function constants(flags = {}) {
     const provider = new toolkit.Provider(flags?.provider)
     console.info(await provider.constants())
 }
 
-async function holders(flags) {
-    if (!flags) flags = {}
-    flags.limit = parseInt(flags?.limit) || FLAGS_DEFAULT_LIMIT
+async function holders(flags = {}, _args = [], options = {}) {
+    flags.limit = helpers.min(parseInt(flags?.limit) || FLAGS_LIMIT_DEFAULT, FLAGS_LIMIT_MAX);
     const provider = new toolkit.Provider(flags?.provider)
-    let records = Object.entries(await helpers.prompter(provider.holders()))
-    console.info(`> Showing ${flags.limit} out of ${records.length} records:`)
+    let records = Object.entries(await helpers.prompter(provider.holders(
+        options["min-balance"] ? options["min-balance"] * 10 ** 9 : 1000000,
+        options["max-balance"] ? options["max-balance"] * 10 ** 9 : null,
+    )))
+    const totalRecords = records.length
     helpers.traceTable(
         records.slice(0, flags.limit).map(([ address, balance ], index) => [ 
             index + 1,
-             address, 
-             balance / 10 ** 9
+            address, 
+            Math.floor(balance.locked / 10 ** 9),
+            Math.floor(balance.staked / 10 ** 9),
+            Math.floor(balance.unlocked / 10 ** 9),
+            Math.floor((balance.locked + balance.staked + balance.unlocked) / 10 ** 9),
         ]), {
-            headlines: [ "RANK", "HOLDERS", "BALANCE (Wits)", ],
-            humanizers: [ ,, (x) => helpers.commas(Math.floor(x)), ],
-            colors: [ , helpers.colors.mgreen, helpers.colors.myellow, ]
+            headlines: [ "RANK", "HOLDERS", "Locked (Wits)", "Staked (Wits)", "Unlocked (Wits)", "BALANCE (Wits)", ],
+            humanizers: [ ,, helpers.commas, helpers.commas, helpers.commas, helpers.commas ],
+            colors: [ , mgreen, gray, yellow, myellow, lyellow, ],
         }
     )
+    if (flags.limit < totalRecords) {
+        console.info(`^ Listed ${helpers.min(flags.limit, totalRecords)} out of ${totalRecords} records.`)
+    }
 }
 
-async function knownPeers(flags) {
+async function knownPeers(flags = {}) {
     if (!flags) flags = {}
-    flags.limit = parseInt(flags?.limit) || FLAGS_DEFAULT_LIMIT
+    flags.limit = parseInt(flags?.limit) || FLAGS_LIMIT_DEFAULT
     const provider = new toolkit.Provider(flags?.provider)
     const knownPeers = await provider.knownPeers()
     console.info(knownPeers)
 }
 
-async function mempool(flags) {
+async function mempool(flags = {}) {
     const provider = new toolkit.Provider(flags?.provider)
     console.info(await provider.mempool())
 }
 
-async function priorities(flags) {
+async function priorities(flags = {}) {
     const provider = new toolkit.Provider(flags?.provider)
     console.info(await provider.priorities())
 }
 
-function provider(flags) {
-    if (!flags) flags = {}
+function provider(flags = {}) {
     const provider = new toolkit.Provider(flags?.provider)
     provider.endpoints.forEach(url => {
         console.info(helpers.colors.yellow(url))
@@ -218,13 +234,13 @@ function provider(flags) {
 }
 
 async function senate(flags = {}, _args = [], options = {}) {
-    flags.limit = parseInt(flags?.limit) || FLAGS_DEFAULT_LIMIT
+    flags.limit = parseInt(flags?.limit) || FLAGS_LIMIT_DEFAULT
     options.since = parseInt(options?.since) || OPTIONS_DEFAULT_SINCE
 
 }
 
 async function stakers(flags = {}, _args = [], options = {}) {
-    flags.limit = parseInt(flags?.limit) || FLAGS_DEFAULT_LIMIT
+    flags.limit = helpers.min(parseInt(flags?.limit) || FLAGS_LIMIT_DEFAULT, FLAGS_LIMIT_MAX)
     const provider = new toolkit.Provider(flags?.provider)
     // const records = await helpers.prompter(provider.stakers())
     const records = await provider.stakers(options?.validator, options?.withdrawer)
@@ -266,9 +282,7 @@ async function stakers(flags = {}, _args = [], options = {}) {
     )
 }
 
-async function supplyInfo(flags) {
-    if (!flags) flags = {}
-    flags.limit = parseInt(flags?.limit) || FLAGS_DEFAULT_LIMIT
+async function supplyInfo(flags = {}) {
     const reporter = new toolkit.Reporter(flags?.provider)
     const data = await reporter.supplyInfo()
     console.info(`> Supply info at epoch ${helpers.colors.white(helpers.commas(data.epoch))}:`)
@@ -292,7 +306,7 @@ async function supplyInfo(flags) {
     })
 }
 
-async function syncStatus(flags) {
+async function syncStatus(flags = {}) {
     const provider = new toolkit.Provider(flags?.provider)
     const syncStatus = await provider.syncStatus()
     helpers.traceTable(
@@ -315,7 +329,7 @@ async function syncStatus(flags) {
 }
 
 async function validators(flags = {}, args =  [], options = {}) {
-    flags.limit = parseInt(flags?.limit) || FLAGS_DEFAULT_LIMIT
+    flags.limit = parseInt(flags?.limit) || FLAGS_LIMIT_DEFAULT
     const provider = new toolkit.Provider(flags?.provider)
     const capability = options?.witnessing ? toolkit.StakingCapability.Witnessing : toolkit.StakingCapability.Mining
     let records = await provider.powers(capability)
@@ -346,7 +360,7 @@ async function validators(flags = {}, args =  [], options = {}) {
     )
 }
 
-async function versions(flags) {
+async function versions(flags = {}) {
     const provider = new toolkit.Provider(flags?.provider)
     const protocolInfo = await provider.protocolInfo()
     if (
@@ -376,7 +390,7 @@ async function versions(flags) {
 }
 
 
-async function wips(flags, _args, options) {
+async function wips(flags = {}, _args = [], options = {}) {
     const provider = new toolkit.Provider(flags?.provider)
     const wips = await provider.wips()
     if (!options?.pending) {
