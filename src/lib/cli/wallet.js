@@ -8,7 +8,7 @@ const toolkit = require("../../../dist");
 module.exports = {
     flags: {
         fee: {
-            hint: "Qualify how much fee to pay: stinky|low|medium|high|opulent (default: medium)",
+            hint: "Qualify how much fee to pay per transaction: stinky|low|medium|high|opulent (default: medium)",
             param: ":fee_tag",
         },
         path: {
@@ -27,8 +27,23 @@ module.exports = {
         balance: {
             hint: "Show wallet's available balance.",
         },
-        providers: {
-            hint: "Show the underlying Wit/Oracle RPC provider(s) being used."
+        resolve: {
+            hint: "Ask the Wit/Oracle to resolve and forever store the resolution to a Radon artifact.",
+            params: ["RADON_ASSET_NAME | RAD_HASH | BYTECODE", "[ASSET_ARGS ...]", ],
+            options: {
+                "deadline": { 
+                    hint: "Deadline epoch for the data request transaction to get mined", 
+                    param: "EPOCH",
+                },
+                "num-witnesses": { 
+                    hint: "Number of witnesses obliged to attend the data request", 
+                    param: "NUM_WITNESSES"
+                },
+                "total-fees": {
+                    hint: "Settle total fees to cover the cost of all involved transactions: DRT, DRCTs and DRRTs",
+                    param: "NANOWITS",
+                },
+            }
         },
         stake: {
             hint: "Stake specified amount of Wits by using given authorization code.",
@@ -44,16 +59,6 @@ module.exports = {
                 },
             }
         },
-        unstake: {
-            hint: "Unstake specified amount of Wits from given validator",
-            params: "NANOWITS",
-            options: {
-                validator: {
-                    hint: "Validator address from where to withdraw the stake",
-                    param: ":pkh"
-                },
-            }
-        },
         transfer: {
             hint: "Transfer specified amount of Wits to given address.",
             params: "NANOWITS",
@@ -64,14 +69,33 @@ module.exports = {
                 },
             },
         },
+        unstake: {
+            hint: "Unstake specified amount of Wits from given validator",
+            params: "NANOWITS",
+            options: {
+                validator: {
+                    hint: "Validator address from where to withdraw the stake",
+                    param: ":pkh"
+                },
+            }
+        },
         utxos: {
-            hint: "List wallet's available UTXOs.",
+            hint: "List wallet's available UTXOs, or a selection of UTXOs that sum up to the specified target value.",
+            params: "[NANOWITS]",
+            options: {
+                join: { hint: "Join wallet's smaller UTXOs into a bigger one", },
+                size: {
+                    hint: "Minimum value of either selected (list/join) or output (split) UTXOs (default: 1 Wit)",
+                    param: "WITS",
+                },
+                "smallest-first": {
+                    hint: "Selects smallest UTXOs first (default: false)",
+                },
+                split: { hint: "Split wallet's UTXOs into multiple UTXOs having a specific size", },
+            }
         },
-        splitUtxos: {
-            hint: "Lorem ipsum.",
-        },
-        joinUtxos: {
-            hint: "Lorem ipsum.",
+        validators: {
+            hint: "List validators treasuring delegated stake from the specified wallet.",
         },
     },
     subcommands: {
@@ -86,15 +110,15 @@ function address(flags) {
     // TODO
     if (!flags) flags = {}
     const provider = new toolkit.Provider(flags?.provider)
-    const wallet = new toolkit.Wallet(process.env.WITNET_TOOLKIT_MASTER_KEY || "masterkey", provider)
-    console.info(helpers.colors.lgreen("twit1f0am8c97q2ygkz3q6jyd2x29s8zaxqlxcqltxx"))
+    const wallet = new toolkit.Wallet(process.env.WITNET_TOOLKIT_WALLET_KEY || "masterkey", provider)
+    console.info(helpers.colors.lmagenta("twit1f0am8c97q2ygkz3q6jyd2x29s8zaxqlxcqltxx"))
     qrcode.generate("twit1f0am8c97q2ygkz3q6jyd2x29s8zaxqlxcqltxx")
 }
 
 function providers(flags) {
     const provider = new toolkit.Provider(flags?.provider)
-    const wallet = new toolkit.Wallet(process.env.WITNET_TOOLKIT_MASTER_KEY || "masterkey", provider)
+    const wallet = new toolkit.Wallet(process.env.WITNET_TOOLKIT_WALLET_KEY || "masterkey", provider)
     wallet.provider.endpoints.forEach(url => {
-        console.info(helpers.colors.yellow(url))
+        console.info(helpers.colors.magenta(url))
     })
 }
