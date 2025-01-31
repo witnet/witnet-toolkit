@@ -16,8 +16,12 @@ module.exports = {
     },
     flags: {
         limit: { 
-            hint: `Limits number of output records (default: ${FLAGS_LIMIT_DEFAULT})`, 
+            hint: `Limits number of output records (default: 64)`, 
             param: "LIMIT", 
+        },
+        offset: {
+            hint: `Skips first records as found on server side (default: 0)`,
+            param: "SKIP",
         },
         provider: {
             hint: "Public Wit/Oracle JSON-RPC provider, other than default",
@@ -85,27 +89,28 @@ module.exports = {
                 },
             },
         },
+        powers: {
+            hint: "List validation identities ordered by their current mining power.",
+            options: {
+                distinct: { hint: "Include only the first appearance per validator", },
+                witnessing: { hint: "Order by witnessing power instead", },
+            },
+        },
         provider: {
             hint: "Show the underlying Wit/Oracle RPC provider being used."
         },
         senate: {
             hint: "List distinct identities that have lately validated at least one block.",
             options: {
-                count: { hint: "Just count the number of entries (ignoring limit)" },
                 since: {
-                    hint: "At or after the specified epoch (default: -2048)",
-                    param: "EPOCH|MINUS_EPOCHS",
+                    hint: "Since the specified epoch (default: -2048)",
+                    param: "MINUS_EPOCHS",
                 },
             },
         },
         stakers: {
             hint: "List active stake entries at present time.",
             options: {
-                count: { hint: "Just count the number of entries (ignoring limit)" },
-                offset: {
-                    hint: "Skips first matching entries (default: 0)",
-                    param: "OFFSET",
-                },
                 validator: { hint: "Filter by validator address", param: "WIT_ADDRESS", },
                 withdrawer: { hint: "Filter by withdrawer address", param: "WIT_ADDRESS", },
             },
@@ -119,13 +124,6 @@ module.exports = {
         syncStatus: {
             hint: "Report the sync status of the network's Wit/Oracle RPC provider being used.",
         },
-        validators: {
-            hint: "List network validators ordered by their current mining power.",
-            options: {
-                distinct: { hint: "Include only first appearance per validator", },
-                witnessing: { hint: "Order by witnessing power instead", },
-            },
-        },
         versions: {
             hint: "Known protocol versions and which one is currently live.",   
         },
@@ -138,9 +136,9 @@ module.exports = {
     },
     subcommands: {
         blocks, constants, holders, knownPeers,
-        mempool, fees: priorities, provider,
+        mempool, fees: priorities, powers, provider,
         senate, stakers, supplyInfo, syncStatus, 
-        validators, versions, wips,
+        versions, wips,
     },
 };
 
@@ -221,6 +219,55 @@ async function mempool(flags = {}) {
     console.info(await provider.mempool())
 }
 
+async function powers(flags = {}, _args =  [], options = {}) {
+    const provider = new toolkit.Provider(flags?.provider)
+    const query = {
+        distinct: options?.distinct || false,
+        limit: parseInt(flags.limit) || FLAGS_LIMIT_DEFAULT,
+        offset: parseInt(flags?.offset) || 0,
+        orderBy: options?.witnessing ? "witnessing" : "mining",
+    }
+    const records = await provider.powers(query)
+    if (records.length > 0) {
+        helpers.traceTable(
+            records.map(record => [
+                record.ranking,
+                record.validator,
+                ...(flags?.verbose ? [ record.withdrawer ] : []),
+                record.power
+            ]), {
+                headlines: [ 
+                    "G_RANK", 
+                    "VALIDATORS", 
+                    ...(flags?.verbose ? [ "Withdrawer" ] : []),
+                    `${query.orderBy.toUpperCase()} POWER`, 
+                ],
+                colors: [ 
+                    , 
+                    helpers.colors.green, 
+                    ...(flags?.verbose ? [ helpers.colors.mgreen ] : []),
+                    query.orderBy === "mining" ? helpers.colors.mcyan : helpers.colors.mmagenta, 
+                ],
+                humanizers: [ 
+                    helpers.commas,,
+                    ...(flags?.verbose ? [ , helpers.commas ] : [ helpers.commas ]), 
+                ],
+            },  
+        )
+        if (records.length === query.limit || query.offset === 0) {
+            console.info(`^ Listed ${records.length} records.`)
+        } else if (query.offset !== 0) {
+            console.info(`^ Listed ${records.length} out of ${records.length + query.offset} records.`)
+        }
+    } else {
+        if (query.offset === 0) {
+            console.info(`> No records found.`)
+        } else {
+            console.info(`> No as many as ${query.offset + 1} records exist.`)
+        }
+    }
+}
+
 async function priorities(flags = {}) {
     const provider = new toolkit.Provider(flags?.provider)
     console.info(await provider.priorities())
@@ -234,52 +281,129 @@ function provider(flags = {}) {
 }
 
 async function senate(flags = {}, _args = [], options = {}) {
-    flags.limit = parseInt(flags?.limit) || FLAGS_LIMIT_DEFAULT
-    options.since = parseInt(options?.since) || OPTIONS_DEFAULT_SINCE
-
+    const provider = new toolkit.Provider(flags?.provider)
+    const params = {
+        distinct: true,
+        limit: helpers.min(parseInt(flags.limit) || FLAGS_LIMIT_DEFAULT, FLAGS_LIMIT_MAX),
+        offset: parseInt(flags?.offset || 0),
+        order: { by: "mining", },
+        since:  - Math.abs(parseInt(options?.since) || OPTIONS_DEFAULT_SINCE) - 1,
+    }
+    const records = await provider.stakes({ params }); // todo: use prompter?
+    if (records.length > 0) {
+        helpers.traceTable(
+            records
+                .map(record => [
+                    record.key.validator,
+                    ...(flags?.verbose ? [ 
+                        record.value.nonce,
+                        record.value.epochs.witnessing,
+                    ] : []),
+                    record.value.epochs.mining,
+                ])
+            , {
+                headlines: [
+                    `Superblock Voting Committee ${params.since + 1}`, 
+                    ...(flags?.verbose ? [ 
+                        "Nonce",
+                        "LW_Epoch", 
+                    ] : []),
+                    "LM_Epoch",
+                ],
+                humanizers: [ , helpers.commas, helpers.commas, helpers.commas, ],
+                colors: [ , ...(
+                    flags?.verbose
+                        ? [ , helpers.colors.magenta, helpers.colors.mcyan, ]
+                        : [ helpers.colors.mcyan, ]
+                    ),
+                ],
+            }
+        );
+        if (records.length < params.limit) {
+            if (params.offset === 0) {
+                console.info(`^ Only ${records.length} qualified members out of ${params.limit} seats.`)
+            } else {
+                console.info(`^ Listed ${records.length} out of ${records.length + params.offset} members.`)
+            }
+        } else {
+            console.info(`^ Listed ${records.length} members.`)
+        }
+    } else {
+        if (params.offset === 0) {
+            console.info(`No qualified members found.`)
+        } else {
+            console.info(`No as many as ${params.offset} qualified members exist.`)
+        }
+    }
 }
 
 async function stakers(flags = {}, _args = [], options = {}) {
-    flags.limit = helpers.min(parseInt(flags?.limit) || FLAGS_LIMIT_DEFAULT, FLAGS_LIMIT_MAX)
     const provider = new toolkit.Provider(flags?.provider)
-    // const records = await helpers.prompter(provider.stakers())
-    const records = await provider.stakers(options?.validator, options?.withdrawer)
-    helpers.traceTable(
-        records.map((record, index) => [ 
-            index + 1,
-            record.key.withdrawer, 
-            record.value.coins / 10 ** 9,
-            record.key.validator, 
-            ...(
-                options?.verbose 
-                    ? [ record.value.nonce, record.value.epochs.mining, record.value.epochs.witnessing, ]
-                    : []
-            )
-        ]),
-        {
-            headlines: [ 
-                "RANK", "STAKERS", "Validator", "STAKE (Wits)", ...(
-                    options?.verbose 
-                        ? [ "Nonce",  "LM_Epoch", "LW_Epoch", ]
-                        : []
-                ),
-            ],
-            humanizers: [
-                ,,, (x) => helpers.commas(Math.floor(parseFloat(x))), ...(
-                    options?.verbose
-                        ? [ helpers.commas, helpers.commas, helpers.commas, ]
-                        : []
-                ),
-            ],
-            colors: [
-                , helpers.colors.mgreen,, helpers.colors.myellow, ...(
-                    options?.verbose
-                        ? [ , helpers.colors.mcyan, helpers.colors.mmagenta, ]
-                        : []
-                ),
-            ],
-        },
-    )
+    const query = {
+        params: {
+            limit: helpers.min(parseInt(flags.limit) || FLAGS_LIMIT_DEFAULT, FLAGS_LIMIT_MAX),
+            offset: parseInt(flags?.offset || 0),
+        }
+    }
+    if (options?.validator) query.filter = { validator: options.validator }
+    if (options?.withdrawer) query.filter = { ...query.filter, withdrawer: options.withdrawer }
+    const records = await provider.stakes(query); // todo: use prompter?
+    if (records.length > 0) {
+        helpers.traceTable(
+            records
+                .map((record, index) => [ 
+                    1 + index + query.params.offset,
+                    record.key.withdrawer, 
+                    record.key.validator, 
+                    ...(
+                        flags?.verbose 
+                            ? [ record.value.nonce, record.value.epochs.witnessing, record.value.epochs.mining, ]
+                            : []
+                    ),
+                    helpers.fromNanowits(record.value.coins),
+                ]),
+            {
+                headlines: [ 
+                    options?.validator || options?.withdrawer ? "RANK" : "G_RANK", 
+                    "STAKERS", 
+                    "Validator", 
+                    ...(
+                        flags?.verbose 
+                            ? [ "Nonce",  "LW_Epoch", "LM_Epoch", ]
+                            : []
+                    ),
+                    "STAKED (Wits)",
+                ],
+                humanizers: [
+                    ,,, ...(
+                        flags?.verbose
+                            ? [ helpers.commas, helpers.commas, helpers.commas, ]
+                            : []
+                    ),
+                    (x) => helpers.commas(Math.floor(parseFloat(x))), 
+                ],
+                colors: [
+                    , helpers.colors.mgreen,, ...(
+                        flags?.verbose
+                            ? [ , helpers.colors.magenta, helpers.colors.cyan, ]
+                            : []
+                    ),
+                    helpers.colors.myellow,
+                ],
+            },
+        )
+        if (records.length === query.params.limit || query.params.offset === 0) {
+            console.info(`^ Listed ${records.length} records.`)
+        } else if (query.params.offset !== 0) {
+            console.info(`^ Listed ${records.length} out of ${records.length + query.params.offset} records.`)
+        }
+    } else {
+        if (query.params.offset === 0) {
+            console.info(`> No records found.`)
+        } else {
+            console.info(`> No as many as ${query.params.offset + 1} records exist.`)
+        }
+    }
 }
 
 async function supplyInfo(flags = {}) {
@@ -325,38 +449,6 @@ async function syncStatus(flags = {}) {
             humanizers: [ , helpers.commas, helpers.commas, ],
             colors: [ helpers.colors.mgreen, helpers.colors.white,, helpers.colors.gray, ]
         },
-    )
-}
-
-async function validators(flags = {}, args =  [], options = {}) {
-    flags.limit = parseInt(flags?.limit) || FLAGS_LIMIT_DEFAULT
-    const provider = new toolkit.Provider(flags?.provider)
-    const capability = options?.witnessing ? toolkit.StakingCapability.Witnessing : toolkit.StakingCapability.Mining
-    let records = await provider.powers(capability)
-    // TODO: implement distinct filter on rpc server side ...
-    if (options?.distinct) {
-        const validators = []
-        records = records.filter(entry => {
-            if (!validators.includes(entry.validator)) {
-                validators.push(entry.validator)
-                return true
-            } else {
-                return false
-            }
-        })
-    }
-    helpers.traceTable(
-        records.slice(flags.limit).map(record => [ 
-            record.rank, 
-            record.validator, 
-            record.withdrawer, 
-            record.power,
-        ]),
-        {
-            headlines: [ "G_RANK", "VALIDATORS", "Withdrawers", `${args[0].toUpperCase()[0] + args[0].slice(1)} power`, ],
-            colors: [, helpers.colors.mgreen, helpers.colors.green, args[0] === "mining" ? helpers.colors.mcyan : helpers.colors.mmagenta, ],
-            humanizers: [,,, helpers.commas, ],
-        },  
     )
 }
 

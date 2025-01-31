@@ -4,7 +4,7 @@ const toolkit = require("../../../dist");
 
 const FLAGS_LIMIT_DEFAULT = 100
 
-const { gray, lyellow, mgreen, myellow, yellow, white,} = helpers.colors;
+const { cyan, gray, green, lyellow, magenta, mcyan, mgreen, mmagenta, myellow, yellow, white,} = helpers.colors;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /// CLI SUBMODULE CONSTANTS ===========================================================================================
@@ -200,13 +200,66 @@ async function utxos(flags = {}, args = [], options = {}) {
     console.info(`^ Listed ${utxos.length} out of ${totalUtxos} UTXOs: ${lyellow(helpers.whole_wits(totalBalance, 2))}`)
 }
 
-async function validators(flags = {}, args) {
+async function validators(flags = {}, args = []) {
     if (args.length === 0) {
         throw "No WIT_ADDRESS was specified."
     }
     const provider = new toolkit.Provider(flags?.provider)
-    const validators = await provider.getStakeValidators(args[0])
-    console.info(validators)
+    const query = {
+        filter: { withdrawer: args[0] },
+    }
+    const records = await provider.stakes(query)
+    let nanowits = 0
+    if (records.length > 0) {
+        helpers.traceTable(
+            records.map((record, index) => {
+                nanowits += record.value.coins
+                return [
+                    1 + index,
+                    record.key.validator,
+                    ...(
+                        flags?.verbose
+                            ? [ record.value.nonce, record.value.epochs.witnessing, record.value.epochs. mining ]
+                            : []
+                    ),
+                    helpers.fromNanowits(record.value.coins),
+                ]
+            }), {
+                headlines: [
+                    "RANK",
+                    "VALIDATORS",
+                    ...(
+                        flags?.verbose
+                            ? [ "Nonce", "LW_Epoch", "LM_Epoch", ]
+                            : []
+                    ),
+                    "STAKED (Wits)"
+                ],
+                humanizers: [
+                    ,, ...(
+                        flags?.verbose
+                            ? [ helpers.commas, helpers.commas, helpers.commas ]
+                            : []
+                    ),
+                    helpers.commas,
+                ],
+                colors: [ , green, ...(
+                    flags?.verbose
+                        ? [ , magenta, cyan, myellow, ]
+                        : [ myellow, ]
+                )],
+            }
+        )
+        console.info(
+            `^ ${records.length} validators for withdrawer ${
+                mgreen(args[0])
+            }: ${
+                lyellow(helpers.whole_wits(nanowits, 2))
+            }`
+        )
+    } else {
+        console.info(`> No validators found for withdrawer ${mmagenta(args[0])}.`)        
+    }
 }
 
 async function withdrawers(flags = {}, args) {
@@ -214,6 +267,59 @@ async function withdrawers(flags = {}, args) {
         throw "No WIT_ADDRESS was specified."
     }
     const provider = new toolkit.Provider(flags?.provider)
-    const withdrawers = provider.getStakeWithdrawers(args[0])
-    console.info(withdrawers)
+    const query = {
+        filter: { validator: args[0] },
+    }
+    const records = await provider.stakes(query)
+    let nanowits = 0
+    if (records.length > 0) {
+        helpers.traceTable(
+            records.map((record, index) => {
+                nanowits += record.value.coins
+                return [
+                    1 + index,
+                    record.key.withdrawer,
+                    ...(
+                        flags?.verbose
+                            ? [ record.value.nonce, record.value.epochs.witnessing, record.value.epochs. mining ]
+                            : []
+                    ),
+                    helpers.fromNanowits(record.value.coins),
+                ]
+            }), {
+                headlines: [
+                    "RANK",
+                    "WITHDRAWERS",
+                    ...(
+                        flags?.verbose
+                            ? [ "Nonce", "LW_Epoch", "LM_Epoch", ]
+                            : []
+                    ),
+                    "STAKED (Wits)"
+                ],
+                humanizers: [
+                    ,, ...(
+                        flags?.verbose
+                            ? [ helpers.commas, helpers.commas, helpers.commas ]
+                            : []
+                    ),
+                    helpers.commas,
+                ],
+                colors: [ , green, ...(
+                    flags?.verbose
+                        ? [ , magenta, cyan, myellow, ]
+                        : [ myellow, ]
+                )],
+            }
+        )
+        console.info(
+            `^ ${records.length} withdrawers for validator ${
+                mgreen(args[0])
+            }: ${
+                lyellow(helpers.whole_wits(nanowits, 2))
+            }`
+        )
+    } else {
+        console.info(`> No withdrawers found for validator ${mmagenta(args[0])}.`)        
+    }
 }

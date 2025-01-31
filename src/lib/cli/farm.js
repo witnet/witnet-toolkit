@@ -50,10 +50,10 @@ module.exports = {
                 },
             },
         },
-        powers: {
-            hint: "Rank farm nodes by their current mining powers.",
+        rankings: {
+            hint: "Sort identities by their current mining power ranking",
             options: {
-                witnessing: { hint: "Rank by witnessing powers instead.", },
+                witnessing: { hint: "Sort by witnessing power ranking instead.", },
             },
         },
         rewind: {
@@ -72,7 +72,7 @@ module.exports = {
     },
     subcommands: {
         addresses, authorize, balances, masterKeys, nodes: balances, peers, 
-        powers, stats: nodeStats, rewind, syncStatus, withdrawers,
+        rankings, stats: nodeStats, rewind, syncStatus, withdrawers,
     },
 };
 
@@ -217,7 +217,7 @@ async function peers(flags = {}, _args = [], options = {}) {
     }
 }
 
-async function powers(flags = {}, _args = [], options = {}) {
+async function rankings(flags = {}, _args = [], options = {}) {
     const farm = new toolkit.NodeFarm(flags?.nodes)
     const addresses = Object.entries(await farm.addresses())
     const validators = []
@@ -231,32 +231,39 @@ async function powers(flags = {}, _args = [], options = {}) {
         }
     })
     if (validators.length > 0 && provider) {
-        const capability = options?.witnessing ? toolkit.StakingCapability.Witnessing : toolkit.StakingCapability.Mining;
-        const powers = await provider.powers(capability)
-        const records = powers.filter(entry => validators.includes(entry.validator))
+        const query = {
+            distinct: true,
+            orderBy: options?.witnessing ? "witnessing" : "mining",
+        }
+        const records = await provider.powers(query)
         if (records.length > 0) {
-            capability = (capability[0].toUpperCase() + capability.slice(1))
+            capability = query.orderBy.toUpperCase();
             helpers.traceTable(
-                records.map(record => [ 
-                    record.rank,
-                    record.validator,
-                    record.withdrawer,
-                    record.power,
-                ]),
+                records
+                    .filter(record => validators.includes(record.validator))
+                    .map(({ power, ranking, validator, withdrawer }) => [ 
+                        validator,
+                        withdrawer,
+                        power,
+                        ranking,
+                    ]),
                 {
                     headlines: [ 
-                        "G_RANK", "Validators", "Withdrawers", `${capability} power`,
+                        "VALIDATORS", 
+                        "Withdrawer", 
+                        `${capability} POWER`,
+                        "G_RANK", 
                     ],
                     humanizers: [
-                        ,,, helpers.commas,
+                        ,, helpers.commas, helpers.commas
                     ],
                     colors: [
-                        lyellow, mcyan, mmagenta, mgreen,
+                        lcyan, mmagenta, green, lgreen, 
                     ],
                 },
             )
         } else {
-            console.info(`> No ${capability} power is currently treasured by available nodes.`)
+            console.info(`> No ${capability} power is currently treasured on the farm.`)
         }
     } else {
         console.info("> No nodes currently available to interact with.")
@@ -305,27 +312,21 @@ async function syncStatus(flags) {
 
 async function withdrawers(flags = {}) {
     const farm = new toolkit.NodeFarm(flags?.nodes)
-    const withdrawers = await farm.withdrawers()
-    helpers.traceTable(
-        withdrawers.map(record => [ 
-            record.key.validator, 
-            record.key.withdrawer, 
-            record.value.coins / 10 ** 9,
-            record.value.nonce, 
-            record.value.epochs.mining,
-            record.value.epochs.witnessing,
-        ]),
-        {
-            headlines: [ 
-                "Validators", "Withdrawers", "Staked (Wits)", "Nonce",  "LM_Epoch", "LW_Epoch",
-            ],
-            humanizers: [
-                ,, (x) => helpers.commas(Math.floor(parseFloat(x))), helpers.commas, helpers.commas, helpers.commas, 
-            ],
-            colors: [
-                mcyan, mmagenta, myellow,, green, green, 
-            ],
-        },
-    )
+    const records = await farm.withdrawers()
+    if (records && Object.keys(records).length > 0) {
+        helpers.traceTable(
+            Object.entries(records).map(([withdrawer, [coins, nonce,]]) => [ 
+                withdrawer,
+                nonce,
+                helpers.fromNanowits(coins),
+            ]),
+            {
+                headlines: [ "WITHDRAWERS", "Latest nonce", "Total staked (Wits)"],
+                humanizers: [, helpers.commas, helpers.commas ],
+                colors: [ mmagenta,, myellow ],
+            },
+        )
+    } else {
+        console.info(`> No withdrawers delegating on the farm at the moment.`)
+    }
 }
-

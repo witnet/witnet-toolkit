@@ -12,6 +12,7 @@ export type Err = string;
 export type Hash = string;
 export type HexString = string;
 export type Nanowits = number;
+export type Nonce = u64;
 
 export enum Methods {
     AddPeers = "addPeers",
@@ -440,8 +441,8 @@ export enum StakingCapability {
 }
 
 export type StakingPower = {
-    rank?: u32,
-    power: u64,
+    power?: u64,
+    ranking?: u32,
     validator: PublicKeyHashString,
     withdrawer: PublicKeyHashString,
 }

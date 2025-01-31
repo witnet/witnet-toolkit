@@ -6,7 +6,9 @@ import {
     Balance2, 
     Epoch, 
     Methods, 
+    Nanowits,
     NodeStats, 
+    Nonce,
     PeerAddr, 
     PublicKeyHashString, 
     StakeAuthorization, 
@@ -22,7 +24,7 @@ export interface INodeFarm extends IProvider {
 
     peers(validator?: PublicKeyHashString): Promise<Array<PeerAddr>>;
     stats(): Promise<Record<string, NodeStats>>;
-    withdrawers(): Promise<Array<StakeEntry>>;
+    withdrawers(): Promise<Record<PublicKeyHashString, [Nanowits, Nonce, number]>>;
 
     addPeers(peers: Array<string>): Promise<Record<string, Boolean>>;
     authorizeStakes(withdrawer: PublicKeyHashString): Promise<Record<string, [PublicKeyHashString, StakeAuthorization]>>;
@@ -186,7 +188,7 @@ export class NodeFarm extends Provider implements INodeFarm {
         return this.batchApiMethod<SyncStatus>(Methods.SyncStatus)
     }
 
-    public async withdrawers(): Promise<Array<StakeEntry>> {
+    public async withdrawers(limit?: number, offset?: number): Promise<Record<PublicKeyHashString, [Nanowits, Nonce, number]>> {
         return this.addresses()
             .then(async (addresses: Record<string, Error | string>) => {
                 const promises = Object.entries(addresses).map(async ([url, validator]) => [
@@ -196,7 +198,13 @@ export class NodeFarm extends Provider implements INodeFarm {
                         : await this.callApiMethod<Array<StakeEntry>>(
                             url, 
                             Methods.QueryStakes, 
-                            { validator }
+                            { 
+                                filter: { validator },
+                                params: {
+                                    limit, offset,
+                                    since: 0,
+                                }
+                            },
                         ),
                 ]);
                 return Promise.all(promises)
@@ -207,17 +215,42 @@ export class NodeFarm extends Provider implements INodeFarm {
                         stakes = new Error((stakes as ProviderError)?.error?.message)
                         delete stakes.stack
                     }
+                    return [url, ]
+                } else {
+
                 }
                 return [url, stakes]
             })))
             .then((results: Record<string, Error | Array<StakeEntry>>) => {
-                let withdrawers: StakeEntry[] = []
+                const max = (a: number, b: number) => a > b ? a : b;
+                const withdrawers: Record<PublicKeyHashString, [Nanowits, Nonce, number]> = {}
                 Object.values(results).forEach(moreEntries => {
                     if (moreEntries && !(moreEntries instanceof Error)) { 
-                        withdrawers.push(...moreEntries)
+                        moreEntries.forEach(entry => {
+                            if (withdrawers[entry.key.withdrawer]) {
+                                withdrawers[entry.key.withdrawer][0] += entry.value.coins;
+                                withdrawers[entry.key.withdrawer][1] = max(
+                                    entry.value.nonce,
+                                    withdrawers[entry.key.withdrawer][1]
+                                );
+                                withdrawers[entry.key.withdrawer][2] += 1;
+                            } else {
+                                withdrawers[entry.key.withdrawer] = [
+                                    entry.value.coins,
+                                    entry.value.nonce,
+                                    1,
+                                ];
+                            }
+                        })
                     }
                 })
-                return withdrawers
+                return Object.fromEntries(Object.entries(withdrawers)
+                    .sort(([, [a,, ]], [, [b,,]]) => {
+                        if (a > b) return 1;
+                        else if (a < b) return -1;
+                        else return 0;
+                    })
+                )
             })
     }
 
