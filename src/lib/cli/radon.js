@@ -23,13 +23,13 @@ module.exports = {
             params: "[ASSET_SUBSTRS ...]",
             options: {
                 requests: {
-                    hint: "Restrict output to Radon requests",
+                    hint: "Restrict output to Radon requests.",
                 },
                 retrievals: {
-                    hint: "Restrict output to Radon retrievals",
+                    hint: "Restrict output to Radon retrievals.",
                 },
                 templates: {
-                    hint: "Restrict output to Radon templates",
+                    hint: "Restrict output to Radon templates.",
                 },
             },
         },
@@ -43,14 +43,14 @@ module.exports = {
             params: ["ASSET_SUFFIX | RAD_HASH | BYTECODE", "[ARGS ...]",],
             options: {
                 json: {
-                    hint: 'Outputs data in JSON format',
+                    hint: 'Outputs data in JSON format.',
                 },
                 headline: {
-                    hint: 'Settles output report headline',
+                    hint: 'Settles output report headline.',
                     param: ':string'
                 },
                 indent: {
-                    hint: 'Prefixes given number of white spaces for every output line',
+                    hint: 'Prefixes given number of white spaces for every output line.',
                     param: ':number'
                 },
             },
@@ -60,18 +60,18 @@ module.exports = {
             params: ["ASSET_SUFFIX | RAD_HASH | BYTECODE", "[ARGS ...]",],
             options: {
                 json: {
-                    hint: 'Outputs data in JSON format',
+                    hint: 'Outputs data in JSON format.',
                 },
                 headline: {
-                    hint: 'Settles output report headline',
+                    hint: 'Settles output report headline.',
                     param: ':string'
                 },
                 indent: {
-                    hint: 'Prefixes given number of white spaces for every output line',
+                    hint: 'Prefixes given number of white spaces for every output line.',
                     param: ':number'
                 },
                 verbose: {
-                    hint: 'Outputs detailed dry-run report',
+                    hint: 'Outputs detailed dry-run report.',
                 },
             },
         },
@@ -98,18 +98,18 @@ module.exports = {
             params: "BYTECODE | RAD_HASH",
             options: {
                 json: {
-                    hint: 'Outputs data in JSON format',
+                    hint: 'Outputs data in JSON format.',
                 },
                 headline: {
-                    hint: 'Settles output report headline',
+                    hint: 'Settles output report headline.',
                     param: ':string'
                 },
                 indent: {
-                    hint: 'Prefixes given number of white spaces for every output line',
+                    hint: 'Prefixes given number of white spaces for every output line.',
                     param: ':number'
                 },
                 verbose: {
-                    hint: 'Outputs detailed dry-run report',
+                    hint: 'Outputs detailed dry-run report.',
                 },
             },
         },

@@ -27,12 +27,12 @@
   },
   "types": "./dist/lib/radon",
   "scripts": {
-    "build": "npx pbjs --target json witnet/witnet.proto -o witnet/witnet.proto.json && tsc -p tsconfig.json",
+    "build": "pbjs --target json witnet/witnet.proto -o witnet/witnet.proto.json && tsc -p tsconfig.json",
     "fmt": "eslint --ext .js,.ts,.cjs . --ignore-path .gitignore",
     "fmt!": "eslint --ext .js,.ts,.cjs . --fix --ignore-path .gitignore",
-    "postintall": "npx witnet --update --version radon init",
+    "postintall": "npx witnet --update --version",
     "prepare": "pnpm run build",
-    "test": "cross-env-shell WITNET_TOOLKIT_ASSETS_PATH='../../../witnet' node ./src/bin/toolkit.js"
+    "test": "cross-env-shell WITNET_TOOLKIT_ASSETS_PATH='../../../witnet/assets' node ./src/bin/toolkit.js"
   },
   "dependencies": {
     "axios": "1.7.9",
@@ -40,6 +40,7 @@
     "dotenv": "^16.4.1",
     "graphql-query-compress": "1.2.4",
     "lodash.merge": "^4.6.2",
+    "moment": "^2.30.1",
     "protobufjs": "^7.4.0",
     "qrcode-terminal": "^0.12.0"
   },

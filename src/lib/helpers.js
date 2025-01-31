@@ -14,6 +14,8 @@ const commas = (number) => {
     return result 
 };
 
+const fromNanowits = (x) => Math.floor(x / 10 ** 9)
+
 function toFixedTrunc(x, n) {
     const v = (typeof x === 'string' ? x : x.toString()).split('.');
     if (n <= 0) return v[0];
@@ -56,41 +58,11 @@ const red = (str) => `\x1b[31m${str}\x1b[0m`
 const white = (str) => `\x1b[1;98m${str}\x1b[0m`
 const yellow = (str) => `\x1b[33m${str}\x1b[0m`
 
-module.exports = {
-    colors: {
-        cyan, gray, green, magenta, red, white, yellow, normal,
-        lcyan, lgray, lgreen, lmagenta, lyellow,
-        mcyan, mgreen, mmagenta, mred, myellow,
-    },
-    colorstrip, commas, whole_wits, toFixedTrunc, 
-    countLeaves,
-    deleteExtraFlags, extractFromArgs,
-    fromHexString, isHexString, isHexStringOfLength, toHexString,
-    parseURL, ipIsPrivateOrLocalhost,
-    min: (a, b) => (a < b) ? a : b,
-    showUsage, showUsageError, showUsageSubcommand, showVersion,
-    toolkitRun,
-    toUpperCamelCase, toUtf8Array, utf8ArrayToStr,
-    prompt, prompter, 
-    traceChecklists, traceHeader, traceTable,
-    wildcards: {
-        isWildcard,
-        getWildcardsCountFromString,
-        replaceWildcards,
-        spliceWildcard,
-    },
-}
-
 function countLeaves(t, obj) {
-    if (!obj) {
-        return 0
-    } else if (obj instanceof t) {
-        return 1
-    } else if (Array.isArray(obj)) {
-        return obj.map(function (item) { return countLeaves(t, item) }).reduce(function (a, b) { return a + b }, 0)
-    } else {
-        return Object.values(obj).map(function (item) { return countLeaves(t, item) }).reduce(function (a, b) { return a + b }, 0)
-    }
+    if (!obj) return 0;
+    if (obj instanceof t) return 1;
+    if (Array.isArray(obj)) return obj.reduce((sum, item) => sum + countLeaves(t, item), 0)
+    else return Object.values(obj).reduce((sum, item) => sum + countLeaves(t, item), 0);
 }
 
 function deleteExtraFlags(args) {
@@ -198,29 +170,20 @@ function toHexString(buffer) {
 }
 
 function parseURL(url) {
-    if (url && typeof url === 'string' && url.indexOf("://") > -1) {
-        const hostIndex = url.indexOf("://") + 3
-        const schema = url.slice(0, hostIndex)
-        let host = url.slice(hostIndex)
-        let path = ""
-        let query = ""
-        const pathIndex = host.indexOf("/")
-        if (pathIndex > -1) {
-            path = host.slice(pathIndex + 1)
-            host = host.slice(0, pathIndex)
-            const queryIndex = path.indexOf("?")
-            if (queryIndex > -1) {
-                query = path.slice(queryIndex + 1)
-                path = path.slice(0, queryIndex)
-            }
-        }
-        return [schema, host, path, query];
-    } else {
+    try {
+        const parsedUrl = new URL(url)
+        return [
+            parsedUrl.protocol + "//", 
+            parsedUrl.host, 
+            parsedUrl.pathname.slice(1), 
+            parsedUrl.search.slice(1)
+        ]
+    } catch {
         throw new TypeError(`Invalid URL was provided: ${url}`)
     }
 }
 
-function showUsage(cmd, module) {//flags, router) {
+function showUsage(cmd, module) {
     showUsageHeadline(cmd)
     if (module?.flags) showUsageFlags(module.flags)
     if (module?.router) showUsageRouter(module.router)
@@ -231,15 +194,15 @@ function showUsageRouter(router) {
     const cmds = Object.entries(router)
     if (cmds.length > 0) {
         console.info(`\nSUBCOMMANDS:`)
-        const maxLength = cmds.map(cmd => cmd[0].length).reduce((prev, curr) => curr > prev ? curr : prev)
+        const maxLength = Math.max(...cmds.map(([cmd]) => cmd.length))
         cmds.forEach(cmd => {
             console.info("  ", `${cmd[0]}${" ".repeat(maxLength - cmd[0].length)}`, "  ", cmd[1].hint)
         })
     }
 }
 
-function showUsageError(cmd, subcmd, module, error) { // flags, params, options, error) {
-    showUsageSubcommand(cmd, subcmd, module, error) // flags, params, options)
+function showUsageError(cmd, subcmd, module, error) {
+    showUsageSubcommand(cmd, subcmd, module, error) 
     if (error) {
         console.info(`\nERROR:`)
         console.error(error?.stack?.split('\n')[0] || error)
@@ -250,9 +213,7 @@ function showUsageEnvars(envars) {
     envars = Object.entries(envars)
     if (envars.length > 0) {
         console.info(`\nENVARS:`)
-        const maxWidth = envars
-            .map(([envar,]) => envar.length)
-            .reduce((prev, curr) => curr > prev ? curr : prev)
+        const maxWidth = Math.max(...envars.map(([envar]) => envar.length))
         envars.forEach(([envar, hint]) => {
             if (envar.toUpperCase().indexOf("KEY") < 0 && process.env[envar]) {
                 console.info("  ", `${yellow(envar.toUpperCase())}${" ".repeat(maxWidth - envar.length)}`, ` => Settled to "${myellow(process.env[envar])}"`)
@@ -267,9 +228,7 @@ function showUsageFlags(flags) {
     flags = Object.entries(flags)
     if (flags.length > 0) {
         console.info(`\nFLAGS:`)
-        const maxLength = flags
-            .map(flag => flag[1].param ? flag[1].param.length + flag[0].length + 3 : flag[0].length)
-            .reduce((prev, curr) => curr > prev ? curr : prev);
+        const maxLength = Math.max(...flags.map(([key, { param }]) => param ? key.length + param.length + 3 : key.length))
         flags.forEach(flag => {
             const str = `${flag[0]}${flag[1].param ? gray(` <${flag[1].param}>`) : ""}`
             console.info("  ", `--${str}${" ".repeat(maxLength - colorstrip(str).length)}`, "  ", flag[1].hint)
@@ -277,7 +236,7 @@ function showUsageFlags(flags) {
     }
 }
 
-function showUsageHeadline(cmd, subcmd, module) { // params, options) {
+function showUsageHeadline(cmd, subcmd, module) {
     console.info("USAGE:")
     if (subcmd) {
         let params = module.router[subcmd]?.params
@@ -318,8 +277,8 @@ function showUsageOptions(options) {
     }
 }
 
-function showUsageSubcommand(cmd, subcmd, module) { // flags, params, options) {
-    showUsageHeadline(cmd, subcmd, module) // params, options)
+function showUsageSubcommand(cmd, subcmd, module) {
+    showUsageHeadline(cmd, subcmd, module)
     if (module?.flags) showUsageFlags(module?.flags)
     if (module?.router[subcmd]?.options) showUsageOptions(module.router[subcmd]?.options)
     if (module?.envars) showUsageEnvars(module?.envars)
@@ -525,7 +484,6 @@ function traceHeader(headline, color = normal, indent = "", ) {
 function traceTable(records, options) {
     const stringify = (data, humanizers, index) => humanizers && humanizers[index] ? humanizers[index](data).toString() : data?.toString() ?? ""
     const max = (a, b) => a > b ? a : b
-    const min = (a, b) => a < b ? a : b
     const reduceMax = (numbers) => numbers.reduce((curr, prev) => prev > curr ? prev : curr, 0)
     if (!options) options = {}
     const indent = options?.indent || ""
@@ -537,7 +495,7 @@ function traceTable(records, options) {
         if (options?.headlines && options.headlines[index]) {
             maxWidth = max(maxWidth, colorstrip(options.headlines[index].replaceAll(':', '')).length)
         }
-        return min(maxWidth, maxColumnWidth)
+        return Math.min(maxWidth, maxColumnWidth)
     })
     let headline = options.widths.map(maxWidth => "─".repeat(maxWidth))
     console.info(`${indent}┌─${headline.join("─┬─")}─┐`)
@@ -593,4 +551,28 @@ function transpose(records, numColumns) {
         columns.push(records.map(row => row[index]))
     }
     return columns
+}
+
+module.exports = {
+    colors: {
+        cyan, gray, green, magenta, red, white, yellow, normal,
+        lcyan, lgray, lgreen, lmagenta, lyellow,
+        mcyan, mgreen, mmagenta, mred, myellow,
+    },
+    colorstrip, commas, whole_wits, toFixedTrunc, fromNanowits,
+    countLeaves,
+    deleteExtraFlags, extractFromArgs,
+    fromHexString, isHexString, isHexStringOfLength, toHexString,
+    parseURL, ipIsPrivateOrLocalhost,
+    showUsage, showUsageError, showUsageSubcommand, showVersion,
+    toolkitRun,
+    toUpperCamelCase, toUtf8Array, utf8ArrayToStr,
+    prompt, prompter, 
+    traceChecklists, traceHeader, traceTable,
+    wildcards: {
+        isWildcard,
+        getWildcardsCountFromString,
+        replaceWildcards,
+        spliceWildcard,
+    },
 }

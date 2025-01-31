@@ -4,14 +4,14 @@
 module.exports = {
     flags: {
         start: { 
-            hint: "Epoch from which search starts (default: -2048)",
+            hint: "Epoch from which search starts (default: -2048).",
             param: ":epoch",
         },
         end: {
-            hint: "Epoch on which search ends (default: -1)",
+            hint: "Epoch on which search ends (default: -1).",
             param: ":epoch",
         },
-        limit: { hint: "Limit output records (default: 100)", param: ":number", },
+        limit: { hint: "Limit output records (default: 100).", param: ":number", },
     },
     router: {
         miners: {

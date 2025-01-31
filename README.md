@@ -18,11 +18,11 @@ const { RadonRequest, Wallet, Utils } from 'witnet-toolkit'
 const Witnet = require("witnet-toolkit")
 
 // Example 1: CCDR for getting transaction details on a foreign EVM-chain
-var ccdr = Witnet.RadonRetrievals.CrossChainRPC({
+const ccdr = Witnet.RadonRetrievals.CrossChainRPC({
     rpc: Witnet.RadonRetrievals.RPCs.ETH.getTransactionByHash("\\1\\"),
     script: Witnet.RadonScript().parseJSONMap()
 })
-var template = new Witnet.RadonTemplate({
+const template = new Witnet.RadonTemplate({
     retrieve: ccdr.spawnRetrievals(
         "https://polygon-amoy.gateway.tenderly.co",
         "https://rpc.ankr.com/polygon_amoy",
@@ -31,35 +31,35 @@ var template = new Witnet.RadonTemplate({
     aggregate: Witnet.RadonReducers.Mode(),
     tally: Witnet.RadonReducers.Mode(),
 });
-var request = template.buildRequestModal("0xfc3c17407f788c075483b0ad5383b1d5e6fbdc7ba500b08397c80423755c5eba")
+const request = template.buildRequestModal("0xfc3c17407f788c075483b0ad5383b1d5e6fbdc7ba500b08397c80423755c5eba")
 
 // Example 2: Compose a regular randomness request
-var request = new Witnet.RadonRequest({
+const request = new Witnet.RadonRequest({
     retrieve: Witnet.RadonRetrievals.RNG(),
     tally: Witnet.RadonReducers.ConcatHash(),
 }) 
 
 // Example 3: Leverage a pre-built price feed from the WF's pricefeeds repository
 const assets = require('witnet-feeds')
-var request = assets.legacy.requests.price.crypto.WitOracleRequestPriceAvaxUsd6;
+const request = assets.legacy.requests.price.crypto.WitOracleRequestPriceAvaxUsd6;
 
 // Example 4: Get WSB addresses on "conflux:core:mainnet"
-var addresses = assets.getAddresses("conflux:core:mainnet")
+const addresses = assets.getAddresses("conflux:core:mainnet")
 
 // Example 5: Serialize a RadonRequest into a hexified buffer
-var hexString = request.toBytecode()
+const hexString = request.toBytecode()
 
 // Example 6: Convert RadonRequest into Witnet-compliant protobuf object
-var protobuf = request.toProtobuf()
+const protobuf = request.toProtobuf()
 
 // Example 7: Stringify a Witnet-compliant script
 console.info(request.retrieve[0].script.toString())
 
 // Example 8: Decode hexified bytecode into a RadonRequest
-var request = Witnet.RadonRequest.from(hexString)
+const request = Witnet.RadonRequest.from(hexString)
 
 // Example 9: Get result of dry running a RadonRequest, locally
-var result = JSON.parse(await request.execDryRun())
+const result = JSON.parse(await request.execDryRun())
 ```
 #### Interacting with the Witnet network
 #### Sending a Data Request to the Witnet network
@@ -67,9 +67,9 @@ var result = JSON.parse(await request.execDryRun())
 ---
 ## CLI binaries
 
-### Optional environment variables
+### Optional environment constiables
 ```
-WITNET_TOOLKIT_MASTER_KEY=
+WITNET_TOOLKIT_WALLET_KEY=
 WITNET_TOOLKIT_PROVIDER_URL=
 WITNET_TOOLKIT_REPORTER_URL=
 ```

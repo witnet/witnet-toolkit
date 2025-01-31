@@ -3,7 +3,7 @@ const qrcode = require('qrcode-terminal');
 const helpers = require("../helpers")
 const toolkit = require("../../../dist");
 
-const { cyan, gray, green, red, yellow, white, mcyan, mgreen, mmagenta, mred, myellow, lcyan, lyellow, } = helpers.colors
+const { cyan, gray, green, red, yellow, white, magenta, mcyan, mgreen, mmagenta, mred, myellow, lcyan, lgreen, lyellow, } = helpers.colors
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /// CLI SUBMODULE CONSTANTS ===========================================================================================
@@ -14,21 +14,15 @@ module.exports = {
     },
     flags: {
         nodes: {
-            hint: "Private URLs to your node's HTTP/JSON endpoints, other than default",
+            hint: "Private URLs to your node's HTTP/JSON endpoints, other than default.",
             param: "JSON_HTTP_URL[;..]",
         },
     },
     router: {
-        // addresses: {
-        //     hint: "Show node farm addresses."
-        // },
         authorize: {
             hint: "Generate stake authorization codes for given withdrawer.",
             params: "WITHDRAWER",
         },
-        // balances: {
-        //     hint: "Show available Wits on nodes.",
-        // },
         masterKeys: {
             hint: "Export nodes' master keys.",
         },
@@ -39,19 +33,19 @@ module.exports = {
             hint: "List and manage node farm's peers.",
             options: {
                 add: {
-                    hint: "Add new peer addresses for the nodes to try to connect to",
+                    hint: "Add new peer addresses for the nodes to try to connect to.",
                     param: "P2P_IP:PORT[;..]",
                 },
                 "clear-buckets": {
-                    hint: "Clear out all peering buckets",
+                    hint: "Clear out all peering buckets.",
                 },
                 reset: {
-                    hint: "Clear all peers from the buckets and initialize to those in config",
+                    hint: "Clear all peers from the buckets and initialize to those in config.",
                 },
             },
         },
         rankings: {
-            hint: "Sort identities by their current mining power ranking",
+            hint: "Sort identities by their current mining power ranking.",
             options: {
                 witnessing: { hint: "Sort by witnessing power ranking instead.", },
             },
@@ -110,8 +104,7 @@ async function authorize(flags = {}, args) {
                 authorization.signature.signature.Secp256k1.der 
             ])
         if (authCodes.length === 1) {
-            const authorization = authCodes[0][2]
-            const validator = authCodes[0][1]
+            const [_, validator, authorization] = authCodes[0]
             console.info(
                 `> Authorization code from ${
                     mcyan(validator)
@@ -137,10 +130,10 @@ async function balances(flags = {}) {
             ...(balance instanceof Error 
                 ? new Array(4).fill(gray("n/a"))
                 : [
-                    gray(Math.floor(balance.locked / 10 ** 9)),
-                    yellow(Math.floor(balance.staked / 10 ** 9)),
-                    myellow(Math.floor(balance.unlocked / 10 ** 9)),
-                    lyellow(Math.floor((balance.locked + balance.staked + balance.unlocked) / 10 ** 9)),
+                    gray(helpers.fromNanowits(balance.locked)),
+                    yellow(helpers.fromNanowits(balance.staked)),
+                    myellow(helpers.fromNanowits(balance.unlocked)),
+                    lyellow(helpers.fromNanowits(balance.locked + balance.staked + balance.unlocked)),
                 ]
             ),
         ]), {

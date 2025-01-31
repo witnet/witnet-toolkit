@@ -15,11 +15,11 @@ module.exports = {
     },
     flags: {
         provider: {
-            hint: "Public Wit/Oracle JSON-RPC provider, other than default",
+            hint: "Public Wit/Oracle JSON-RPC provider, other than default.",
             param: ":http-url",
         },
         verbose: {
-            hint: "Outputs detailed information"
+            hint: "Outputs detailed information."
         },
     },
     router: {
@@ -42,17 +42,17 @@ module.exports = {
             hint: "Search for in-flight or recently solved data request transactions.",
             params: "BYTECODE | RAD_HASH | DDR_HASH",
             options: {
-                limit: { hint: "Limit output records (default: 100)", param: "LIMIT", },
+                limit: { hint: "Limit output records (default: 100).", param: "LIMIT", },
                 since: {
-                    hint: "Number of past epochs to search for (default: 256; max: 2048)",
+                    hint: "Number of past epochs to search for (default: 256; max: 2048).",
                     param: "EPOCH|MINUS_EPOCHS"
                 },
                 "min-unitary-reward": {
-                    hint: "Filters out those providing less unitary reward than specified",
+                    hint: "Filters out those providing less unitary reward than specified.",
                     param: "NANOWITS"
                 },
                 "min-witnesses": { 
-                    hint: "Filters out those solved with less than specified witnesses",
+                    hint: "Filters out those solved with less than specified witnesses.",
                     param: "NUM_WITNESSES"
                 },
             },
@@ -78,7 +78,7 @@ module.exports = {
             params: "WIT_ADDRESS",
             options: {
                 "smallest-first": {
-                    hint: "Outputs smallest UTXOs first (default: false)",
+                    hint: "Outputs smallest UTXOs first (default: false).",
                 },
             }
         }
@@ -100,10 +100,10 @@ async function balance(flags = {}, args) {
     const balance = await provider.getBalance(pkh)
     const records = []
     records.push([ 
-        Math.floor(balance.locked / 10 ** 9), 
-        Math.floor(balance.staked / 10 ** 9), 
-        Math.floor(balance.unlocked / 10 ** 9),
-        Math.floor((balance.locked + balance.staked + balance.unlocked) / 10 ** 9)
+        helpers.fromNanowits(balance.locked),
+        helpers.fromNanowits(balance.staked),
+        helpers.fromNanowits(balance.unlocked),
+        helpers.fromNanowits(balance.locked + balance.staked + balance.unlocked)
     ])
     helpers.traceTable(records, {
         headlines: [ "Locked (Wits)", "Staked (Wits)", "Unlocked (Wits", "BALANCE (Wits)" ],
@@ -166,7 +166,6 @@ async function utxos(flags = {}, args = [], options = {}) {
     const now = Math.floor(Date.now() / 1000)
     const provider = new toolkit.Provider(flags?.provider)
     let utxos = await provider.getUtxoInfo(args[0], options["smallest-first"] || false)
-    const totalUtxos = utxos.length
     let totalBalance = 0
     if (!flags?.verbose) {
         utxos = utxos
@@ -179,7 +178,7 @@ async function utxos(flags = {}, args = [], options = {}) {
                 ]
             });
         helpers.traceTable(utxos, {
-            headlines: [ "UTXOs", "Value (Nanowits)", ],
+            headlines: [ ":UTXOs", "Value (Nanowits)", ],
             humanizers: [ , helpers.commas ],
             colors: [ , myellow, ]
         })
@@ -189,15 +188,15 @@ async function utxos(flags = {}, args = [], options = {}) {
                 totalBalance += utxo.value
                 return [
                     utxo.output_pointer,
+                    utxo.timelock > now ? gray(moment.unix(now - utxo.timelock).toNow(true)) : "",
                     utxo.timelock > now ? gray(helpers.commas(utxo.value)) : myellow(helpers.commas(utxo.value)),
-                    utxo.timelock > now ? gray(moment.unix(now - utxo.timelock).toNow(true)) : ""
                 ]
             });
         helpers.traceTable(utxos, {
-            headlines: [ "UTXOs", "Value (Nanowits)", "Time lock", ],
+            headlines: [ ":UTXOs", "Time lock", "Value (Nanowits)", ],
         })
     }
-    console.info(`^ Listed ${utxos.length} out of ${totalUtxos} UTXOs: ${lyellow(helpers.whole_wits(totalBalance, 2))}`)
+    console.info(`^ Showing ${utxos.length} UTXOs: ${lyellow(helpers.whole_wits(totalBalance, 2))}.`)
 }
 
 async function validators(flags = {}, args = []) {
