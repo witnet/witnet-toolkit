@@ -3,20 +3,58 @@ const helpers = require("../helpers")
 
 import { AxiosHeaders } from "axios"
 import { 
-    Balance, Block, ConsensusConstants, DataRequestReport, DataRequestTransaction, Epoch, Hash,
+    Balance, Balance2, Block, ConsensusConstants, DataRequestReport, DataRequestTransaction, Epoch, Hash,
     Mempool, Methods, PeerAddr, Priorities, ProtocolInfo, PublicKeyHashString, 
-    Transaction, SignalingInfo, StakeDelegate, StakeEntry, Stake, StakingCapability, StakingPower, 
-    Superblock, SyncStatus, ValueTransferTransaction, UtxoInfo, Nanowits,
+    Transaction, SignalingInfo, StakeEntry, StakingCapability, StakingPower, 
+    Superblock, SyncStatus, ValueTransferTransaction, UtxoInfo, UtxoMetadata,
 } from "./types"
+
+export type QueryStakes = {
+    filter?: QueryStakesFilter,
+    params?: QueryStakesParams,
+}
+
+export type QueryStakesFilter = {
+    validator?: PublicKeyHashString,
+    withdrawer?: PublicKeyHashString,
+}
+
+export type QueryStakesParams = {
+    distinct?: boolean,
+    limit?: number,
+    offset?: number,
+    order?: QueryStakesOrderBy,
+    since?: number,
+}
+
+export type QueryStakesOrderBy = {
+    by: QueryStakesOrderByOptions,
+    reverse?: boolean,
+}
+
+export enum QueryStakesOrderByOptions {
+    Coins = "coins",
+    Nonce = "nonce",
+    Mining = "mining",
+    Witnessing = "witnessing",
+}
+
+export type QueryStakingPowers = {
+    distinct?: boolean,
+    limit?: number,
+    offset?: number,
+    orderBy?: StakingCapability,
+}
 
 export interface IProvider {
     blocks(since: Epoch, limit: number): Promise<Array<[number, Hash/*, PublicKeyHashString*/]>>;
     constants(): Promise<ConsensusConstants>;
     holders(limit?: number): Promise<Record<PublicKeyHashString, Balance2>> 
     mempool(): Promise<Mempool>;
-    powers(params?: QueryPowersParams): Promise<Array<StakingPower>>;
+    powers(params?: QueryStakingPowers): Promise<Array<StakingPower>>;
     priorities(): Promise<Priorities>;
     protocolInfo(): Promise<ProtocolInfo>;
+    stakes(params: QueryStakes): Promise<Array<StakeEntry>>; 
     syncStatus(): Promise<any>;
     wips(): Promise<SignalingInfo>;
 
@@ -24,8 +62,6 @@ export interface IProvider {
     getBlock(blockHash: Hash, showTransactionHashes?: boolean): Promise<Block>;
     getDataRequest(drTxHash: Hash): Promise<DataRequestReport>;
     getTransaction(txHash: Hash): Promise<Transaction>;
-    getStake(withdrawer: PublicKeyHashString): Promise<Stake>;
-    getStakingPowers(pkh: PublicKeyHashString, capability: StakingCapability): Promise<Array<StakingPower>>;
     getSuperblock(epoch: Epoch): Promise<Superblock>;
     getUtxoInfo(pkh: PublicKeyHashString, smallestFirst?: boolean): Promise<Array<UtxoMetadata>>;
         
@@ -155,35 +191,17 @@ export class Provider implements IProvider {
     }
     
     /// Get a full list of staking powers ordered by rank
-    public async powers(params = { capability: StakingCapability.Mining }): Promise<Array<StakingPower>> {
-        return this
-            .callApiMethod<Array<StakingPower>>(Methods.QueryStakingPowers, [params.capability, ])
-            .then((powers: Array<StakingPower>) => {
-                return powers.map((entry, index) => {
-                    entry.rank = index + 1
-                    return entry
-                })
-            })
+    public async powers(query?: QueryStakingPowers): Promise<Array<StakingPower>> {
+        return this.callApiMethod<Array<StakingPower>>(Methods.QueryStakingPowers, query)
     }
     
     /// Get a full list of current stake entries  Query the amount of nanowits staked by an address.
-    public async stakers(): Promise<Array<StakeEntry>> {
-        return this
-            .callApiMethod<Array<StakeEntry>>(Methods.QueryStakes, {
-                all: true,
-            })
-            .then((stakers: Array<StakeEntry>) => {
-                return stakers.sort((a, b) => {
-                    if (a.value.coins < b.value.coins) return 1;
-                    else if (a.value.coins > b.value.coins) return -1;
-                    else return 0;
-                })
-            })
-        
+    public async stakes(query?: QueryStakes): Promise<Array<StakeEntry>> {
+        return this.callApiMethod<Array<StakeEntry>>(Methods.QueryStakes, query)
     }
     
     /// Get node status
-    public async syncStatus(): Promise<SyncStatus> {
+    public async syncStatus(): Promise<any> {
         return this.callApiMethod<SyncStatus>(Methods.SyncStatus);
     }
     

@@ -1,18 +1,15 @@
 import { RadonRequest, RadonSLA, } from "../radon"
-import { Node, } from "./node"
 import { IProvider, } from "./provider"
 import { Reporter, } from "./reporter"
 
 import { 
-    Balance, 
+    Balance2, 
     Hash, 
     HexString,
     PublicKeyHashString, 
-    Stake, 
-    StakingCapability, 
-    StakingPower, 
-    UtxoInfo, Nanowits,
+    Nanowits,
     u64,
+    UtxoMetadata,
 } from "./types"
 
 export type ValueTransferTransactionOptions = {
@@ -37,10 +34,8 @@ export type UnstakeTransactionOptions = {
 
 export interface IWallet {
     getPkh(path?: string): PublicKeyHashString;
-    getBalance(path?: string): Promise<Balance>;
-    getStake(path?: string): Promise<Stake>;
-    getStakingPowers(path?: string, capability?: StakingCapability): Promise<Array<StakingPower>>;
-    getUtxoInfo(path?: string): Promise<UtxoInfo>;
+    getBalance(path?: string): Promise<Balance2>;
+    getUtxoInfo(path?: string): Promise<Array<UtxoMetadata>>;
     sendDataRequest(request: RadonRequest, sla: RadonSLA): Promise<Hash>;
     sendValueTransfer(value: Nanowits, to: PublicKeyHashString, options?: ValueTransferTransactionOptions): Promise<Hash>;
     sendStakeTransaction(value: Nanowits, authCode: HexString, options?: StakeTransactionOptions): Promise<Hash>;
@@ -48,9 +43,6 @@ export interface IWallet {
 }
 
 export class Wallet implements IWallet {
-    public static async from(node: Node) {
-        return new Wallet(await node.getMasterKey(), node)
-    }
     readonly coinbase: PublicKeyHashString
     readonly provider: IProvider
     // private sk: string
@@ -58,22 +50,17 @@ export class Wallet implements IWallet {
         // this.sk = sk
         if (!provider) this.provider = new Reporter() 
         else this.provider = provider
-        this.coinbase ="wit"
+        this.coinbase ="wit" + _sk
     }
     public getPkh(_path?: string): PublicKeyHashString {
         // todo
         return ""
     }
-    public getBalance(path?: string): Promise<Balance> {
+    public getBalance(path?: string): Promise<Balance2> {
         return this.provider.getBalance(this.getPkh(path))
     }
-    public getStake(path?: string): Promise<Stake> {
-        return this.provider.getStake(this.getPkh(path))
-    }
-    public getStakingPowers(path?: string, capability = StakingCapability.Mining): Promise<Array<StakingPower>> {
-        return this.provider.getStakingPowers(this.getPkh(path), capability)
-    }
-    public getUtxoInfo(path?: string): Promise<UtxoInfo> {
+    
+    public getUtxoInfo(path?: string): Promise<Array<UtxoMetadata>> {
         return this.provider.getUtxoInfo(this.getPkh(path))
     }
     sendDataRequest(_request: RadonRequest, _sla: RadonSLA): Promise<Hash> {
