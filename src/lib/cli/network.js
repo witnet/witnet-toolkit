@@ -2,7 +2,7 @@ const helpers = require("../helpers")
 const toolkit = require("../../../dist");
 
 const FLAGS_LIMIT_MAX = 2048
-const FLAGS_LIMIT_DEFAULT = 32
+const FLAGS_LIMIT_DEFAULT = 64
 const OPTIONS_DEFAULT_SINCE = -2048
 
 const { white, gray, lyellow, mgreen, myellow, yellow, } = helpers.colors;
@@ -16,19 +16,19 @@ module.exports = {
     },
     flags: {
         limit: { 
-            hint: `Limits number of output records (default: 64)`, 
+            hint: `Limits number of output records (default: 64).`, 
             param: "LIMIT", 
         },
         offset: {
-            hint: `Skips first records as found on server side (default: 0)`,
+            hint: `Skips first records as found on server side (default: 0).`,
             param: "SKIP",
         },
         provider: {
-            hint: "Public Wit/Oracle JSON-RPC provider, other than default",
+            hint: "Public Wit/Oracle JSON-RPC provider, other than default.",
             param: "PROVIDER_URL",
         },
         verbose: {
-            hint: "Outputs detailed information"
+            hint: "Outputs detailed information."
         },
     },
     router: {
@@ -36,7 +36,7 @@ module.exports = {
             hint: "List recently validated blocks.",
             options: {
                 since: {
-                    hint: "Since the specified epoch (default: -<LIMIT>-2)",
+                    hint: "Since the specified epoch (default: -<LIMIT>-2).",
                     param: "EPOCH|MINUS_EPOCHS",
                 },
             },
@@ -53,11 +53,11 @@ module.exports = {
             params: '"vtt" | "drt" | "st" | "ut"',
             options: {
                 eti: {
-                    hint: "Expected time before inclusion (default: 60 seconds)",
+                    hint: "Expected time before inclusion (default: 60 seconds).",
                     param: "ETI_SECONDS",
                 },
                 weight: { 
-                    hint: "Assuming this transaction weight (default: 1)", 
+                    hint: "Assuming this transaction weight (default: 1).", 
                     param: "TX_WEIGHT",
                 },
             },
@@ -66,25 +66,25 @@ module.exports = {
             hint: "List identities holding Wits within the specified range.",
             options: { 
                 "min-balance": { 
-                    hint: "Having at least this amount of unlocked Wits (default: 1 Wit)",
+                    hint: "Having at least this amount of unlocked Wits (default: 1 Wit).",
                     param: "WITS",
                 },
                 "max-balance": {
-                    hint: "Having at most this amount of unlocked Wits",
+                    hint: "Having at most this amount of unlocked Wits.",
                     param: "WITS",
                 },
             },
         },
         knownPeers: {
-            hint: "Get a full list of peers as known by the Wit/Oracle RPC provider(s)",
+            hint: "Get a full list of peers as known by the Wit/Oracle RPC provider(s).",
         },
         mempool: {
             hint: "Dump current transactions mempool.",
             params: '["vtt" | "drt" | "st" | "ut"]',
             options: {
-                count: { hint: "Just count the number of entries (ignoring limit)" },
+                count: { hint: "Just count the number of entries (ignoring limit)." },
                 offset: {
-                    hint: "Skips first matching entries (default: 0)",
+                    hint: "Skips first matching entries (default: 0).",
                     param: "OFFSET",
                 },
             },
@@ -92,8 +92,8 @@ module.exports = {
         powers: {
             hint: "List validation identities ordered by their current mining power.",
             options: {
-                distinct: { hint: "Include only the first appearance per validator", },
-                witnessing: { hint: "Order by witnessing power instead", },
+                distinct: { hint: "Include only the first appearance per validator.", },
+                witnessing: { hint: "Order by witnessing power instead.", },
             },
         },
         provider: {
@@ -103,7 +103,7 @@ module.exports = {
             hint: "List distinct identities that have lately validated at least one block.",
             options: {
                 since: {
-                    hint: "Since the specified epoch (default: -2048)",
+                    hint: "Since the specified epoch (default: -2048).",
                     param: "MINUS_EPOCHS",
                 },
             },
@@ -111,8 +111,8 @@ module.exports = {
         stakers: {
             hint: "List active stake entries at present time.",
             options: {
-                validator: { hint: "Filter by validator address", param: "WIT_ADDRESS", },
-                withdrawer: { hint: "Filter by withdrawer address", param: "WIT_ADDRESS", },
+                validator: { hint: "Filter by validator address.", param: "WIT_ADDRESS", },
+                withdrawer: { hint: "Filter by withdrawer address.", param: "WIT_ADDRESS", },
             },
         },
         "stats*": {
@@ -125,12 +125,12 @@ module.exports = {
             hint: "Report the sync status of the network's Wit/Oracle RPC provider being used.",
         },
         versions: {
-            hint: "Known protocol versions and which one is currently live.",   
+            hint: "List known protocol versions and which one is currently live.",   
         },
         wips: {
             hint: "Show currently activated WIPs on the network.",
             options: {
-                pending: { hint: "Only shows pending upgrades, if any", },
+                pending: { hint: "Only shows pending upgrades, if any.", },
             },
         },
     },
@@ -146,10 +146,9 @@ module.exports = {
 /// CLI SUBMODULE COMMANDS ============================================================================================
 
 async function blocks(flags = {}, _args = [], options = {}) {
-    flags.limit = helpers.min(parseInt(flags?.limit) || FLAGS_LIMIT_DEFAULT, FLAGS_LIMIT_MAX)
-    console.log(flags)
+    flags.limit = Math.min(parseInt(flags.limit) || FLAGS_LIMIT_DEFAULT, FLAGS_LIMIT_MAX)
     const provider = new toolkit.Provider(flags?.provider)
-    // const records = await helpers.prompter(provider.blocks(options?.from || - flags.limit, flags.limit))
+    // todo: use prompter?
     const records = await provider.blocks(parseInt(options?.since) || - flags.limit - 2, flags.limit)
     if (records.length > 0) {
         helpers.traceTable(
@@ -180,9 +179,9 @@ async function constants(flags = {}) {
 }
 
 async function holders(flags = {}, _args = [], options = {}) {
-    flags.limit = helpers.min(parseInt(flags?.limit) || FLAGS_LIMIT_DEFAULT, FLAGS_LIMIT_MAX);
+    flags.limit = Math.min(parseInt(flags.limit) || FLAGS_LIMIT_DEFAULT, FLAGS_LIMIT_MAX);
     const provider = new toolkit.Provider(flags?.provider)
-    let records = Object.entries(await helpers.prompter(provider.holders(
+    const records = Object.entries(await helpers.prompter(provider.holders(
         options["min-balance"] ? options["min-balance"] * 10 ** 9 : 1000000,
         options["max-balance"] ? options["max-balance"] * 10 ** 9 : null,
     )))
@@ -191,24 +190,42 @@ async function holders(flags = {}, _args = [], options = {}) {
         records.slice(0, flags.limit).map(([ address, balance ], index) => [ 
             index + 1,
             address, 
-            Math.floor(balance.locked / 10 ** 9),
-            Math.floor(balance.staked / 10 ** 9),
-            Math.floor(balance.unlocked / 10 ** 9),
-            Math.floor((balance.locked + balance.staked + balance.unlocked) / 10 ** 9),
+            ...(flags?.verbose ? [
+                helpers.fromNanowits(balance.locked),
+                helpers.fromNanowits(balance.staked),
+                helpers.fromNanowits(balance.unlocked),
+            ] : []),
+            helpers.fromNanowits(balance.locked + balance.staked + balance.unlocked),
         ]), {
-            headlines: [ "RANK", "HOLDERS", "Locked (Wits)", "Staked (Wits)", "Unlocked (Wits)", "BALANCE (Wits)", ],
+            headlines: [ 
+                "RANK", "HOLDERS", 
+                ...(flags?.verbose ? [
+                    "Locked (Wits)", 
+                    "Staked (Wits)", 
+                    "Unlocked (Wits)", 
+                ] : []),
+                "BALANCE (Wits)", 
+            ],
             humanizers: [ ,, helpers.commas, helpers.commas, helpers.commas, helpers.commas ],
-            colors: [ , mgreen, gray, yellow, myellow, lyellow, ],
+            colors: [ 
+                , mgreen, 
+                ...(flags?.verbose ? [
+                    gray, 
+                    yellow, 
+                    myellow, 
+                ] : []),
+                lyellow, 
+            ],
         }
     )
     if (flags.limit < totalRecords) {
-        console.info(`^ Listed ${helpers.min(flags.limit, totalRecords)} out of ${totalRecords} records.`)
+        console.info(`^ Listed ${Math.min(flags.limit, totalRecords)} out of ${totalRecords} records.`)
     }
 }
 
 async function knownPeers(flags = {}) {
     if (!flags) flags = {}
-    flags.limit = parseInt(flags?.limit) || FLAGS_LIMIT_DEFAULT
+    flags.limit = parseInt(flags.limit) || FLAGS_LIMIT_DEFAULT
     const provider = new toolkit.Provider(flags?.provider)
     const knownPeers = await provider.knownPeers()
     console.info(knownPeers)
@@ -284,7 +301,7 @@ async function senate(flags = {}, _args = [], options = {}) {
     const provider = new toolkit.Provider(flags?.provider)
     const params = {
         distinct: true,
-        limit: helpers.min(parseInt(flags.limit) || FLAGS_LIMIT_DEFAULT, FLAGS_LIMIT_MAX),
+        limit: Math.min(parseInt(flags.limit) || FLAGS_LIMIT_DEFAULT, FLAGS_LIMIT_MAX),
         offset: parseInt(flags?.offset || 0),
         order: { by: "mining", },
         since:  - Math.abs(parseInt(options?.since) || OPTIONS_DEFAULT_SINCE) - 1,
@@ -341,7 +358,7 @@ async function stakers(flags = {}, _args = [], options = {}) {
     const provider = new toolkit.Provider(flags?.provider)
     const query = {
         params: {
-            limit: helpers.min(parseInt(flags.limit) || FLAGS_LIMIT_DEFAULT, FLAGS_LIMIT_MAX),
+            limit: Math.min(parseInt(flags.limit) || FLAGS_LIMIT_DEFAULT, FLAGS_LIMIT_MAX),
             offset: parseInt(flags?.offset || 0),
         }
     }
@@ -411,7 +428,7 @@ async function supplyInfo(flags = {}) {
     const data = await reporter.supplyInfo()
     console.info(`> Supply info at epoch ${helpers.colors.white(helpers.commas(data.epoch))}:`)
     const records = []
-    records.push([ "Minted blocks", helpers.toFixedTrunc(100 * data.blocks_minted / data.epoch, 1) + " %" ])
+    records.push([ "Minted blocks", helpers.toFixedTrunc(100 * data.blocks_minted / (data.epoch - 1), 1) + " %" ])
     records.push([ "Minted rewards", helpers.whole_wits(data.blocks_minted_reward, 2) ])
     if (data.burnt_supply) {
         records.push([ "Burnt supply", helpers.whole_wits(data.burnt_supply, 2) ])
@@ -425,8 +442,7 @@ async function supplyInfo(flags = {}) {
     records.push([ "Circulating supply", helpers.whole_wits(data.current_unlocked_supply, 2) ])
     helpers.traceTable(records, {
         headlines: [ ":KPI", "VALUE", ],
-        colors: [helpers.colors.mgreen, helpers.colors.myellow, ],
-        // indent: "  ",
+        colors: [ helpers.colors.mgreen, helpers.colors.myellow, ],
     })
 }
 
@@ -462,10 +478,10 @@ async function versions(flags = {}) {
     ) {
         const records = Object.fromEntries(
             Object.entries(protocolInfo.all_checkpoints_periods)
-                .sort(([a,], [b, ]) => { if (a < b) return 1; else if (b > a) return -1; else return 0 })
+                .sort(([a], [b]) => b - a)
                 .map(([version, period]) => [ version, { period }])
         )
-        Object.entries(protocolInfo.all_versions.efv).map(([key, epoch]) => {
+        Object.entries(protocolInfo.all_versions.efv).forEach(([key, epoch]) => {
             if (records[key]) records[key].epoch = epoch
         })
         helpers.traceTable(Object.entries(records).map(([key, props]) => [ key, props?.epoch, props?.period, ]), {
@@ -478,7 +494,7 @@ async function versions(flags = {}) {
             colors: [ helpers.colors.mgreen, helpers.colors.white, helpers.colors.normal, ],
         })
     }
-    console.info(`> Current protocol version is ${helpers.colors.mgreen(protocolInfo.current_version)}.`)
+    console.info(`Current protocol version is ${helpers.colors.mgreen(protocolInfo.current_version)}.`)
 }
 
 
