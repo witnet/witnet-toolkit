@@ -55,7 +55,7 @@ module.exports = {
                 },
             },
         },
-        dryRun: {
+        dryrun: {
             hint: "Simulate resolution to a Radon artifact as if solved by the Wit/Oracle.",
             params: ["ASSET_SUFFIX | RAD_HASH | BYTECODE", "[ARGS ...]",],
             options: {
@@ -75,11 +75,6 @@ module.exports = {
                 },
             },
         },
-        pullData: {
-            hint: "Ask the Wit/Oracle to attest and forever store the resolution to a Radon artifact.",
-            params: [],
-            options: {},
-        },
     } : {
         decode: {
             hint: "Break down details of a Radon artifact.",
@@ -98,7 +93,7 @@ module.exports = {
                 },
             },
         },
-        dryRun: {
+        dryrun: {
             hint: "Simulate resolution to a Radon artifact as if solved by the Wit/Oracle.",
             params: "BYTECODE | RAD_HASH",
             options: {
@@ -123,7 +118,7 @@ module.exports = {
         },
     },
     subcommands: {
-        assets, init, check, decode, dryRun,
+        assets, init, check, decode, dryrun,
     }
 };
 
@@ -264,7 +259,7 @@ function decode(flags, args, options) {
 }
 /// -------------------------------------------------------------------------------------------------------------------
 
-async function dryRun(flags, args, options, settings) {
+async function dryrun(flags, args, options, settings) {
     if (args.length === 0) {
         throw "No Radon asset was specified."
     }
