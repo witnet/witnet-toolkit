@@ -25,13 +25,13 @@ Promise.all([
     win32: (arch) => `witnet_toolkit-${arch}-pc-windows-msvc.exe`,
     // TODO: detect armv7
     linux: (arch) => `witnet_toolkit-${arch}-unknown-linux-gnu${arch === "arm" ? "eabihf" : ""}`,
-    darwin: (arch) => `witnet_toolkit-${arch}-apple-darwin`,
+    darwin: (_arch) => `witnet_toolkit-x64_64-apple-darwin`,
   }
   const toolkitFileNames = {
     win32: (arch) => `witnet_toolkit-${version}-${arch}-pc-windows-msvc.exe`,
     // TODO: detect armv7
     linux: (arch) => `witnet_toolkit-${version}-${arch}-unknown-linux-gnu${arch === "arm" ? "eabihf" : ""}`,
-    darwin: (arch) => `witnet_toolkit-${version}-${arch}-apple-darwin`,
+    darwin: (_arch) => `witnet_toolkit-${version}-x86_64-apple-darwin`,
   }
   const archsMap = {
     arm64: 'aarch64',
