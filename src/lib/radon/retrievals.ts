@@ -1,9 +1,9 @@
 import { encode as cborEncode } from "cbor"
-const helpers = require("../helpers")
+const helpers = require("../../bin/helpers")
 
 import graphQlCompress from "graphql-query-compress"
 import { RadonAny, RadonScript } from "./types"
-import { JsonRPC } from "./ccdr"
+import { CrossChainRPC } from "./ccdr"
 
 /**
  * Precompiled Remote Procedure Calls that can be included within
@@ -52,7 +52,7 @@ export class RadonRetrieval {
         this.method = method
         if (specs?.url) {
             this.url = specs.url
-            if (!helpers.wildcards.isWildcard(specs.url)) {
+            if (!helpers.isWildcard(specs.url)) {
                 try {
                     let parts = helpers.parseURL(specs.url)
                     this.schema = parts[0]
@@ -66,10 +66,10 @@ export class RadonRetrieval {
         this.body = specs?.body
         if (specs?.script) this.script = new RadonScript(specs?.script)
         this.argsCount = Math.max(
-            helpers.wildcards.getWildcardsCountFromString(this?.url),
-            helpers.wildcards.getWildcardsCountFromString(this?.body),
-            ...Object.keys(this?.headers || {}).map(key => helpers.wildcards.getWildcardsCountFromString(key)) ?? [],
-            ...Object.values(this?.headers || {}).map(value => helpers.wildcards.getWildcardsCountFromString(value)) ?? [],
+            helpers.getWildcardsCountFromString(this?.url),
+            helpers.getWildcardsCountFromString(this?.body),
+            ...Object.keys(this?.headers || {}).map(key => helpers.getWildcardsCountFromString(key)) ?? [],
+            ...Object.values(this?.headers || {}).map(value => helpers.getWildcardsCountFromString(value)) ?? [],
             this.script?.argsCount() || 0,
         )
     }
@@ -88,11 +88,11 @@ export class RadonRetrieval {
             throw new TypeError(`RadonRetrieval: too may args passed: ${args.length} > ${this.argsCount}`)
         }
         return new RadonRetrieval(this.method, {
-            url: helpers.wildcards.replaceWildcards(this.url, args),
-            body: helpers.wildcards.replaceWildcards(this.body, args),
+            url: helpers.replaceWildcards(this.url, args),
+            body: helpers.replaceWildcards(this.body, args),
             headers: Object.fromEntries(Object.entries(this.headers || {}).map(([key, value]) => [
-                helpers.wildcards.replaceWildcards(key, args),
-                helpers.wildcards.replaceWildcards(value, args),
+                helpers.replaceWildcards(key, args),
+                helpers.replaceWildcards(value, args),
             ])),
             script: this.script?.replaceWildcards(...args),
         })
@@ -108,11 +108,11 @@ export class RadonRetrieval {
         }
         values.forEach(value => {
             _spawned.push(new RadonRetrieval(this.method, {
-                url: helpers.wildcards.spliceWildcard(this.url, 0, value, this.argsCount),
-                body: helpers.wildcards.spliceWildcard(this.body, 0, value, this.argsCount),
+                url: helpers.spliceWildcard(this.url, 0, value, this.argsCount),
+                body: helpers.spliceWildcard(this.body, 0, value, this.argsCount),
                 headers: Object.fromEntries(Object.entries(this.headers || {}).map(([headerKey, headerValue]) => [
-                    helpers.wildcards.spliceWildcard(headerKey, 0, value, this.argsCount),
-                    helpers.wildcards.spliceWildCard(headerValue, 0, value, this.argsCount),
+                    helpers.spliceWildcard(headerKey, 0, value, this.argsCount),
+                    helpers.spliceWildCard(headerValue, 0, value, this.argsCount),
                 ])),
                 script: this.script?.spliceWildcard(0, value)
             }))
@@ -120,16 +120,17 @@ export class RadonRetrieval {
         return _spawned
     }
 
-    public toJSON(): any {
+    public toJSON(humanize?: boolean): any {
+        const Kinds = [ "", "HTTP-GET", "RNG", "HTTP-POST", "HTTP-HEAD" ]
         let json: any = {
-            kind: Methods[this.method],
+            kind: Kinds[this.method] // humanize ? Methods[this.method] : this.method,
         }
         if (this.url) json.url = this.url
         if (this.headers) {
             json.headers = this.headers;
         }
         if (this.body) json.body = this.body
-        if (this.script) json.script = this.script.toString()
+        json.script = humanize ? this.script?.toString() : Array.from(helpers.fromHexString(this.script?.toBytecode() || '0x80'))
         return json
     }
 
@@ -254,25 +255,44 @@ export function GraphQLQuery (specs: {
     });
 };
 
-/**
- * Creates a Cross Chain RPC retrieval on top of a HTTP/POST request.
- * @param specs rpc: JsonRPC object encapsulating method and parameters, 
- *              script?: RadonScript to apply to returned value
- *              presets?: Map containing preset parameters (only on parameterized retrievals).
- */
-export function CrossChainRPC  (specs: {
-    rpc: JsonRPC,
-    script?: RadonAny
-}) {
-    return new RadonRetrieval(Methods.HttpPost, {
-        url: "\\0\\",
-        body: JSON.stringify({
-            jsonrpc: "2.0",
-            method: specs.rpc.method,
-            params: specs.rpc?.params,
-            id: 1,
-        }).replaceAll('\\\\', '\\'),
-        headers: { "Content-Type": "application/json;charset=UTF-8" },
-        script: specs?.script,
-    });
-};
+// /**
+//  * Creates a Cross Chain RPC retrieval on top of a HTTP/POST request.
+//  * @param specs rpc: JsonRPC object encapsulating method and parameters, 
+//  *              script?: RadonScript to apply to returned value
+//  *              presets?: Map containing preset parameters (only on parameterized retrievals).
+//  */
+// export function CrossChainRPC  (specs: {
+//     rpc: JsonRPC,
+//     script?: RadonAny
+// }) {
+//     return new RadonRetrieval(Methods.HttpPost, {
+//         url: "\\0\\",
+//         body: JSON.stringify({
+//             jsonrpc: "2.0",
+//             method: specs.rpc.method,
+//             params: specs.rpc?.params,
+//             id: 1,
+//         }).replaceAll('\\\\', '\\'),
+//         headers: { "Content-Type": "application/json;charset=UTF-8" },
+//         script: specs?.script,
+//     });
+// };
+
+export class RadonCCDR extends RadonRetrieval {
+    constructor (rpc: CrossChainRPC, script?: RadonAny) {
+        super(Methods.HttpPost, {
+            url: "\\0\\",
+            body: JSON.stringify({
+                jsonrpc: "2.0",
+                methods: rpc.method,
+                params: rpc?.params,
+                id: 1,
+            }).replaceAll('\\\\', '\\'),
+            headers: { "Content-Type": "application/json;charset=UTF-8" },
+            script
+        })
+    }
+    public isParameterized(): boolean {
+        return this.argsCount > 1
+    }
+}

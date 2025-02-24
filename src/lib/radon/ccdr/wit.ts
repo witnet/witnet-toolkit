@@ -1,9 +1,5 @@
-const helpers = require("../../helpers")
-
-import { 
-    Bytes32,
-    JsonRPC,
-} from ".";
+import { isHexStringOfLength, isWildcard } from "../../../bin/helpers"
+import { Bytes32, CrossChainRPC } from ".";
 
 export type WitAddress = string & {
     readonly WitAddress: unique symbol
@@ -15,13 +11,13 @@ export type WitAddress = string & {
  */
 export const getBalance = (address: WitAddress, simple?: boolean) => {
     if (
-        !helpers.wildcards.isWildcard(address) && (
+        !isWildcard(address) && (
             !address || typeof address !== "string" || address.length != 43 || !address.startsWith("wit")
         ) 
     ) {
         throw new EvalError("CCDR: WitGetBalance: invalid Witnet address");
     } else {
-        return new JsonRPC("getBalance", [ address, simple ]);
+        return new CrossChainRPC("getBalance", [ address, simple ]);
     }
 };
 
@@ -30,10 +26,10 @@ export const getBalance = (address: WitAddress, simple?: boolean) => {
  * @param blockHash The hash of the block to retrieve.
  */
 export const getBlockByHash = (blockHash: Bytes32) => {
-    if (!helpers.isHexStringOfLength(blockHash, 32) && !helpers.wildcards.isWildcard(blockHash)) {
+    if (!isHexStringOfLength(blockHash, 32) && !isWildcard(blockHash)) {
         throw new EvalError("CCDR: WitGetBlockByHash: invalid block hash value");
     } else {
-        return new JsonRPC("getBlock", [ blockHash ])
+        return new CrossChainRPC("getBlock", [ blockHash ])
     }
 }
 
@@ -42,7 +38,7 @@ export const getBlockByHash = (blockHash: Bytes32) => {
  * @param txHash Hash of the remote transaction.
  */
 export const getSupplyInfo = () => {
-    return new JsonRPC("getSupplyInfo");
+    return new CrossChainRPC("getSupplyInfo");
 }
 
 /**
@@ -50,10 +46,10 @@ export const getSupplyInfo = () => {
  * @param txHash The hash of the transaction to retrieve.
  */
 export const getTransactionByHash = (txHash: Bytes32) => {
-    if (!helpers.isHexStringOfLength(txHash, 32) && !helpers.wildcards.isWildcard(txHash)) {
+    if (!isHexStringOfLength(txHash, 32) && !isWildcard(txHash)) {
         throw new EvalError("CCDR: WitGetTransactionByHash: invalid transaction hash value");
     } else {
-        return new JsonRPC("getTransaction", [ txHash ])
+        return new CrossChainRPC("getTransaction", [ txHash ])
     }
 }
 
@@ -61,5 +57,5 @@ export const getTransactionByHash = (txHash: Bytes32) => {
  * Get Witnet node syncrhonization status.
  */
 export const syncStatus = () => {
-    return new JsonRPC("syncStatus");
+    return new CrossChainRPC("syncStatus");
 }

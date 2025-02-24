@@ -1,6 +1,23 @@
-import { RadonRetrieval } from "./retrievals"
+import { decode as cborDecode } from 'cbor'
+
+import {
+    execRadonBytecode,
+    fromHexString,
+    isHexString,
+    parseURL,
+    toHexString,
+    utf8ArrayToStr,
+} from "../../bin/helpers"
+
+import { sha256 } from "../crypto/utils"
+// import { decodeRadonScript } from "./utils"
+
+import { RadonFilter } from "./filters"
 import { RadonReducer, Mode } from "./reducers"
-import * as Utils from '../utils'
+import { RadonRetrieval } from "./retrievals"
+
+const protoBuf = require("protobufjs").Root.fromJSON(require("../../../witnet/witnet.proto.json"))
+const RADRequest = protoBuf.lookupType("RADRequest")
 
 export type Args = string[] | string[][];
 
@@ -40,9 +57,60 @@ class Class {
 }
 
 export class RadonRequest extends Class {   
-    
-    public static from(hexString: string) {
-        return Utils.decodeRadonRequest(hexString)
+   
+    /**
+     * Decodes a RadonRequest artifact out from a Protobuf-serialized bytecode.
+     * @param bytecode Radon request bytecode.
+     * @returns RadonRequest object.
+     */
+    public static fromBytecode(bytecode: any) {
+        let buffer
+        if (isHexString(bytecode)) {
+            buffer = fromHexString(bytecode)
+        } else if (bytecode instanceof Uint8Array) {
+            buffer = Buffer.from(bytecode)
+        } else if (bytecode instanceof Buffer) {
+            buffer = bytecode
+        } else {
+            throw new TypeError(`RadonRequest: unsupported bytecode format: ${bytecode}`)
+        }
+        const obj: any = RADRequest.decode(buffer)
+        const retrieve = obj.retrieve.map((retrieval: any) => {
+            const specs: any = {}
+            if (retrieval?.url) { specs.url = retrieval.url }
+            if (retrieval?.headers) {
+                specs.headers = retrieval.headers.map((stringPair: any) => [
+                    stringPair.left,
+                    stringPair.right
+                ])
+            }
+            if (retrieval?.body && retrieval.body.length > 0) {
+                specs.body = utf8ArrayToStr(Object.values(retrieval.body))
+            }
+            // if (retrieval?.script) specs.script = decodeRadonScript(toHexString(retrieval.script))
+            return new RadonRetrieval(retrieval.kind, specs)
+        })
+        const decodeFilter = (f: any) => {
+            if (f?.args && f.args.length > 0) return new RadonFilter(f.op, cborDecode(f.args))
+            else return new RadonFilter(f.op);
+        }
+        return new RadonRequest({
+            retrieve,
+            aggregate: new RadonReducer(obj.aggregate.reducer, obj.aggregate.filters?.map(decodeFilter)),
+            tally: new RadonReducer(obj.tally.reducer, obj.tally.filters?.map(decodeFilter))
+        })
+    }
+
+    public static fromCCDR(
+            ccdr: RadonRetrieval, 
+            providers: string[], 
+            args: string[],
+            tally?: RadonReducer
+        ): RadonRequest
+    {
+        // TODO: instanceof RadonCCDR
+        const template = RadonRequestTemplate.fromCCDR({ ccdr, providers, tally })
+        return template.buildRequestModal(...args)
     }
     
     constructor(specs: { 
@@ -61,30 +129,42 @@ export class RadonRequest extends Class {
             throw TypeError("RadonRequest: parameterized retrievals were passed")
         }
     }
+
+    protected _encode(): Buffer {
+        const payload = this.toProtobuf()
+        const errMsg = RADRequest.verify(payload)
+        if (errMsg) {
+            throw Error(errMsg);
+        } else {
+            const message = RADRequest.fromObject(payload);
+            return RADRequest.encode(message).finish()
+        }
+    }
     
     public async execDryRun(): Promise<string> {
-        return (await Utils.execDryRun(this.toBytecode(), '--json')).trim()
+        return (await execRadonBytecode(this.toBytecode(), '--json')).trim()
     }
     
     public radHash(): string {
-        return Utils.sha256(Utils.encodeRADRequest(this.toProtobuf()))//.slice(0, 40)
+        return toHexString(sha256(this._encode()))//.slice(0, 40)
     }
     
     public toBytecode(): string {
-        return Utils.toHexString(Utils.encodeRADRequest(this.toProtobuf()))
+        return toHexString(this._encode())//encodeRADRequest(this.toProtobuf()), true)
     }
 
-    public toJSON(): any {
+    public toJSON(humanize?: boolean): any {
         return {
-            retrieve: this.retrieve.map(retrieval => retrieval.toJSON()),
-            aggregate: this.aggregate.toJSON(),
-            tally: this.tally.toJSON(),
+            retrieve: this.retrieve.map(retrieval => retrieval.toJSON(humanize)),
+            aggregate: this.aggregate.toJSON(humanize),
+            tally: this.tally.toJSON(humanize),
+            ...(humanize ? {} : { time_lock: 0 }),
         }
     }
     
     public toProtobuf(): any {
         return {
-            time_lock: 0,
+            //timeLock: 0,
             retrieve: this.retrieve.map(retrieval => retrieval.toProtobuf()),
             aggregate: this.aggregate.toProtobuf(),
             tally: this.tally.toProtobuf(),
@@ -98,13 +178,42 @@ export class RadonRequest extends Class {
 
 export class RadonRequestTemplate extends Class {
     public readonly argsCount: number;
-    public readonly tests?: Record<string, Args>;
-    constructor(specs: { 
+    public readonly homogeneous: boolean;
+    public readonly samples?: Record<string, Args>;
+
+    public static fromCCDR(
+            specs: {
+                ccdr: RadonRetrieval, 
+                providers: string[], 
+                tally?: RadonReducer
+            }, 
+            samples?: Record<string, Args>,
+        ): RadonRequestTemplate
+    {
+        // TODO: instanceof RadonCCDR
+        if (specs.ccdr.argsCount < 2) {
+            throw TypeError(`RadonRequestTemplate.fromCCDR: requires parameterized CCDR.`)
+        }
+        specs.providers.forEach(provider => {
+            const [schema, ] = parseURL(provider)
+            if (!schema.startsWith("http://") && !schema.startsWith("https://")) {
+                throw TypeError(`RadonRequestTemplate.fromCCDR: invalid provider: ${provider}`)
+            }
+        })
+        return new RadonRequestTemplate({
+            retrieve: specs.ccdr.spawnRetrievals(...specs.providers),
+            aggregate: Mode(),
+            tally: specs.tally || Mode(),
+        }, samples)
+    }
+    
+    constructor(
+        specs: { 
             retrieve: RadonRetrieval | RadonRetrieval[], 
             aggregate?: RadonReducer, 
             tally?: RadonReducer,
         },
-        tests?: Record<string, Args>
+        samples?: Record<string, Args>
     ) {
         const retrieve = Array.isArray(specs.retrieve) ? specs.retrieve as RadonRetrieval[] : [ specs.retrieve ]
         super({
@@ -116,27 +225,28 @@ export class RadonRequestTemplate extends Class {
         if (this.argsCount == 0) {
             throw TypeError("RadonRequestTemplate: no parameterized retrievals were passed")
         }
-        if (tests) {
-            Object.keys(tests).forEach(test => {
-                let testArgs: Args = Object(tests)[test]
-                if (typeof testArgs === "string") {
-                    testArgs =  [ testArgs ] 
+        this.homogeneous = !retrieve.find(retrieval => retrieval.argsCount !== this.argsCount)
+        if (samples) {
+            Object.keys(samples).forEach(sample => {
+                let sampleArgs: Args = Object(samples)[sample]
+                if (typeof sampleArgs === "string") {
+                    sampleArgs =  [ sampleArgs ] 
                 }
-                if (testArgs.length > 0) {
-                    if (!Array.isArray(testArgs[0])) {
-                        Object(tests)[test] = Array(retrieve.length).fill(testArgs)
-                        testArgs = Object(tests)[test]
-                    } else if (testArgs?.length != retrieve.length) {
-                        throw TypeError(`RadonRequestTemplate: arguments mismatch in test '${test}': ${testArgs?.length} tuples given vs. ${retrieve.length} expected`)
+                if (sampleArgs.length > 0) {
+                    if (!Array.isArray(sampleArgs[0])) {
+                        Object(samples)[sample] = Array(retrieve.length).fill(sampleArgs)
+                        sampleArgs = Object(samples)[sample]
+                    } else if (sampleArgs?.length != retrieve.length) {
+                        throw TypeError(`RadonRequestTemplate: arguments mismatch in sample "${sample}": ${sampleArgs?.length} tuples given vs. ${retrieve.length} expected`)
                     }
-                    testArgs?.forEach((subargs, index)=> {
+                    sampleArgs?.forEach((subargs, index)=> {
                         if (subargs.length < retrieve[index].argsCount) {
-                            throw TypeError(`\x1b[1;33mRadonRequestTemplate: arguments mismatch in test \x1b[1;31m'${test}'\x1b[1;33m: \x1b[1;37mRetrieval #${index}\x1b[1;33m: ${subargs?.length} parameters given vs. ${retrieve[index].argsCount} expected\x1b[0m`)
+                            throw TypeError(`\x1b[1;33mRadonRequestTemplate: arguments mismatch in test \x1b[1;31m'${sample}'\x1b[1;33m: \x1b[1;37mRetrieval #${index}\x1b[1;33m: ${subargs?.length} parameters given vs. ${retrieve[index].argsCount} expected\x1b[0m`)
                         }
                     })
                 }
             })
-            this.tests = tests
+            this.samples = samples
         }
     }
 
