@@ -1,10 +1,10 @@
 import { encode as cborEncode } from "cbor"
-const helpers = require("../helpers")
+import * as helpers from "../../bin/helpers"
 
 import { Opcodes as RadonReducerOpcodes } from './reducers'
 import * as Utils from '../utils'
 
-enum RadonEncodings {
+export enum RadonEncodings {
     HexString = 0,
     Base64 = 1,
 }
@@ -98,7 +98,7 @@ export class RadonOperator extends RadonClass {
         let maxCount: number = 0
         this.params?.forEach(param => {
             if (typeof param === 'string') {
-                const count = helpers.wildcards.getWildcardsCountFromString(param)
+                const count = helpers.getWildcardsCountFromString(param)
                 if (count > maxCount) maxCount = count
             } else if (typeof param === 'object' && param instanceof RadonScript) {
                 const count = param.argsCount()
@@ -175,7 +175,7 @@ export class RadonOperator extends RadonClass {
             this.opcode, 
             this.params?.map(param => {
                 if (typeof param === 'string') {
-                    return helpers.wildcards.replaceWildcards(param, args)
+                    return helpers.replaceWildcards(param, args)
                 } else if (typeof param === 'object' && param instanceof RadonScript) {
                     return param.replaceWildcards(...args)
                 } else {
@@ -287,7 +287,7 @@ export class RadonScript {
         }
     }
     public toBytecode(): string {
-        return Utils.toHexString(Object.values(Uint8Array.from(cborEncode(this.encode()))))
+        return Utils.toHexString(Object.values(Uint8Array.from(cborEncode(this.encode()))), true)
     }
     public toString(left = "", indent = 0, level = 0): string {
         const lf = left !== "" ? "\n" : ""

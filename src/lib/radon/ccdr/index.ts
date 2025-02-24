@@ -27,7 +27,7 @@ export type BlockNumber = number | Bytes32;
 /**
  * Base container class for JSON Remote Procedure Calls.
  */ 
-export class JsonRPC {
+export class CrossChainRPC {
     method: string;
     params?: any;
     /**

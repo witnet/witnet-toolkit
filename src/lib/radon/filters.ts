@@ -21,12 +21,12 @@ export class RadonFilter {
         }})
     }
 
-    public toJSON(): any {
+    public toJSON(humanize?: boolean): any {
         const json: any = {
-            op: Opcodes[this.opcode],
+            op: humanize ? Opcodes[this.opcode] : this.opcode,
         }
         if (this.args) {
-            json.args = this.args
+            json.args = humanize ? this.args : Array.from(cborEncode(this.args))
         }
         return json;
     }
@@ -36,7 +36,7 @@ export class RadonFilter {
             op: this.opcode,
         }
         if (this.args) {
-            protobuf.args = cborEncode(this.args)
+            protobuf.args = Array.from(cborEncode(this.args))
         }
         return protobuf
     }

@@ -36,13 +36,13 @@ export class RadonReducer {
         }})
     }
 
-    public toJSON(): any {
+    public toJSON(humanize?: boolean): any {
         const json: any = {
-            reducer: Opcodes[this.opcode],
+            reducer: humanize ? Opcodes[this.opcode] : this.opcode,
         }
-        if (this.filters && this.filters.length > 0) {
-            json.filter = this.filters.map(filter => filter.toJSON())
-        }
+        // if (this.filters && this.filters.length > 0) {
+            json.filters = this.filters?.map(filter => filter.toJSON(humanize)) || []
+        // }
         return json
     }
     
