@@ -1,25 +1,37 @@
-const axios = require("axios").default
-const helpers = require("../helpers")
+import { default as axios } from "axios"
+import * as utils from "../utils"
+
+import {
+    PublicKey, 
+    PublicKeyHash, 
+    PublicKeyHashString, 
+    RecoverableSignature 
+} from "../crypto/types"
 
 import { IProvider, Provider, ProviderError } from "./provider"
+
 import { 
     Balance2, 
-    Epoch, 
     Methods, 
-    Nanowits,
     NodeStats, 
-    Nonce,
     PeerAddr, 
-    PublicKeyHashString, 
     StakeAuthorization, 
     StakeEntry,
     SyncStatus,
 } from "./types"
 
+import { 
+    Epoch, 
+    HexString, 
+    Nanowits,
+    Nonce
+} from "../types"
+
 export interface INodeFarm extends IProvider {
     addresses(): Promise<Record<string, PublicKeyHashString>>
     balances(): Promise<Record<string, [PublicKeyHashString, Balance2]>>
     masterKeys(): Promise<Record<string, [PublicKeyHashString, string]>>
+    publicKeys(): Promise<Record<string, [PublicKeyHashString, PublicKey]>>
     syncStatus(): Promise<Record<string, SyncStatus>>
 
     peers(validator?: PublicKeyHashString): Promise<Array<PeerAddr>>;
@@ -27,15 +39,15 @@ export interface INodeFarm extends IProvider {
     withdrawers(): Promise<Record<PublicKeyHashString, [Nanowits, Nonce, number]>>;
 
     addPeers(peers: Array<string>): Promise<Record<string, Boolean>>;
-    authorizeStakes(withdrawer: PublicKeyHashString): Promise<Record<string, [PublicKeyHashString, StakeAuthorization]>>;
+    authorizeStakes(withdrawer: PublicKeyHashString): Promise<Record<string, [PublicKeyHashString, HexString]>>;
     clearPeers(): Promise<Record<string, Boolean>>;
     initializePeers(): Promise<Record<string, Boolean>>;
     rewind(epoch: Epoch): Promise<Record<string, Boolean>>;
 }
 
 function isPrivateURL(url: string): boolean {
-    const [, host, ] = helpers.parseURL(url)
-    return helpers.ipIsPrivateOrLocalhost(host.split(':')[0])
+    const [, host, ] = utils.parseURL(url)
+    return utils.ipIsPrivateOrLocalhost(host.split(':')[0])
 }
 
 export class NodeFarm extends Provider implements INodeFarm {
@@ -102,7 +114,7 @@ export class NodeFarm extends Provider implements INodeFarm {
                         method,
                         params,
                     }, {
-                        headers: this.headers,
+                        headers: this._headers,
                     }
                 ).then((response: any) => {
                     if (response?.error || response?.data?.error) {
@@ -130,7 +142,7 @@ export class NodeFarm extends Provider implements INodeFarm {
                         method,
                         params,
                     }, {
-                        headers: this.headers,
+                        headers: this._headers,
                     }
                 ).then((response: any) => {
                     if (response?.error || response?.data?.error) {
@@ -161,6 +173,23 @@ export class NodeFarm extends Provider implements INodeFarm {
 
     public async masterKeys(): Promise<Record<string, [PublicKeyHashString, string]>> {
         return this.batchApiPkhMethodNoPkh<string>(Methods.MasterKeyExport)
+    }
+
+    public async publicKeys(): Promise<Record<string, [PublicKeyHashString, PublicKey]>> {
+        return this.batchApiPkhMethodNoPkh<Uint8Array>(Methods.GetPublicKey)
+            .then((results: Record<string, [PublicKeyHashString, Error | Uint8Array]>) => Object.fromEntries(
+                Object.entries(results).map(([url, [pkh, raw]]) => {
+                    if (raw && raw instanceof Error) {
+                        if ((raw as ProviderError)?.error?.message) {
+                            raw = new Error((raw as ProviderError)?.error?.message)
+                            delete raw.stack
+                        }
+                        return [url, [pkh, raw]]
+                    } else {
+                        return [url, [pkh, raw ? PublicKey.fromUint8Array(raw) : undefined]]
+                    }
+                })
+            ))
     }
 
     public async peers(): Promise<Array<PeerAddr>> {
@@ -260,8 +289,26 @@ export class NodeFarm extends Provider implements INodeFarm {
         return this.batchApiMethod<Boolean>(Methods.AddPeers, peers)
     }
 
-    public async authorizeStakes(withdrawer: PublicKeyHashString): Promise<Record<string, [PublicKeyHashString, StakeAuthorization]>> {
+    public async authorizeStakes(withdrawer: PublicKeyHashString): Promise<Record<string, [PublicKeyHashString, HexString]>> {
+        const msg = PublicKeyHash.fromBech32(withdrawer).toBytes32()
         return this.batchApiPkhMethodNoPkh<StakeAuthorization>(Methods.AuthorizeStake, withdrawer)
+            .then((records: Record<string, [PublicKeyHashString, Error | StakeAuthorization]>) => Object.fromEntries(
+                Object.entries(records).map(([url, [pkh, authorization]]) => {
+                    if (authorization && authorization instanceof Error) {
+                        if ((authorization as ProviderError)?.error?.message) {
+                            authorization = new Error((authorization as ProviderError)?.error?.message)
+                            delete authorization.stack
+                        }
+                        return [url, [pkh, authorization]]
+                    } else if (authorization) {
+                        const signature = RecoverableSignature.fromKeyedSignature(authorization.signature, msg)
+                        const authcode = signature.pubKey.hash().toHexString() + signature.toHexString()
+                        return [url, [pkh, authcode]]
+                    } else {
+                        return [url, [pkh, undefined]]
+                    }
+                })
+            ))
     }
 
     public async clearPeers(): Promise<Record<string, Boolean>> {

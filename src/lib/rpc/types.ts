@@ -1,18 +1,10 @@
-export type f64 = number;
-export type i32 = number;
-export type i64 = number;
-export type u8 = number;
-export type u16 = number;
-export type u32 = number;
-export type u64 = number;
-export type usize = number;
-
-export type Epoch = i32;
-export type Err = string;
-export type Hash = string;
-export type HexString = string;
-export type Nanowits = number;
-export type Nonce = u64;
+import { PublicKeyHashString } from "../crypto/types"
+import {
+    Epoch,
+    Hash,
+    Nanowits,
+    f64, i64, u8, u16, u32, u64, usize,
+} from "../types"
 
 export enum Methods {
     AddPeers = "addPeers",
@@ -48,6 +40,43 @@ export enum Methods {
     SyncStatus = "syncStatus",
 }
 
+export type Network = "mainnet" | "testnet" 
+
+export type QueryStakes = {
+    filter?: {
+        validator?: PublicKeyHashString,
+        withdrawer?: PublicKeyHashString,
+    },
+    params?: QueryStakesParams,
+}
+
+export type QueryStakesParams = {
+    distinct?: boolean,
+    limit?: number,
+    offset?: number,
+    order?: QueryStakesOrder;
+    since?: number,
+}
+
+export type QueryStakesOrder = {
+    by: StakesOrderBy;
+    reverse?: boolean;
+}
+
+export enum StakesOrderBy {
+    Coins = "coins",
+    Nonce = "nonce",
+    Mining = "mining",
+    Witnessing = "witnessing",
+}
+
+export type QueryStakingPowers = {
+    distinct?: boolean,
+    limit?: number,
+    offset?: number,
+    orderBy?: StakingCapability,
+}
+
 // Structure that the includes the confirmed and pending balance of a node
 export type Balance = {
     //Total amount of a node's funds after last confirmed superblock
@@ -56,7 +85,7 @@ export type Balance = {
     total: u64;
 };
 
-// Balance struct in Wit/w containing locked, unlocked and staked balance 
+// Balance struct in Wit/2 containing locked, unlocked and staked balance 
 export type Balance2 = {
     locked: u64,
     staked: u64,
@@ -80,7 +109,7 @@ export type Block = {
     block_weight: number;
     confirmed: boolean;
     dr_weight: number;
-    txns: BlockTransactions;
+    // txns: BlockTransactions;
     txns_hashes?: BlockTransactionsHashes;
     vt_weight: number;
 };
@@ -123,20 +152,20 @@ export type BlockMerkleRoots = {
 };
 
 // Block transactions
-export type BlockTransactions = {
-    // A list of signed commit transactions
-    commit_txns: Array<DataRequestCommitTransaction>;
-    // A list of signed data request transactions
-    data_request_txns: Array<DataRequestTransaction>;
-    // Mint transaction,
-    mint: MintTransaction;
-    // A list of signed reveal transactions
-    reveal_txns: Array<DataRequestRevealTransaction>;
-    // A list of signed tally transactions
-    tally_txns: Array<DataRequestTallyTransaction>;
-    // A list of signed value transfer transactions
-    value_transfer_txns: Array<ValueTransferTransaction>;
-};
+// export type BlockTransactions = {
+//     // A list of signed commit transactions
+//     commit_txns: Array<DataRequestCommitTransaction>;
+//     // A list of signed data request transactions
+//     data_request_txns: Array<DataRequestTransaction>;
+//     // Mint transaction,
+//     mint: MintTransaction;
+//     // A list of signed reveal transactions
+//     reveal_txns: Array<DataRequestRevealTransaction>;
+//     // A list of signed tally transactions
+//     tally_txns: Array<DataRequestTallyTransaction>;
+//     // A list of signed value transfer transactions
+//     value_transfer_txns: Array<ValueTransferTransaction>;
+// };
 
 export type BlockTransactionsHashes = {
     commit: Array<Hash>,
@@ -308,7 +337,10 @@ export type KeyedSignature = {
     // Signature
     signature: Signature;
     // Public key
-    public_key: PublicKey;
+    public_key: {
+        compressed: number,
+        bytes: Array<u8>;
+    },
 };
 
 // Result of GetMempool message: list of pending transactions categorized by type
@@ -337,19 +369,19 @@ export type ProtocolInfo = {
     current_version: string;
 }
 
-// Public Key data structure
-export type PublicKey = {
-    // Byte indicating how to decompress the public key
-    compressed: number;
-    // Public key bytes
-    bytes: Uint8Array;
-};
+// // Public Key data structure
+// export type PublicKey = {
+//     // Byte indicating how to decompress the public key
+//     compressed: number;
+//     // Public key bytes
+//     bytes: Uint8Array;
+// };
 
-export type PublicKeyHash = {
-    hash: Uint8Array;
-};
+// export type PublicKeyHash = {
+//     hash: Uint8Array;
+// };
 
-export type PublicKeyHashString = string;
+// export type PublicKeyHashString = string;
 
 export type RADAggregate = { filters: Array<RADFilter>; reducer: u32 };
 export type RADFilter = { op: u32; args: Array<u8> };
@@ -409,7 +441,7 @@ export enum StateMachine {
 }
 
 export type StakeAuthorization = {
-    withdrawer: PublicKeyHash,
+    withdrawer: PublicKeyHashString,
     signature: KeyedSignature,
 }
 
@@ -450,7 +482,7 @@ export type StakingPower = {
 // Superblock consolidating metadata
 //As per current consensus algorithm, "consolidated blocks" implies that there exists at least one
 //superblock in the chain that builds upon the superblock where those blocks were anchored.
-export type Superblock = {
+export type SuperblockReport = {
     //The superblock that we are signaling as consolidated.
     superblock: {
         //Number of signing committee members,
@@ -509,37 +541,37 @@ export type SyncStatus = {
 
 // Information about our own UTXOs
 export type UtxoInfo = {
-    //Vector of OutputPointer with their values, time_locks and if it is ready for collateral
+    //Vector of UtxoPointers with their values, time_locks and if it is ready for collateral
     utxos: Array<UtxoMetadata>;
     //Minimum collateral from consensus constants
     collateral_min: u64;
 };
-  
+
 export type UtxoMetadata = {
-    output_pointer: OutputPointer;
-    value: u64;
+    output_pointer: string;
     timelock: u64;
-    utxo_mature: boolean;
+    utxo_mature?: boolean;
+    value: u64;
 };
-  
+
 export type ValueTransferOutput = {
     pkh: Hash;
     value: u64;
-    timeLock: u64;
+    time_lock: u64;
 };
 
 // A VRF Proof is a unique, deterministic way to sign a message with a public key.
 // It is used to prevent one identity from creating multiple different proofs of eligibility.
 export type VrfProof = {
     proof: Uint8Array;
-    public_key: PublicKey;
+    public_key: Uint8Array; //PublicKey;
 };
 
 
 /// ===================================================================================================================
 /// --- Transactions --------------------------------------------------------------------------------------------------
 
-export type Transaction = {
+export type TransactionReport = {
     blockEpoch: Epoch,
     blockHash: Hash,
     confirmed: boolean,
@@ -550,24 +582,24 @@ export type Transaction = {
     } 
 }
 
-export type Input = {
-    output_pointer: OutputPointer;
-};
+// export type Input = {
+//     output_pointer: UtxoPointer;
+// };
 
-// Unspent output data structure (equivalent of Bitcoin's UTXO)
-// It is used to locate the output by its transaction identifier and its position
-export type OutputPointer = {
-    // Transaction identifier
-    transaction_id: Hash;
-    // Index of output inside transaction
-    output_index: u32;
-};
+// // Unspent output data structure (equivalent of Bitcoin's UTXO)
+// // It is used to locate the output by its transaction identifier and its position
+// export type UtxoPointer = {
+//     // Transaction identifier
+//     transaction_id: Hash;
+//     // Index of output inside transaction
+//     output_index: u32;
+// };
 
-// Data request eligibility claim
-export type DataRequestEligibilityClaim = {
-    // A Verifiable Random Function proof of the eligibility for a given epoch, public key and data request
-    proof: VrfProof;
-};
+// // Data request eligibility claim
+// export type DataRequestEligibilityClaim = {
+//     // A Verifiable Random Function proof of the eligibility for a given epoch, public key and data request
+//     proof: VrfProof;
+// };
 
 export type DataRequestCommitTransaction = {
     body: DataRequestCommitTransactionBody;
@@ -579,10 +611,10 @@ export type DataRequestCommitTransactionBody = {
     dr_pointer: Hash;
     // DataRequestRevealTransaction Signature Hash
     commitment: Hash;
-    // Proof of eligibility for this pkh, epoch, and data request
-    proof: DataRequestEligibilityClaim;
-    // Inputs used as collateral
-    collateral: Array<Input>;
+    // // Proof of eligibility for this pkh, epoch, and data request
+    // proof: DataRequestEligibilityClaim;
+    // // Inputs used as collateral
+    // collateral: Array<Input>;
     // Change from collateral. The output pkh must be the same as the inputs,
     // and there can only be one output
     outputs: Array<ValueTransferOutput>;
@@ -602,8 +634,8 @@ export type DataRequestRevealTransactionBody = {
     dr_pointer: Hash; // DTTransaction hash
     // Outputs
     reveal: Array<u8>;
-    pkh: PublicKeyHash; // where to receive reward
-    // hash: Hash;
+    pkh: { hash: Uint8Array; }; // where to receive reward
+    hash: Hash;
 };
 
 export type DataRequestTallyTransaction = {
@@ -614,30 +646,30 @@ export type DataRequestTallyTransaction = {
     // Witness rewards
     outputs: Array<ValueTransferOutput>;
     // Addresses that are out of consensus (non revealers included)
-    out_of_consensus: Array<PublicKeyHash>;
+    out_of_consensus: Array<{ hash: Uint8Array }>;
     // Addresses that commit a RadonError (or considered as an Error due to a RadonError consensus)
-    error_committers: Array<PublicKeyHash>;  
+    error_committers: Array<{ hash: Uint8Array }>;  
     // TODO
     // hash: Hash;
 };
 
-export type DataRequestTransaction = {
-    body: DataRequestTransactionBody;
-    signatures: Array<KeyedSignature>;
-};
+// export type DataRequestTransaction = {
+//     body: DataRequestTransactionBody;
+//     signatures: Array<KeyedSignature>;
+// };
 
-export type DataRequestTransactionBody = {
-    inputs: Array<Input>;
-    outputs: Array<ValueTransferOutput>;
-    dr_output: DataRequestPayload;
-    hash: Hash;
-};
+// export type DataRequestTransactionBody = {
+//     inputs: Array<Input>;
+//     outputs: Array<ValueTransferOutput>;
+//     dr_output: DataRequestPayload;
+//     hash: Hash;
+// };
 
-export type MintTransaction = {
-    epoch: Epoch;
-    outputs: Array<ValueTransferOutput>;
-    hash: Hash;
-};
+// export type MintTransaction = {
+//     epoch: Epoch;
+//     outputs: Array<ValueTransferOutput>;
+//     hash: Hash;
+// };
 
 /// Node stats
 export type NodeStats = {
@@ -657,12 +689,12 @@ export type NodeStats = {
     slashed_count: u32;
 };
 
-export type ValueTransferTransaction = {
-    body: ValueTransferTransactionBody;
-    signatures: Array<KeyedSignature>;
-};
+// export type ValueTransferTransaction = {
+//     body: ValueTransferTransactionBody;
+//     signatures: Array<KeyedSignature>;
+// };
 
-export type ValueTransferTransactionBody = {
-    inputs: Array<Input>;
-    outputs: Array<ValueTransferOutput>;
-};
+// export type ValueTransferTransactionBody = {
+//     inputs: Array<Input>;
+//     outputs: Array<ValueTransferOutput>;
+// };

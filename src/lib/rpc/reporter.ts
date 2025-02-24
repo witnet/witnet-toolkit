@@ -1,11 +1,6 @@
 import { IProvider, Provider } from "./provider"
-import { 
-    DataRequestReport, 
-    Hash, 
-    Methods, 
-    PeerAddr, 
-    SupplyInfo, 
-} from "./types"
+import { DataRequestReport, Methods, PeerAddr, SupplyInfo, } from "./types"
+import { Hash } from "../types"
 
 export interface IReporter extends IProvider {
     providers(): Promise<Array<string>>
