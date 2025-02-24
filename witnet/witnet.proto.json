@@ -5,6 +5,85 @@
   "nested": {
     "witnet": {
       "nested": {
+        "LegacyMessage": {
+          "fields": {
+            "magic": {
+              "type": "uint32",
+              "id": 1
+            },
+            "kind": {
+              "type": "LegacyCommand",
+              "id": 2
+            }
+          },
+          "nested": {
+            "LegacyCommand": {
+              "oneofs": {
+                "kind": {
+                  "oneof": [
+                    "Version",
+                    "Verack",
+                    "GetPeers",
+                    "Peers",
+                    "Block",
+                    "InventoryAnnouncement",
+                    "InventoryRequest",
+                    "LastBeacon",
+                    "Transaction",
+                    "SuperBlockVote",
+                    "SuperBlock"
+                  ]
+                }
+              },
+              "fields": {
+                "Version": {
+                  "type": "Version",
+                  "id": 1
+                },
+                "Verack": {
+                  "type": "Verack",
+                  "id": 2
+                },
+                "GetPeers": {
+                  "type": "GetPeers",
+                  "id": 3
+                },
+                "Peers": {
+                  "type": "Peers",
+                  "id": 4
+                },
+                "Block": {
+                  "type": "LegacyBlock",
+                  "id": 5
+                },
+                "InventoryAnnouncement": {
+                  "type": "InventoryAnnouncement",
+                  "id": 6
+                },
+                "InventoryRequest": {
+                  "type": "InventoryRequest",
+                  "id": 7
+                },
+                "LastBeacon": {
+                  "type": "LastBeacon",
+                  "id": 8
+                },
+                "Transaction": {
+                  "type": "Transaction",
+                  "id": 9
+                },
+                "SuperBlockVote": {
+                  "type": "SuperBlockVote",
+                  "id": 10
+                },
+                "SuperBlock": {
+                  "type": "SuperBlock",
+                  "id": 11
+                }
+              }
+            }
+          }
+        },
         "Message": {
           "fields": {
             "magic": {
@@ -135,6 +214,119 @@
             }
           }
         },
+        "BlockEligibilityClaim": {
+          "fields": {
+            "proof": {
+              "type": "VrfProof",
+              "id": 1
+            }
+          }
+        },
+        "LegacyBlock": {
+          "fields": {
+            "blockHeader": {
+              "type": "LegacyBlockHeader",
+              "id": 1
+            },
+            "blockSig": {
+              "type": "KeyedSignature",
+              "id": 2
+            },
+            "txns": {
+              "type": "LegacyBlockTransactions",
+              "id": 3
+            }
+          },
+          "nested": {
+            "LegacyBlockHeader": {
+              "fields": {
+                "signals": {
+                  "type": "uint32",
+                  "id": 1
+                },
+                "beacon": {
+                  "type": "CheckpointBeacon",
+                  "id": 2
+                },
+                "merkleRoots": {
+                  "type": "LegacyBlockMerkleRoots",
+                  "id": 3
+                },
+                "proof": {
+                  "type": "BlockEligibilityClaim",
+                  "id": 4
+                },
+                "bn256PublicKey": {
+                  "type": "Bn256PublicKey",
+                  "id": 5
+                }
+              },
+              "nested": {
+                "LegacyBlockMerkleRoots": {
+                  "fields": {
+                    "mintHash": {
+                      "type": "Hash",
+                      "id": 1
+                    },
+                    "vtHashMerkleRoot": {
+                      "type": "Hash",
+                      "id": 2
+                    },
+                    "drHashMerkleRoot": {
+                      "type": "Hash",
+                      "id": 3
+                    },
+                    "commitHashMerkleRoot": {
+                      "type": "Hash",
+                      "id": 4
+                    },
+                    "revealHashMerkleRoot": {
+                      "type": "Hash",
+                      "id": 5
+                    },
+                    "tallyHashMerkleRoot": {
+                      "type": "Hash",
+                      "id": 6
+                    }
+                  }
+                }
+              }
+            },
+            "LegacyBlockTransactions": {
+              "fields": {
+                "mint": {
+                  "type": "MintTransaction",
+                  "id": 1
+                },
+                "valueTransferTxns": {
+                  "rule": "repeated",
+                  "type": "VTTransaction",
+                  "id": 2
+                },
+                "dataRequestTxns": {
+                  "rule": "repeated",
+                  "type": "DRTransaction",
+                  "id": 3
+                },
+                "commitTxns": {
+                  "rule": "repeated",
+                  "type": "CommitTransaction",
+                  "id": 4
+                },
+                "revealTxns": {
+                  "rule": "repeated",
+                  "type": "RevealTransaction",
+                  "id": 5
+                },
+                "tallyTxns": {
+                  "rule": "repeated",
+                  "type": "TallyTransaction",
+                  "id": 6
+                }
+              }
+            }
+          }
+        },
         "Block": {
           "fields": {
             "blockHeader": {
@@ -151,14 +343,6 @@
             }
           },
           "nested": {
-            "BlockEligibilityClaim": {
-              "fields": {
-                "proof": {
-                  "type": "VrfProof",
-                  "id": 1
-                }
-              }
-            },
             "BlockHeader": {
               "fields": {
                 "signals": {
@@ -208,6 +392,14 @@
                     "tallyHashMerkleRoot": {
                       "type": "Hash",
                       "id": 6
+                    },
+                    "stakeHashMerkleRoot": {
+                      "type": "Hash",
+                      "id": 7
+                    },
+                    "unstakeHashMerkleRoot": {
+                      "type": "Hash",
+                      "id": 8
                     }
                   }
                 }
@@ -243,6 +435,16 @@
                   "rule": "repeated",
                   "type": "TallyTransaction",
                   "id": 6
+                },
+                "stakeTxns": {
+                  "rule": "repeated",
+                  "type": "StakeTransaction",
+                  "id": 7
+                },
+                "unstakeTxns": {
+                  "rule": "repeated",
+                  "type": "UnstakeTransaction",
+                  "id": 8
                 }
               }
             }
@@ -653,6 +855,96 @@
             }
           }
         },
+        "StakeKey": {
+          "fields": {
+            "validator": {
+              "type": "PublicKeyHash",
+              "id": 1
+            },
+            "withdrawer": {
+              "type": "PublicKeyHash",
+              "id": 2
+            }
+          }
+        },
+        "StakeOutput": {
+          "fields": {
+            "value": {
+              "type": "uint64",
+              "id": 1
+            },
+            "key": {
+              "type": "StakeKey",
+              "id": 2
+            },
+            "authorization": {
+              "type": "KeyedSignature",
+              "id": 3
+            }
+          }
+        },
+        "StakeTransactionBody": {
+          "fields": {
+            "inputs": {
+              "rule": "repeated",
+              "type": "Input",
+              "id": 1
+            },
+            "output": {
+              "type": "StakeOutput",
+              "id": 2
+            },
+            "change": {
+              "type": "ValueTransferOutput",
+              "id": 3
+            }
+          }
+        },
+        "StakeTransaction": {
+          "fields": {
+            "body": {
+              "type": "StakeTransactionBody",
+              "id": 1
+            },
+            "signatures": {
+              "rule": "repeated",
+              "type": "KeyedSignature",
+              "id": 2
+            }
+          }
+        },
+        "UnstakeTransactionBody": {
+          "fields": {
+            "operator": {
+              "type": "PublicKeyHash",
+              "id": 1
+            },
+            "withdrawal": {
+              "type": "ValueTransferOutput",
+              "id": 2
+            },
+            "fee": {
+              "type": "uint64",
+              "id": 3
+            },
+            "nonce": {
+              "type": "uint64",
+              "id": 4
+            }
+          }
+        },
+        "UnstakeTransaction": {
+          "fields": {
+            "body": {
+              "type": "UnstakeTransactionBody",
+              "id": 1
+            },
+            "signature": {
+              "type": "KeyedSignature",
+              "id": 2
+            }
+          }
+        },
         "Transaction": {
           "oneofs": {
             "kind": {
@@ -662,7 +954,9 @@
                 "Commit",
                 "Reveal",
                 "Tally",
-                "Mint"
+                "Mint",
+                "Stake",
+                "Unstake"
               ]
             }
           },
@@ -690,6 +984,14 @@
             "Mint": {
               "type": "MintTransaction",
               "id": 6
+            },
+            "Stake": {
+              "type": "StakeTransaction",
+              "id": 7
+            },
+            "Unstake": {
+              "type": "UnstakeTransaction",
+              "id": 8
             }
           }
         },
@@ -949,6 +1251,18 @@
             }
           }
         },
+        "ConsensusConstantsWit2": {
+          "fields": {
+            "checkpointZeroTimestamp": {
+              "type": "int64",
+              "id": 1
+            },
+            "checkpointsPeriod": {
+              "type": "uint32",
+              "id": 2
+            }
+          }
+        },
         "VrfProof": {
           "fields": {
             "proof": {
@@ -970,6 +1284,10 @@
             "drHash": {
               "type": "Hash",
               "id": 2
+            },
+            "withdrawer": {
+              "type": "PublicKeyHash",
+              "id": 3
             }
           }
         },
