@@ -1,9 +1,11 @@
+const cbor = require("cbor")
 const { exec } = require("child_process");
 const net = require("net")
+const os = require("os")
 const readline = require('readline')
 
 const colorstrip = (str) => str.replace(
-        /[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g, ''
+    /[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g, ''
 );
 
 const commas = (number) => {
@@ -11,16 +13,17 @@ const commas = (number) => {
     const result = parts.length <= 1
         ? `${parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",")}`
         : `${parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",")}.${parts[1]}`
-    return result 
+    return result
 };
 
-const fromNanowits = (x) => Math.floor(x / 10 ** 9)
+const fromNanowits = (x, d) => (parseInt(x) / 10 ** 9).toFixed(d || 2)
+const fromWits = (x) => Math.floor(parseFloat(x) * 10 ** 9)
 
 function toFixedTrunc(x, n) {
     const v = (typeof x === 'string' ? x : x.toString()).split('.');
     if (n <= 0) return v[0];
     let f = v[1] || '';
-    if (f.length > n) return `${v[0]}.${f.substr(0,n)}`;
+    if (f.length > n) return `${v[0]}.${f.substr(0, n)}`;
     while (f.length < n) f += '0';
     return `${v[0]}.${f}`
 };
@@ -39,20 +42,29 @@ const whole_wits = (number, digits) => {
     return item ? toFixedTrunc(commas(number / item.value), digits)./*replace(regexp, "")*/concat(item.symbol) : "(no Wits)";
 };
 
+const bblue = (str) => `\x1b[1;98;44m${str}\x1b[0;0;0m`
+const bcyan = (str) => `\x1b[38;46m${str}\x1b[0;0m`
+const bgreen = (str) => `\x1b[30;42m${str}\x1b[0;0m`
+const bred = (str) => `\x1b[30;41m${str}\x1b[0;0m`
+const bviolet = (str) => `\x1b[30;45m${str}\x1b[0;0m`
+
 const lcyan = (str) => `\x1b[1;96m${str}\x1b[0m`
 const lgray = (str) => `\x1b[1;90m${str}\x1b[0m`
 const lgreen = (str) => `\x1b[1;92m${str}\x1b[0m`
 const lmagenta = (str) => `\x1b[1;95m${str}\x1b[0m`
 const lyellow = (str) => `\x1b[1;93m${str}\x1b[0m`
+const mblue = (str) => `\x1b[94m${str}\x1b[0m`
 const mcyan = (str) => `\x1b[96m${str}\x1b[0m`
 const mgreen = (str) => `\x1b[92m${str}\x1b[0m`
-const mmagenta = (str) => `\x1b[95m${str}\x1b[0m`
+const mmagenta = (str) => `\x1b[0;95m${str}\x1b[0m`
 const mred = (str) => `\x1b[91m${str}\x1b[0m`
 const myellow = (str) => `\x1b[93m${str}\x1b[0m`
+
+const blue = (str) => `\x1b[34m${str}\x1b[0m`
 const cyan = (str) => `\x1b[36m${str}\x1b[0m`
 const gray = (str) => `\x1b[90m${str}\x1b[0m`
 const green = (str) => `\x1b[32m${str}\x1b[0m`
-const magenta = (str) => `\x1b[35m${str}\x1b[0m`
+const magenta = (str) => `\x1b[0;35m${str}\x1b[0m`
 const normal = (str) => `\x1b[98m${str}\x1b[0m`
 const red = (str) => `\x1b[31m${str}\x1b[0m`
 const white = (str) => `\x1b[1;98m${str}\x1b[0m`
@@ -67,6 +79,38 @@ function countLeaves(t, obj) {
 
 function deleteExtraFlags(args) {
     return args.filter(arg => !arg.startsWith('--'))
+}
+
+function cmd(...command) {
+    return new Promise((resolve, reject) => {
+        exec(command.join(" "), { maxBuffer: 1024 * 1024 * 10 }, (error, stdout, stderr) => {
+            if (error) {
+                reject(error)
+            }
+            if (stderr) {
+                reject(stderr)
+            }
+            resolve(stdout)
+        })
+    })
+};
+
+async function execRadonBytecode(bytecode, ...flags) {
+    if (!helpers.isHexString(bytecode)) {
+        throw EvalError("invalid hex string")
+    } else {
+        const npx = os.type() === "Windows_NT" ? "npx.cmd" : "npx"
+        return cmd(npx, "witnet-toolkit", "radon", "dryrun", bytecode, ...flags)
+            .catch((err) => {
+                let errorMessage = err.message.split('\n').slice(1).join('\n').trim()
+                const errorRegex = /.*^error: (?<message>.*)$.*/gm
+                const matched = errorRegex.exec(err.message)
+                if (matched) {
+                    errorMessage = matched.groups.message
+                }
+                console.error(errorMessage || err)
+            })
+    }
 }
 
 function extractFromArgs(args, flags) {
@@ -146,7 +190,7 @@ function ipIsPrivateOrLocalhost(ip) {
 function isHexStringOfLength(str, length) {
     return (isHexString(str)
         && (
-            (str.starsWith('0x') && str.slice(2).length === length * 2)
+            (str.startsWith('0x') && str.slice(2).length === length * 2)
             || str.length === length * 2
         )
     );
@@ -162,8 +206,9 @@ function isHexString(str) {
     );
 }
 
-function toHexString(buffer) {
-    return "0x" + Array.prototype.map.call(buffer, x => ('00' + x.toString(16)).slice(-2))
+function toHexString(buffer, prefix0x = false) {
+    if (buffer instanceof Uint8Array) buffer = Buffer.from(buffer)
+    return (prefix0x ? "0x" : "") + Array.prototype.map.call(buffer, x => ('00' + x.toString(16)).slice(-2))
         .join('')
         .match(/[a-fA-F0-9]{2}/g)
         .join('')
@@ -173,9 +218,9 @@ function parseURL(url) {
     try {
         const parsedUrl = new URL(url)
         return [
-            parsedUrl.protocol + "//", 
-            parsedUrl.host, 
-            parsedUrl.pathname.slice(1), 
+            parsedUrl.protocol + "//",
+            parsedUrl.host,
+            parsedUrl.pathname.slice(1),
             parsedUrl.search.slice(1)
         ]
     } catch {
@@ -201,11 +246,15 @@ function showUsageRouter(router) {
     }
 }
 
-function showUsageError(cmd, subcmd, module, error) {
-    showUsageSubcommand(cmd, subcmd, module, error) 
+function showUsageError(cmd, subcmd, module, flags = {}, error) {
+    showUsageSubcommand(cmd, subcmd, module, error)
     if (error) {
         console.info(`\nERROR:`)
-        console.error(error?.stack?.split('\n')[0] || error)
+        if (flags?.debug) {
+            console.error(error)
+        } else {
+            console.error(error?.stack?.split('\n')[0] || error)
+        }
     }
 }
 
@@ -228,10 +277,12 @@ function showUsageFlags(flags) {
     flags = Object.entries(flags)
     if (flags.length > 0) {
         console.info(`\nFLAGS:`)
-        const maxLength = Math.max(...flags.map(([key, { param }]) => param ? key.length + param.length + 3 : key.length))
+        const maxLength = Math.max(...flags.filter(([,{hint}]) => hint).map(([key, { param }]) => param ? key.length + param.length + 3 : key.length))
         flags.forEach(flag => {
             const str = `${flag[0]}${flag[1].param ? gray(` <${flag[1].param}>`) : ""}`
-            console.info("  ", `--${str}${" ".repeat(maxLength - colorstrip(str).length)}`, "  ", flag[1].hint)
+            if (flag[1].hint) {
+                console.info("  ", `--${str}${" ".repeat(maxLength - colorstrip(str).length)}`, "  ", flag[1].hint)
+            }
         })
     }
 }
@@ -422,7 +473,7 @@ function utf8ArrayToStr(array) {
     return out;
 }
 
-async function prompt (question) {
+async function prompt(question) {
     const readlineInterface = readline.createInterface({
         input: process.stdin,
         output: process.stdout
@@ -436,18 +487,18 @@ async function prompt (question) {
 }
 
 async function prompter(promise) {
-    const loading = (function() {
+    const loading = (function () {
         const h = ['|', '/', '-', '\\'];
         var i = 0;
         return setInterval(() => {
-            i = (i > 3) ? 0 : i;  
+            i = (i > 3) ? 0 : i;
             process.stdout.write(`\b\b${h[i]} `)
             i++;
         }, 50);
     })();
     return promise
-        .then(result => { 
-            clearInterval(loading); 
+        .then(result => {
+            clearInterval(loading);
             process.stdout.write('\b\b')
             return result
         })
@@ -455,7 +506,7 @@ async function prompter(promise) {
 
 function traceChecklists(checklists) {
     if (checklists && Object.keys(checklists).length > 0) {
-        const headlines = ["NODES", ...Object.keys(checklists).map(key => `:${key}`), ]
+        const headlines = ["NODES", ...Object.keys(checklists).map(key => `:${key}`),]
         checklists = Object.values(checklists)
         const urls = Object.keys(checklists[0])
         const records = urls.map(url => {
@@ -475,7 +526,7 @@ function traceChecklists(checklists) {
     }
 }
 
-function traceHeader(headline, color = normal, indent = "", ) {
+function traceHeader(headline, color = normal, indent = "",) {
     console.info(`${indent}┌─${"─".repeat(headline.length)}─┐`)
     console.info(`${indent}│ ${color(headline)} │`)
     console.info(`${indent}└─${"─".repeat(headline.length)}─┘`)
@@ -509,20 +560,20 @@ function traceTable(records, options) {
         headline = options.widths.map(maxWidth => "─".repeat(maxWidth))
         console.info(`${indent}├─${headline.join("─┼─")}─┤`)
     }
-    for (let i = 0; i < records.length; i ++) {
+    for (let i = 0; i < records.length; i++) {
         let line = ""
-        for (let j = 0; j < numColumns; j ++) {
+        for (let j = 0; j < numColumns; j++) {
             let data = table[j][i]
             let color
             if (options?.colors && options.colors[j]) {
-              color = options.colors[j]  
+                color = options.colors[j]
             } else {
-              color = typeof data === 'string' 
-                ? green 
-                : (Number(data) === data && data % 1 !== 0 // is float number?
-                    ? yellow 
-                    : (x) => x
-                )
+                color = typeof data === 'string'
+                    ? green
+                    : (Number(data) === data && data % 1 !== 0 // is float number?
+                        ? yellow
+                        : (x) => x
+                    )
             }
             data = stringify(data, options?.humanizers, j)
             if (colorstrip(data).length > maxColumnWidth) {
@@ -547,32 +598,135 @@ function traceTable(records, options) {
 
 function transpose(records, numColumns) {
     const columns = []
-    for (let index = 0; index < numColumns; index ++) {
+    for (let index = 0; index < numColumns; index++) {
         columns.push(records.map(row => row[index]))
     }
     return columns
 }
 
+function txJsonReplacer(key, value) {
+    switch (key) {
+        case 'bytes':
+        case 'der':
+            return toHexString(value, true)
+        case 'tx':
+            return JSON.stringify(value, txJsonReplacer)
+        default:
+            return value
+    }
+}
+
+function traceTransactionOnCheckpoint(receipt) {
+    if (receipt?.confirmations) {
+        console.info(` > Checkpoint:  ${commas(receipt.blockEpoch + receipt.confirmations)}`)
+    }
+}
+
+function traceTransactionOnStatusChange(receipt) {
+    if (
+        receipt.status === "mined" && receipt?.blockHash
+            || (receipt.status === "confirmed" && !receipt?.confirmations)
+    ) {
+        console.info(` > Block hash:  ${gray(receipt?.blockHash)}`) 
+        console.info(` > Block miner: ${mcyan(receipt?.blockMiner)}`) 
+        console.info(` > Block epoch: ${white(commas(receipt?.blockEpoch))}`)
+    }
+    const captions = {
+        "pending": "Awaiting relay...",
+        "confirmed": receipt?.confirmations ? "Transaction confirmed." : "Transaction mined.",
+        "finalized": "Transaction finalized.",
+        "relayed": "Awaiting inclusion...",
+        "mined": "Awaiting confirmations...",
+    }
+    const caption = captions[receipt.status]
+    if (caption) console.info(` > ${captions[receipt.status]}`)
+}
+
+function traceTransactionReceipt(receipt) {
+    const captions = {
+        "DataRequest": ` > DR TX hash:  `,
+        "ValueTransfer": ` > VTT hash:    `,
+    }
+    console.info(`${captions[receipt.type] || ` > TX hash:     `}${white(receipt.hash)}`)
+    if (receipt?.droHash) console.info(` > DRO hash:    ${green(receipt.droHash)}`)
+    if (receipt?.radHash) console.info(` > RAD hash:    ${mgreen(receipt.radHash)}`)
+    if (receipt?.droSLA)  console.info(` > SLA params:  ${JSON.stringify(receipt.droSLA)}`)
+    if (receipt?.withdrawer) {
+        if (receipt?.validator) {
+            console.info(` > Validator:   ${mcyan(receipt.validator)}`)
+        }
+        console.info(` > Withdrawer:  ${mmagenta(receipt.withdrawer)}`)
+    } else {
+        console.info(` > Account/s:   ${mmagenta(receipt.from)}`)
+    }
+    if (receipt?.recipients) {
+        console.info(` > Recipient/s: ${
+            mmagenta(receipt.recipients.map(([pkh,]) => pkh).filter((pkh, index, array) => index === array.indexOf(pkh)))
+        }`)
+    }
+    console.info(` > Fees:        ${yellow(whole_wits(receipt.fees, 2))}`)
+    console.info(` > Value:       ${myellow(whole_wits(receipt.value, 2))}`)
+    console.info(` > Weight:      ${mgreen(commas(receipt.weight))}`) 
+}
+
+async function traceTransaction(transmitter, options) {
+    const color = options?.color || ((x) => `\x1b[30;45m${x}\x1b[0m`)
+    let receipt = await transmitter.signTransaction(options, options?.strategy)
+    if (options?.dryrun || options?.verbose) {
+        console.info(
+            `\n${gray(JSON.stringify(receipt.tx, txJsonReplacer))}`
+        )
+    }
+    if (options?.headline) {
+        console.info(`\n ${color(`  ${options.headline}  `)}\n`)
+    }
+    traceTransactionReceipt(receipt)
+    if (!options?.dryrun) {
+        try {
+            if (options?.confirmations !== undefined) {
+                receipt = await transmitter.waitTransaction({ 
+                    confirmations: options?.confirmations,
+                    onCheckpoint: traceTransactionOnCheckpoint,
+                    onStatusChange: traceTransactionOnStatusChange,
+                })
+            } else {
+                receipt = await transmitter.sendTransaction(options, options?.strategy)
+            }
+        } catch (err) {
+            if (err?.inFlight && err.inFlight) {
+                console.info(`\n${gray(JSON.stringify(err.inFligt?.message, txJsonReplacer))}`)
+            }
+            throw err
+        }
+        if (options?.verbose) {
+            console.info(`\n${yellow(JSON.stringify(receipt, txJsonReplacer))}`)
+        }
+    } else {
+        console.info(`\n${mred(` ^^^ DRY-RUN ^^^ `)}`)
+    }
+    return receipt
+}
+
 module.exports = {
     colors: {
+        bblue, bcyan, bgreen, bred, bviolet,
         cyan, gray, green, magenta, red, white, yellow, normal,
         lcyan, lgray, lgreen, lmagenta, lyellow,
         mcyan, mgreen, mmagenta, mred, myellow,
     },
-    colorstrip, commas, whole_wits, toFixedTrunc, fromNanowits,
+    colorstrip, commas, whole_wits, toFixedTrunc, 
+    fromNanowits, fromWits,
     countLeaves,
+    execRadonBytecode,
     deleteExtraFlags, extractFromArgs,
     fromHexString, isHexString, isHexStringOfLength, toHexString,
     parseURL, ipIsPrivateOrLocalhost,
     showUsage, showUsageError, showUsageSubcommand, showVersion,
     toolkitRun,
     toUpperCamelCase, toUtf8Array, utf8ArrayToStr,
-    prompt, prompter, 
-    traceChecklists, traceHeader, traceTable,
-    wildcards: {
-        isWildcard,
-        getWildcardsCountFromString,
-        replaceWildcards,
-        spliceWildcard,
-    },
+    prompt, prompter,
+    traceChecklists, traceHeader, traceTable, 
+    traceTransaction, traceTransactionOnStatusChange, traceTransactionOnCheckpoint, traceTransactionReceipt, 
+    isWildcard, getWildcardsCountFromString, replaceWildcards, spliceWildcard,
+    txJsonReplacer, 
 }

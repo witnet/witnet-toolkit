@@ -1,6 +1,5 @@
-const Witnet = require("../../dist")
-const retrievals = require("./retrievals")
-const templates = require("./templates")
+const { Witnet } = require("../../dist")
+
 module.exports = {
   WitOracleRequestPriceUsdtWit9: new Witnet.RadonRequest({
     retrieve: [

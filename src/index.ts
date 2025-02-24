@@ -1,18 +1,9 @@
-import * as Radon from "./lib/radon"
-import * as RPC from "./lib/rpc"
-import * as Utils from "./lib/utils"
+import * as utils from "./lib/utils"
+import * as Witnet from "./lib/index"
 
-export { Radon, RPC, Utils }
-
-export default {
-    Radon,
-    RPC,
-    Utils
-}
+export { utils, Witnet }
 
 module.exports = {
-    Radon,
-    RPC,
-    Utils
+    utils,
+    Witnet
 }
-
