@@ -13,7 +13,7 @@ const {
     deleteExtraFlags, extractFromArgs, 
     showUsage, showUsageError, showUsageSubcommand, showVersion,
     toolkitRun, 
-} = require("../lib/helpers")
+} = require("./helpers")
 
   
 /// CONSTANTS =======================================================================================================  
@@ -186,6 +186,12 @@ const settings = {
     arch,
   },
 }
+
+if (args.includes('--debug')) {
+  settings.debug = true
+  args.splice(args.indexOf('--debug'), 1)
+}
+
 let forceIndex = args.indexOf('--force');
 if (forceIndex >= 2) {
   // If the `--force` flag is found, process it, but remove it from args so it doesn't get passed down to the binary
@@ -235,7 +241,7 @@ async function main () {
 
   } else if (args[2]) try {
     var cmd = args[2]
-    const module = require(`../lib/cli/${args[2]}`)
+    const module = require(`./cli/${args[2]}`)
     var [args, flags, ] = extractFromArgs(args.slice(3), module.flags)
     if (settings?.force) flags.force = true
     if (args && args[0] && module.subcommands && module?.router[args[0]]) {
@@ -247,12 +253,9 @@ async function main () {
       } else {
         var [args, options, ] = extractFromArgs(args.slice(1), options)
         args = deleteExtraFlags(args)
-        try {
-          await module.subcommands[subcmd](flags, args, options, settings)
-      
-        } catch (e) {
-          showUsageError(cmd, subcmd, module, e)
-        }
+        await module.subcommands[subcmd](flags, args, options, settings).catch(err => {
+            showUsageError(cmd, subcmd, module, settings, err)
+        });
       }
     } else {
       showUsage(cmd, module)
@@ -265,15 +268,16 @@ async function main () {
   console.info("USAGE:")
   console.info(`    ${colors.white("npx witnet")} [FLAGS] <COMMAND>`)
   console.info("\nFLAGS:")
-  console.info("    --force     Avoids asking the user to confirm operation")
-  console.info("    --help      Describes command or subcommand usage")
-  console.info("    --update    Forces update of underlying binaries")
-  console.info("    --version   Prints toolkit name and version as first line")
+  console.info("    --debug     Outputs stack trace in case of error.")
+  console.info("    --force     Avoids asking the user to confirm operation.")
+  console.info("    --help      Describes command or subcommand usage.")
+  console.info("    --update    Forces update of underlying binaries.")
+  console.info("    --version   Prints toolkit name and version as first line.")
   console.info("\nCOMMANDS:")
-  console.info("    farm        Interact with your private Wit/Oracle nodes, if reachable.")
-  console.info("    history     Historical scoreboards from the Wit/Oracle blockchain.")
+  // console.info("    history     Historical scoreboards from the Wit/Oracle blockchain.")
   console.info("    inspect     Inspect public data from the Wit/Oracle blockchain.")
   console.info("    network     Dynamic information from the Wit/Oracle P2P network.")
+  console.info("    nodes       Interact with your private Wit/Oracle nodes, if reachable.")
   console.info("    radon       Manage Radon requests and templates within your project.")
   console.info("    wallet      Simple CLI wallet for spending and staking your Wits.")
 }
