@@ -1,9 +1,12 @@
 const qrcode = require('qrcode-terminal');
 
 const helpers = require("../helpers")
-const toolkit = require("../../../dist");
 
-const { cyan, gray, green, red, yellow, white, magenta, mcyan, mgreen, mmagenta, mred, myellow, lcyan, lgreen, lyellow, } = helpers.colors
+const { Witnet } = require("../../../dist");
+
+// const { hexifyKeyedSignature } = require('../../../dist/lib/utils');
+
+const { cyan, gray, green, red, yellow, white, magenta, mcyan, mgreen, mmagenta, mred, myellow, lcyan, lgreen, lmagenta, lyellow, } = helpers.colors
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /// CLI SUBMODULE CONSTANTS ===========================================================================================
@@ -22,12 +25,20 @@ module.exports = {
         authorize: {
             hint: "Generate stake authorization codes for given withdrawer.",
             params: "WITHDRAWER",
+            options: {
+                "qrcodes": {
+                    hint: "Prints authorization QR codes, scannable from myWitWallet."
+                }
+            }
+        },
+        balance: {
+            hint: "List endpoints that connect to your nodes, addresses and available balances."
         },
         masterKeys: {
             hint: "Export nodes' master keys.",
         },
-        nodes: {
-            hint: "List endpoints that connect to your nodes, addresses and available balances."
+        publicKeys: {
+            hint: "Export nodes' public keys.",
         },
         peers: {
             hint: "List and manage node farm's peers.",
@@ -65,16 +76,20 @@ module.exports = {
         },
     },
     subcommands: {
-        addresses, authorize, balances, masterKeys, nodes: balances, peers, 
-        rankings, stats: nodeStats, rewind, syncStatus, withdrawers,
+        addresses, authorize, balance, masterKeys, publicKeys,  
+        peers, rankings, rewind, stats, syncStatus, withdrawers,
     },
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /// CLI SUBMODULE COMMANDS ============================================================================================
 
+async function _initializeFarm(flags = {}) {
+    return new Witnet.NodeFarm(flags?.nodes)
+}
+
 async function addresses(flags = {}) {
-    const farm = new toolkit.NodeFarm(flags?.nodes)
+    const farm = await _initializeFarm(flags)
     const addresses = Object.entries(await farm.addresses())
     if (addresses.length === 1 && !(addresses[0][1] instanceof Error)) {
         console.info(lcyan(addresses[0][1]))
@@ -91,37 +106,40 @@ async function addresses(flags = {}) {
     }
 }
 
-async function authorize(flags = {}, args) {
+async function authorize(flags = {}, args, options = {}) {
     if (args.length === 0) {
         throw "Withdrawer address must be specified."
-    
     } else {
-        const farm = new toolkit.NodeFarm(flags?.nodes)
-        const authCodes = Object.entries(await farm.authorizeStakes(args[0].toLowerCase()))
-            .map(([url, [validator, authorization]]) => [ 
-                url, 
-                validator, 
-                authorization.signature.signature.Secp256k1.der 
-            ])
-        if (authCodes.length === 1) {
-            const [_, validator, authorization] = authCodes[0]
-            console.info(
-                `> Authorization code from ${
-                    mcyan(validator)
-                } to withdrawer ${
-                    mmagenta(args[0].toLowerCase())
-                }:\n${
-                    cyan(JSON.stringify(authorization))
-                }`)
-            //qrcode.generate(authCode)
+        Witnet.PublicKeyHash.fromBech32(args[0])
+        const farm = await _initializeFarm(flags)
+        const authcodes = await farm.authorizeStakes(args[0].toLowerCase())
+        Object.entries(authcodes).forEach(([url, [validator, authcode]]) => {
+            if (url instanceof Error) {
+                console.error(url)
+            } else if (validator instanceof Error) {
+                console.error("Endpoint:", url)
+                console.error(validator)
+            } else if (authcode instanceof Error) {
+                console.info("Validator address: ", mcyan(validator))
+                console.error(authcode)
+            } else {
+                console.info("Validator address: ", mcyan(validator))
+                console.info(`${white(authcode)}`)
+                if (options?.qrcodes) qrcode.generate(authcode)
+            }
+            console.info()
+        })
+        if (options?.qrcodes) {
+            console.info("=".repeat(102))
+            console.info("^ Withdrawer address:", lmagenta(args[0].toLowerCase()))
         } else {
-            console.info(authCodes)
+            console.info("Withdrawer address:", lmagenta(args[0].toLowerCase()))    
         }
     }
 }
 
-async function balances(flags = {}) {
-    const farm = new toolkit.NodeFarm(flags?.nodes)
+async function balance(flags = {}) {
+    const farm = await _initializeFarm(flags)
     const balances = await farm.balances()
     helpers.traceTable(
         Object.entries(balances).map(([ url, [pkh, balance]]) => [
@@ -137,7 +155,7 @@ async function balances(flags = {}) {
                 ]
             ),
         ]), {
-            headlines: [ "NODES", ":Validator address", "Locked (Wits)", "Staked (Wits)", "Unlocked (Wits)", "BALANCE (Wits)" ],
+            headlines: [ "NODES", ":Validator address", "Locked ($WIT)", "Staked ($WIT)", "Unlocked ($WIT)", "BALANCE ($WIT)" ],
             humanizers: [ ,, helpers.commas, helpers.commas, helpers.commas, helpers.commas ],
             maxColumnWidth: 48,
         },
@@ -145,7 +163,7 @@ async function balances(flags = {}) {
 }
 
 async function masterKeys(flags = {}) {
-    const farm = new toolkit.NodeFarm(flags?.nodes)
+    const farm = await _initializeFarm(flags)
     const masterKeys = await farm.masterKeys()
     helpers.traceTable(
         Object.entries(masterKeys).map(([, [pkh, masterKey]]) => [
@@ -159,40 +177,8 @@ async function masterKeys(flags = {}) {
     )
 } 
 
-async function nodeStats(flags = {}) {
-    const farm = new toolkit.NodeFarm(flags?.nodes)
-    const nodeStats = await farm.stats()
-    helpers.traceTable(
-        Object.entries(nodeStats).map(([ url, stats ]) => [
-            ... (stats instanceof Error 
-                ? [ red(url), gray("n/a"), gray("n/a"), gray("n/a"), gray("n/a"), gray("n/a"), gray("n/a"), ]
-                : [
-                    mcyan(url),
-                    stats.block_mined_count,
-                    stats.commits_count,
-                    (stats.block_mined_count / stats.block_proposed_count).toFixed(3),
-                    (stats.commits_count / stats.commits_proposed_count).toFixed(3),
-                    ((stats.dr_eligibility_count - stats.commits_proposed_count) / stats.dr_eligibility_count).toFixed(3),
-                    (stats.slashed_count / stats.commits_count).toFixed(3),
-                ]
-            ),
-        ]), {
-            headlines: [ 
-                "NODES", 
-                "Mined blocks", 
-                "Witnessed DRs", 
-                "M_Acceptancy", 
-                "W_Acceptancy", 
-                "W_Reluctancy", 
-                "W_Falsity",
-            ],
-            humanizers: [ , helpers.commas, helpers.commas,,,, ],
-        },
-    )
-}
-
 async function peers(flags = {}, _args = [], options = {}) {
-    const farm = new toolkit.NodeFarm(flags?.nodes)
+    const farm = await _initializeFarm(flags)
     const checklists = {}
     if (options['reset']) {
         checklists["Reset peers"] = await farm.initializePeers()
@@ -210,8 +196,23 @@ async function peers(flags = {}, _args = [], options = {}) {
     }
 }
 
+async function publicKeys(flags = {}) {
+    const farm = await _initializeFarm(flags)
+    const publicKeys = await farm.publicKeys()
+    helpers.traceTable(
+        Object.entries(publicKeys).map(([, [pkh, publicKey]]) => [
+            // pkh instanceof Error ? cyan(url) : mcyan(url),
+            pkh instanceof Error ? red(pkh) : mcyan(pkh),
+            publicKey instanceof Error ? mred(publicKey.toString()) : cyan(publicKey.toString())
+        ]), {
+            headlines: [ ":Public key hash", "Public key" ],
+            maxColumnWidth: 120,
+        },
+    )
+} 
+
 async function rankings(flags = {}, _args = [], options = {}) {
-    const farm = new toolkit.NodeFarm(flags?.nodes)
+    const farm = await _initializeFarm(flags)
     const addresses = Object.entries(await farm.addresses())
     const validators = []
     let provider
@@ -219,7 +220,7 @@ async function rankings(flags = {}, _args = [], options = {}) {
         if (pkh instanceof Error) {
             console.error(`> Skipping node ${url}: ${pkh}`)
         } else {
-            if (!provider) provider = new toolkit.Provider(url)
+            if (!provider) provider = new Witnet.Provider(url)
             validators.push(pkh)
         }
     })
@@ -275,7 +276,7 @@ async function rewind(flags = {}, args) {
             return
         }
     }
-    const farm = new toolkit.NodeFarm(flags?.nodes)
+    const farm = await _initializeFarm(flags)
     const epoch = parseInt(args[0])
     helpers.traceChecklists({
         "Rewind chain": await farm.rewind(epoch),
@@ -283,8 +284,40 @@ async function rewind(flags = {}, args) {
     syncStatus(flags)
 } 
 
+async function stats(flags = {}) {
+    const farm = await _initializeFarm(flags)
+    const stats = await farm.stats()
+    helpers.traceTable(
+        Object.entries(stats).map(([ url, stats ]) => [
+            ... (stats instanceof Error 
+                ? [ red(url), gray("n/a"), gray("n/a"), gray("n/a"), gray("n/a"), gray("n/a"), gray("n/a"), ]
+                : [
+                    mcyan(url),
+                    stats.block_mined_count,
+                    stats.commits_count,
+                    (stats.block_mined_count / stats.block_proposed_count).toFixed(3),
+                    (stats.commits_count / stats.commits_proposed_count).toFixed(3),
+                    ((stats.dr_eligibility_count - stats.commits_proposed_count) / stats.dr_eligibility_count).toFixed(3),
+                    (stats.slashed_count / stats.commits_count).toFixed(3),
+                ]
+            ),
+        ]), {
+            headlines: [ 
+                "NODES", 
+                "Mined blocks", 
+                "Witnessed DRs", 
+                "M_Acceptancy", 
+                "W_Acceptancy", 
+                "W_Reluctancy", 
+                "W_Falsity",
+            ],
+            humanizers: [ , helpers.commas, helpers.commas,,,, ],
+        },
+    )
+}
+
 async function syncStatus(flags) {
-    const farm = new toolkit.NodeFarm(flags?.nodes)
+    const farm = await _initializeFarm(flags)
     const syncStatus = await farm.syncStatus()
     helpers.traceTable(
         Object.entries(syncStatus).map(([url, status]) => [
@@ -304,7 +337,7 @@ async function syncStatus(flags) {
 }
 
 async function withdrawers(flags = {}) {
-    const farm = new toolkit.NodeFarm(flags?.nodes)
+    const farm = await _initializeFarm(flags)
     const records = await farm.withdrawers()
     if (records && Object.keys(records).length > 0) {
         helpers.traceTable(
@@ -314,7 +347,7 @@ async function withdrawers(flags = {}) {
                 helpers.fromNanowits(coins),
             ]),
             {
-                headlines: [ "WITHDRAWERS", "Latest nonce", "Total staked (Wits)"],
+                headlines: [ "WITHDRAWERS", "Latest nonce", "Total staked ($WIT)"],
                 humanizers: [, helpers.commas, helpers.commas ],
                 colors: [ mmagenta,, myellow ],
             },

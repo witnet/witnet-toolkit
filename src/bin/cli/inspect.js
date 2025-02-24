@@ -1,6 +1,7 @@
 const moment = require("moment")
+
 const helpers = require("../helpers")
-const toolkit = require("../../../dist");
+const { utils, Witnet } = require("../../../dist");
 
 const FLAGS_LIMIT_DEFAULT = 100
 
@@ -19,7 +20,7 @@ module.exports = {
             param: ":http-url",
         },
         verbose: {
-            hint: "Outputs detailed information."
+            hint: "Outputs validators' nonce and last validation epochs."
         },
     },
     router: {
@@ -77,7 +78,7 @@ module.exports = {
             hint: "List UTXOs available to the specified address.",
             params: "WIT_ADDRESS",
             options: {
-                "smallest-first": {
+                "small-first": {
                     hint: "Outputs smallest UTXOs first (default: false).",
                 },
             }
@@ -96,7 +97,7 @@ async function balance(flags = {}, args) {
         throw "No WIT_ADDRESS was specified."
     }
     const pkh = args[0]
-    const provider = new toolkit.Provider(flags?.provider)
+    const provider = new Witnet.Provider(flags?.provider)
     const balance = await provider.getBalance(pkh)
     const records = []
     records.push([ 
@@ -106,7 +107,7 @@ async function balance(flags = {}, args) {
         helpers.fromNanowits(balance.locked + balance.staked + balance.unlocked)
     ])
     helpers.traceTable(records, {
-        headlines: [ "Locked (Wits)", "Staked (Wits)", "Unlocked (Wits", "BALANCE (Wits)" ],
+        headlines: [ "Locked ($WIT)", "Staked ($WIT)", "Unlocked (Wits", "BALANCE ($WIT)" ],
         humanizers: [ helpers.commas, helpers.commas, helpers.commas, helpers.commas ],
         colors: [ gray, yellow, myellow, lyellow ],
     })
@@ -120,9 +121,20 @@ async function block(flags = {}, args) {
     if (!helpers.isHexString(blockHash)) {
         throw "Invalid BLOCK_HASH was provided."
     }
-    const provider = new toolkit.Provider(flags?.provider)
+    const provider = new Witnet.Provider(flags?.provider)
     const block = await provider.getBlock(blockHash)
-    console.info(block)
+    console.info(gray(JSON.stringify(block, (key, value) => {
+        switch (key) {
+            case 'bytes': 
+            case 'der':
+            case 'proof':
+            case 'public_key':
+                if (Array.isArray(value)) return helpers.toHexString(value, true)
+                else return value;
+            default:
+                return value
+        }
+    }, 2)))
 }
 
 async function dataRequest(flags = {}, args) {
@@ -133,18 +145,44 @@ async function dataRequest(flags = {}, args) {
     if (!helpers.isHexString(drTxHash)) {
         throw "Invalid DR_TX_HASH was provided."
     }
-    const provider = new toolkit.Provider(flags?.provider)
-    const transaction = await provider.getTransaction(drTxHash)
-    console.info(transaction)
+    const provider = new Witnet.Provider(flags?.provider)
+    
+    const drTxJsonReplacer = (key, value) => {
+        switch (key) {
+            case 'proof':
+            case 'public_key':
+            case 'signature':
+            case 'signatures':
+                return undefined;
+            
+            case 'reveal':
+            case 'tally':
+                if (Array.isArray(value)) {
+                    const buff = Uint8Array.from(value)
+                    const result = utils.cbor.decode(Uint8Array.from(value))
+                    if (result instanceof Buffer) {
+                        return utils.toHexString(value) 
+                    } else {
+                        return result
+                    }
+                } else {
+                    return value
+                }
+            
+            default:
+                return value;
+        }
+    }
+    
     const report = await provider.getDataRequest(drTxHash)
-    console.info(report)
+    console.info(JSON.stringify(report, drTxJsonReplacer, 4))
 }
 
 async function superblock(flags = {}, args) {
     if (args.length === 0) {
         throw "No EPOCH was specified."
     }
-    const provider = new toolkit.Provider(flags?.provider)
+    const provider = new Witnet.Provider(flags?.provider)
     const superblock = await provider.getSuperblock(args[0])
     console.info(superblock)
 }
@@ -157,15 +195,26 @@ async function transaction(flags = {}, args) {
     if (!helpers.isHexString(txHash)) {
         throw "Invalid TX_HASH was provided."
     }
-    const provider = new toolkit.Provider(flags?.provider)
+    const provider = new Witnet.Provider(flags?.provider)
     const transaction = await provider.getTransaction(txHash)
-    console.info(transaction)
+    console.info(JSON.stringify(transaction, (key, value) => {
+        switch (key) {
+            case 'bytes': 
+            case 'der':
+                return helpers.toHexString(value, true)
+            default:
+                return value
+        }
+    }, 2))
 }
 
 async function utxos(flags = {}, args = [], options = {}) {
+    if (args.length < 1) {
+        throw "No WIT_ADDRESS was specified."
+    }
     const now = Math.floor(Date.now() / 1000)
-    const provider = new toolkit.Provider(flags?.provider)
-    let utxos = await provider.getUtxoInfo(args[0], options["smallest-first"] || false)
+    const provider = new Witnet.Provider(flags?.provider)
+    let utxos = await provider.getUtxoInfo(args[0], options["small-first"] || false)
     let totalBalance = 0
     if (!flags?.verbose) {
         utxos = utxos
@@ -203,7 +252,7 @@ async function validators(flags = {}, args = []) {
     if (args.length === 0) {
         throw "No WIT_ADDRESS was specified."
     }
-    const provider = new toolkit.Provider(flags?.provider)
+    const provider = new Witnet.Provider(flags?.provider)
     const query = {
         filter: { withdrawer: args[0] },
     }
@@ -232,7 +281,7 @@ async function validators(flags = {}, args = []) {
                             ? [ "Nonce", "LW_Epoch", "LM_Epoch", ]
                             : []
                     ),
-                    "STAKED (Wits)"
+                    "STAKED ($WIT)"
                 ],
                 humanizers: [
                     ,, ...(
@@ -265,7 +314,7 @@ async function withdrawers(flags = {}, args) {
     if (args.length === 0) {
         throw "No WIT_ADDRESS was specified."
     }
-    const provider = new toolkit.Provider(flags?.provider)
+    const provider = new Witnet.Provider(flags?.provider)
     const query = {
         filter: { validator: args[0] },
     }
@@ -294,7 +343,7 @@ async function withdrawers(flags = {}, args) {
                             ? [ "Nonce", "LW_Epoch", "LM_Epoch", ]
                             : []
                     ),
-                    "STAKED (Wits)"
+                    "STAKED ($WIT)"
                 ],
                 humanizers: [
                     ,, ...(
