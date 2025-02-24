@@ -1,10 +1,10 @@
 /* eslint-disable no-unused-vars */
 
-const Witnet = require("witnet-toolkit")
+const legacy = require('witnet-toolkit/assets')?.legacy
+const { utils, Witnet } = require("witnet-toolkit")
+const retrievals = require('../retrievals')
+const templates = require('../templates')
 
-const retrievals = require("./retrievals")
-const templates = require("./templates")
- 
 module.exports = {
   /// //// REQUESTS FROM RETRIEVALS /////////////////////////////////////////////////
   // path: { ... path: {
