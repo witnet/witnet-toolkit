@@ -1,0 +1,208 @@
+import { fromHexString, fromNanowits } from "../../../bin/helpers"
+
+import { HexString, Nanowits, Network } from "../../types"
+
+import { TransactionPayloadMultiSig } from "../payloads"
+import { PublicKey, PublicKeyHash, PublicKeyHashString, RecoverableSignature, TransactionParams } from "../types"
+
+export type StakeDepositParams = TransactionParams & {
+    authorization: HexString,
+    value: Nanowits,
+    withdrawer: PublicKeyHashString,
+}
+
+const TX_WEIGHT_BASE = 105;
+const TX_WEIGHT_INPUT_SIZE = 133;
+const TX_WEIGHT_OUTPUT_SIZE = 36;
+
+export class StakePayload extends TransactionPayloadMultiSig<StakeDepositParams> {
+
+    public static MAX_WEIGHT = 10000;          // 10,000
+    public static MIN_VALUE = 10000 * 10 ** 9; // 10,000.00 $WIT
+
+    constructor (protoTypeName: string, specs?: any) {
+        super(protoTypeName, specs)
+    }
+
+    public get maxWeight(): number {
+        return StakePayload.MAX_WEIGHT
+    }
+
+    public get prepared(): boolean {
+        return (
+            this._target !== undefined
+                && this._covered >= this._target.value 
+                && this._inputs.length > 0
+        )
+    }
+
+    public get value(): Nanowits {
+        return this._target?.value || 0
+    }
+
+    public get weight(): Nanowits {
+        return (
+            TX_WEIGHT_BASE
+                + this._inputs.length * TX_WEIGHT_INPUT_SIZE 
+                + this._outputs.length * TX_WEIGHT_OUTPUT_SIZE 
+        );
+    }
+    
+    // public async consumeUtxos(
+    //     signer: ISigner, 
+    //     changePkh?: PublicKeyHashString,
+    // ): Promise<number> {
+    //     if (!this._target) {
+    //         throw new Error(`${this.constructor.name}: internal error: no in-flight params.`)
+        
+    //     } else {
+    //         if (!this._covered) {
+    //             const utxos = await signer.selectUtxos()
+    //             let index = 0
+    //             while (index < utxos.length && !this.covered) {
+    //                 const utxo = utxos[index ++]
+    //                 if (utxo) {
+    //                     this._inputs.push([ signer.pkh, utxo ])
+    //                     this._covered += utxo.value
+    //                 }
+    //             }
+    //             signer.consumeUtxos(index)
+    //         }
+    //         const change = this._covered - (this.value + this._target.fees)
+    //         if (change > 0) {
+    //             // change goes to signer of last added UTXO:
+    //             this._outputs.push({
+    //                 pkh: changePkh || signer.pkh,
+    //                 value: change,
+    //                 time_lock: 0
+    //             })
+    //         }
+    //         this._change = change
+    //         return change
+    //     }
+    // }
+
+    public intoReceipt(target: StakeDepositParams, network?: Network) {
+        return {
+            authorization: target.authorization,
+            withdrawer: target.withdrawer,
+            validator: PublicKeyHash.fromHexString(target.authorization.substring(0, 40)).toBech32(network),
+        }
+    }
+
+    public toJSON(_humanize = false, network?: Network): any {
+        return {
+            inputs: this.inputs
+                .map(([, utxo]) => {
+                    return { output_pointer: utxo.output_pointer }
+                }),
+            ...(
+                this._target ? { output: {
+                    authorization: RecoverableSignature.from(
+                            this._target.authorization.substring(40), 
+                            PublicKeyHash.fromBech32(this._target.withdrawer).toBytes32()
+                        ).toKeyedSignature(),
+                    key: {
+                        validator: PublicKeyHash.fromHexString(this._target.authorization.substring(0, 40)).toBech32(network),
+                        withdrawer: this._target.withdrawer,
+                    },
+                    value: this._target.value,
+                }} : {}
+            ),
+            ...(
+                this.outputs.length > 0 ? { change: {
+                    pkh: this.outputs[0].pkh,
+                    value: this.outputs[0].value,
+                    time_lock: 0,
+                }} : {}
+            ),
+        }
+    }   
+
+    public toProtobuf(): any {
+        if (this.prepared && this._target) {
+            return {    
+                inputs: this.inputs
+                    .map(([, utxo]) => { 
+                        const transactionId = utxo.output_pointer.split(':')[0]
+                        const outputIndex = parseInt(utxo.output_pointer.split(':')[1])
+                        return {
+                            outputPointer: {
+                                transactionId: { SHA256: Array.from(fromHexString(transactionId)) },
+                                ...(outputIndex > 0 ? { outputIndex } : {}),
+                            },
+                        }
+                    }),
+                output: {
+                    authorization: RecoverableSignature.from(
+                            this._target.authorization.substring(40), 
+                            PublicKeyHash.fromBech32(this._target.withdrawer).toBytes32()
+                        ).toProtobuf(),
+                    key: {
+                        validator: { hash: Array.from(PublicKeyHash.fromHexString(this._target.authorization.substring(0, 40)).toBytes20()) },
+                        withdrawer: { hash: Array.from(PublicKeyHash.fromBech32(this._target.withdrawer).toBytes20()) },
+                    },
+                    value: this._target?.value,
+                },
+                ...(
+                    this._outputs.length > 0 ? { change : {
+                        pkh: { hash: Array.from(PublicKeyHash.fromBech32(this.outputs[0].pkh).toBytes20()) },
+                        value: this.outputs[0].value,
+                        // timeLock: 0,
+                    }} : {}
+                ),
+            }
+        }
+    }
+
+    public validateTarget(target?: any): StakeDepositParams | undefined {
+        target = this._cleanTargetExtras(target)
+        if (target && Object.keys(target).length > 0) {
+            if (!(
+                target
+                    && target?.authorization
+                    && target?.fees
+                    && parseInt(target.fees) > 0
+                    && target?.value
+                    && target?.withdrawer
+            )) {
+                throw new TypeError(`${this.constructor.name}: invalid specs were provided: ${JSON.stringify(target)}`)
+            } else {
+                if (parseInt(target.value) < StakePayload.MIN_VALUE) {
+                    throw new TypeError(
+                        `${this.constructor.name}: value below minimum stake: ${
+                            fromNanowits(target.value)
+                        } < ${
+                            fromNanowits(StakePayload.MIN_VALUE)
+                        } $WIT`
+                    );
+                }
+                const pubKey = PublicKey.recoverFrom(
+                    target.authorization.substring(40),
+                    PublicKeyHash.fromBech32(target.withdrawer).toBytes32()
+                )
+                if (pubKey.hash().toHexString() !== target.authorization.substring(0, 40)) {
+                    throw new TypeError(
+                        `${this.constructor.name}: authorization code not valid for withdrawer ${target.withdrawer}.`
+                    )
+                }
+                return target as StakeDepositParams
+            }
+        } else {
+            return undefined
+        }
+    }
+
+    protected _cleanTargetExtras(target?: any): any {
+        if (target) {
+            return Object.fromEntries(
+                Object.entries(target).filter(([key,]) => [
+                    'authorization',
+                    'fees',
+                    'value',
+                    'withdrawer',
+                ].includes(key))
+            )
+        }
+    }
+}
