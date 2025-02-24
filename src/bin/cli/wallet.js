@@ -1,0 +1,704 @@
+const qrcodes = require('qrcode-terminal')
+const inquirer = require('inquirer')
+
+const { utils, Witnet } = require("../../../dist");
+
+const helpers = require("../helpers");
+
+const { whole_wits } = helpers
+const { bblue, bcyan, bgreen, cyan, gray, green, lcyan, lmagenta, lyellow, magenta, mcyan, mgreen, mmagenta, myellow, normal, yellow, white, } = helpers.colors
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/// CLI SUBMODULE CONSTANTS ===========================================================================================
+
+module.exports = {
+    flags: {
+        await: {
+            hint: "Await any involved transaction to get eventually mined (default: false).",
+        },
+        // coinbase: {
+        //     hint: "Use wallet's coinbase address (supersedes --from, --limit and --unlocked options)."
+        // },
+        confirmations: {
+            hint: "Number of epochs to await after any involved transaction gets mined (implies --await).",
+            param: "NUMBER",
+        },
+        dryrun: {
+            hint: "Prepare and sign involved transactions, withoug any actual tranmission taking place."
+        },
+        gap: {
+            hint: "Max indexing gap when searching for funded accounts (default: 32).",
+            param: "GAP",
+        },
+        provider: {
+            hint: "Public Wit/Oracle JSON-RPC provider, other than default.",
+            param: "URL",
+        },
+        strategy: {
+            hint: "UTXOs selection strategy: `big-first`, `random`, `small-first` (default: `small-first`).",
+            param: "STRATEGY",
+        },
+        verbose: {
+            hint: "Outputs detailed information."
+        },
+    },
+    router: {
+        accounts: {
+            hint: "List wallet's HD-accounts with unlocked UTXOs, or those derived from the specified flags.",
+            options: {
+                limit: {
+                    hint: `Max number of HD-accounts to derive from the master key.`, 
+                    param: "LIMIT",
+                },
+                "qrcode": {
+                    hint: "Prints the QR code for the account with the highest index, scannable from myWitWallet."
+                },
+                unlocked: {
+                    hint: `Only derive HD-accounts that treasure unlocked Wits.`
+                },
+            },
+        },
+        authorize: {
+            hint: "Authorize give address to stake into the wallet's coinbase account.",
+            params: "WITHDRAWER_ADDRESS",
+        },
+        // "create*": {
+        //     hint: "Create some random master key.",
+        //     options: {
+        //         vanity: {
+        //             hint: "Vanity prefix of the resulting public key hash address (e.g. `herrer0`)",
+        //             param: "BECH32_PREFIX",
+        //         },
+        //     }
+        // },
+        decipher: {
+            hint: "Decipher some master key as exported from myWitWallet.",
+        },
+        provider: {
+            hint: "Show the underlying Wit/Oracle RPC provider being used."
+        },
+        operators: {
+            hint: "List validators treasuring delegated stake from the wallet.",
+            options: {
+                limit: {
+                    hint: `Max number of HD-accounts to derive from the master key.`, 
+                    param: "LIMIT",
+                },
+                unlocked: {
+                    hint: `Only derive HD-accounts that treasure unlocked Wits.`
+                },
+            },
+        },
+        resolve: {
+            hint: "Ask the Wit/Oracle to resolve and forever store the resolution to a Radon request.",
+            params: ["[RADON_ASSET_SUFFIX | RADON_BYTECODE | RAD_HASH]", "[...ARGS]" ],
+            options: {
+                fees: {
+                    hint: "Total fees to be distributed among operators mining intrinsic transactions on chain (default: 0.5 Wits).",
+                    param: "WITS",
+                },
+                from: {
+                    hint: "Authorized wallet account that will pay the fees and eventual rewards, other than wallet's default.",
+                    param: "WALLET_ADDRESS",
+                },
+                legacy: {
+                    hint: "Inherit legacy Radon assets declared in the imported Witnet package."
+                },
+                witnesses: { 
+                    hint: "Number of witnesses in the Wit/Oracle network obliged to attend the data request (default: 3).", 
+                    param: "WITNESSES"
+                },
+            }
+        },
+        stake: {
+            hint: "Stake specified amount of Wits by using the given authorization code.",
+            params: "AUTH_CODE",
+            options: { 
+                fees: {
+                    hint: "Settle total fees to pay for the transaction to get mined (default: 1 μWit).",
+                    param: "WITS",
+                },
+                from: {
+                    hint: "Authorized wallet account with rights to eventual withdraw the stake deposit, and yield.",
+                    param: "WALLET_ADDRESS",
+                },
+                value: {
+                    hint: "Amount in Wits to stake into the validator that signed the given authorization (min: 10 KWits).",
+                    param: "WITS | `all`",
+                },
+            }
+        },
+        transfer: {
+            hint: "Transfer specified amount of Wits to given address.",
+            params: "WIT_ADDRESS",
+            options: {
+                fees: {
+                    hint: "Settle total fees to pay for the transaction to get mined (default: 1 μWit).",
+                    param: "WITS",
+                },
+                from: {
+                    hint: "Wallet address to transfer value from.",
+                    param: "WALLET_ADDRESS",
+                },
+                value: {
+                    hint: "Amount in Wits to be transfered (e.g. `0.5` Wits).",
+                    param: "WITS | `all`",
+                },
+            },
+        },
+        utxos: {
+            hint: "List currently unlocked UTXOs on wallet's specified address, or first funded account otherwise.",
+            params: "[WALLET_ADDRESS]",
+            options: {
+                // "big-first": { hint: "Rather select bigger UTXOs first (default: false).", },
+                fees: {
+                    hint: "Settle total fees to pay for involved transactions to get mined (default: 1 μWit).",
+                    param: "WITS",
+                },
+                into: {
+                    hint: "Alternative wallet address where to JOIN or SPLIT the selected UTXOs.",
+                    param: "WALLET_ADDRESS"
+                },
+                join: { hint: "Join selected UTXOs together into a single UTXO.", },
+                split: { 
+                    hint: "Number of UTXOs to split the target balance into (max: 50).", 
+                    param: "SPLITS"
+                },
+                value: {
+                    hint: "Specific amount in Wits to be either joined or split.",
+                    param: "WITS | `all`",
+                }
+            }
+        },
+        withdraw: {
+            hint: "Withdraw specified amount of staked Wits from the given operator.",
+            params: "OPERATOR_PKH",
+            options: {
+                fees: {
+                    hint: "Settle total fees to pay for the transaction to get mined (default: 1 μWit).",
+                    param: "WITS",
+                },
+                into: {
+                    hint: "Wallet address with rights to withdraw stake from the specified validator.",
+                    param: "WALLET_ADDRESS",
+                },
+                value: {
+                    hint: "Amount in Wits to withdraw.",
+                    param: "WITS | `all`",
+                },
+            }
+        },
+    },
+    subcommands: {
+        accounts, authorize, decipher, provider, resolve, stake, transfer, withdraw: unstake, utxos, operators: validators, 
+    },
+};
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/// CLI SUBMODULE COMMANDS ============================================================================================
+
+async function accounts(flags = {}, _args = [], options = {}){
+    const { coinbase, verbose } = flags
+    const { qrcode } = options
+    const wallet = await initializeWallet({ unlocked: options?.unlocked, limit: options?.limit, ...flags })
+    
+    if (qrcode) {
+        if (wallet.accounts.length > 0) {
+            const account = wallet.accounts[wallet.accounts.length - 1]
+            qrcodes.generate(account.pkh)
+            console.info(`Wallet account #${wallet.accounts.length}: ${lmagenta(account.pkh)}\n`)
+
+        } else {
+            qrcodes.generate(wallet.coinbase.pkh)
+            console.info(`Wallet coinbase: ${lcyan(wallet.coinbase.pkh)}\n`)
+        }
+        
+    } else {
+        let records = []
+        // if (coinbase) {
+        //     records.push([ wallet.coinbase.pkh, await wallet.coinbase.countUtxos(), await wallet.coinbase.getBalance() ])
+        // } else {
+            records.push(
+                [ wallet.coinbase.pkh, await wallet.coinbase.countUtxos(), await wallet.coinbase.getBalance() ],
+                ...await Promise.all(
+                    wallet.accounts.map(async account => [ 
+                        account.pkh, 
+                        await account.countUtxos(), 
+                        await account.getBalance(),  
+                    ]),
+                )
+            )
+        // }
+        let unlocked = 0
+        helpers.traceTable(
+            records.map(([pkh, count, balance], index) => {
+                unlocked += balance.unlocked
+                return [
+                    index, // ...(coinbase ? [] : [ index + 1 ]),
+                    index === 0 // ...(verbose && !coinbase ? [ magenta(internal) ] : []),
+                        ? (balance.unlocked > 0 ? mcyan(pkh) : cyan(pkh)) 
+                        : (balance.unlocked > 0 ? mmagenta(pkh) : magenta(pkh)),
+                    
+                    count,
+                    ...(verbose
+                        ? [ 
+                            helpers.fromNanowits(balance.locked), 
+                            helpers.fromNanowits(balance.staked), 
+                            helpers.fromNanowits(balance.unlocked), 
+                            helpers.fromNanowits(balance.locked + balance.staked + balance.unlocked),
+                        ] : [
+                            helpers.fromNanowits(balance.unlocked), 
+                        ]
+                    ),
+                ]
+            }), {
+                headlines: [ 
+                    "INDEX", ":WALLET ACCOUNTS", // ...(coinbase ? [ "WALLET COINBASE" ] : ["INDEX", ":WALLET ACCOUNTS"]),
+                    "# UTXOs", 
+                    ...(verbose 
+                        ? [ "Locked ($WIT)", "Staked ($WIT)", "Unlocked ($WIT)", "BALANCE ($WIT)" ]
+                        : [ "Unlocked ($WIT)"]
+                    ),
+                ],
+                humanizers: [ 
+                    helpers.commas,, //...(coinbase ? [,] : [helpers.commas,,]),
+                    helpers.commas, helpers.commas, helpers.commas, helpers.commas, helpers.commas 
+                ],
+                colors: [ 
+                    ,, //...(coinbase ? [,] : [,,]),
+                    ...(verbose 
+                        ? [ white, gray, yellow, myellow, lyellow ]
+                        : [ white, myellow ]
+                    ),
+                ],
+                maxColumnWidth: 48,
+            }
+        )
+        if (verbose/* && !coinbase && wallet.accounts.length > 1*/) {
+            console.info(`^ Unlocked balance: ${myellow(whole_wits(unlocked, 2))}`)
+        }
+    }
+}
+
+async function authorize(flags = {}, [withdrawer]) {
+    const wallet = await initializeWallet({ coinbase: true, ...flags })
+    withdrawer = flags?.coinbase ? wallet.coinbase.pkh : withdrawer
+    const authcode = wallet.coinbase.authorizeStake(withdrawer)
+    console.info("Validator address: ", mcyan(wallet.coinbase.pkh))
+    console.info("Withdrawer address:", mmagenta(withdrawer))
+    qrcodes.generate(authcode)
+    console.info(`${white(authcode)}`)
+}
+
+async function decipher() {
+    const prompt = inquirer.createPromptModule()
+    const user = await prompt([
+        {
+            message: "Enter XPRV:",
+            name: "xprv",            
+        }, { 
+            type: "password",
+            mask: "*",
+            message: "Enter password:",
+            name: "passwd",
+        },
+    ])
+    console.info(utils.decipherXprv(user.xprv, user.passwd))
+}
+
+async function provider(flags = {}) {
+    const wallet = await initializeWallet({ unlocked: true, limit: 1, ...flags })
+    wallet.provider.endpoints.forEach(url => {
+        console.info(helpers.colors.magenta(url))
+    })
+}
+
+async function resolve(flags = {}, [pattern, ...args], options ={}) {
+    const { dryrun, verbose } = flags
+    const wallet = await initializeWallet({ unlocked: true, limit: 1, ...flags })
+    const account = (
+        options?.from 
+            ? (options.from === wallet.coinbase.pkh ? wallet.coinbase : wallet.findAccount(options.from))
+            : wallet.accounts[0]
+    );
+    if (!account) {
+        throw "--from address not found in wallet."
+    }
+    
+    const request = await initializeRequest({ legacy: options?.legacy, pattern, args })
+    
+    const confirmations = flags?.confirmations ? parseInt(flags?.confirmations) : (flags?.await ? 0 : undefined)
+    const fees = utils.fromWits(options?.fees || 0.5) // 0.5 Wits as default fees
+    const witnesses = parseInt(options?.witnesses || 3)
+
+    await helpers.traceTransaction(
+        Witnet.DataRequest.from(account, request), {
+            confirmations, dryrun, headline: `DATA REQUEST TRANSACTION`, verbose, color: bgreen, 
+            fees, witnesses,
+        }
+    )
+}
+
+async function stake(flags = {}, [authorization], options = {}) {
+    if (!authorization) {
+        throw "No authorization code was provided."
+    } else if (!options?.value) {
+        throw "No --value was specified."
+    }
+    const { dryrun, verbose } = flags
+    const confirmations = flags?.confirmations ? parseInt(flags?.confirmations) : (flags?.await ? 0 : undefined)
+    const wallet = await initializeWallet({ unlocked: true, limit: 1, ...flags })
+
+    const account = (
+        options?.from 
+            ? (options.from === wallet.coinbase.pkh ? wallet.coinbase : wallet.findAccount(options.from))
+            : wallet.accounts[0]
+    );
+    if (!account) {
+        throw "--from address not found in wallet."
+    }
+
+    const fees = utils.fromWits(options?.fees || 0.000001) // 1 microWit as default fee
+    const value = options.value.toLowerCase() === 'all' ? (await account.getBalance()).unlocked - fees : utils.fromWits(options.value)
+
+    await helpers.traceTransaction(
+        Witnet.StakeDeposit.from(account), {
+            confirmations, dryrun, headline: `STAKE DEPOSIT TRANSACTION`, verbose, color: bcyan, 
+            authorization, fees, value, withdrawer: account.pkh,
+        }
+    )
+}
+
+async function transfer(flags, args = [], options = {}) {
+    if (args.length === 0) {
+        throw "No recipient address was specified."
+    } else if (!options?.value) {
+        throw "No transfer value was specified."
+    }
+    const { coinbase, dryrun, verbose } = flags
+    const confirmations = flags?.confirmations ? parseInt(flags?.confirmations) : (flags?.await ? 0 : undefined)
+    const wallet = await initializeWallet({ unlocked: true, limit: 1, ...flags })
+    
+    const account = coinbase 
+        ? wallet.coinbase
+        : (options?.from ? wallet.findAccount(options.from) : wallet.accounts[0])
+    
+    if (!account) {
+        throw "--from address not found in wallet."
+    }
+
+    const fees = utils.fromWits(options?.fees || 0.000001) // 1 microWit as default fee
+    const value = options.value.toLowerCase() === 'all' ? (await account.getBalance()).unlocked - fees : utils.fromWits(options.value)
+    const recipients = [[ Witnet.PublicKeyHash.fromBech32(args[0]).toBech32(wallet.network), value ]]
+    
+    await helpers.traceTransaction(
+        Witnet.ValueTransfer.from(account), { 
+            confirmations, dryrun, headline: `VALUE TRANSFER TRANSACTION`, verbose, color: bblue,
+            fees, recipients,
+        }
+    )
+}
+
+async function unstake(flags, [validator], options = {}) {
+    if (!options.value) {
+        throw "No --value was specified."
+    } else if (!flags?.coinbase && !options?.into) {
+        throw "No --into was specified."
+    }
+    Witnet.PublicKeyHash.fromBech32(validator)
+    const { coinbase, dryrun, verbose } = flags
+    const confirmations = flags?.confirmations ? parseInt(flags?.confirmations) : (flags?.await ? 0 : undefined)
+    const wallet = await initializeWallet({ unlocked: true, limit: 1, ...flags })
+
+    const account = coinbase
+        ? wallet.coinbase
+        : (options?.into ? wallet.findAccount(options.into) : wallet.accounts[0])
+
+    if (!account) {
+        throw "--into address not found in wallet."
+    }
+
+    const fees = utils.fromWits(options?.fees || 0.000001) // 1 microWit as default fee
+    const value = utils.fromWits(options.value) // options.value.toLowerCase() === 'all' ? (await account.getStakedOn(validator)) - fees : utils.fromWits(options.value)
+
+    await helpers.traceTransaction(
+        Witnet.StakeWithdrawal.from(account), {
+            confirmations, dryrun, headline: `STAKE WITHDRAWAL TRANSACTION`, verbose, 
+            fees, value, validator,
+        }
+    )
+}
+
+async function utxos(flags, args = [], options = {}) {
+    const { coinbase, dryrun, verbose } = flags
+    const confirmations = flags?.confirmations ? parseInt(flags.confirmations) : (flags?.await ? 0 : (options?.join && options?.split ? 0 : undefined))
+    
+    const wallet = await initializeWallet({ unlocked: true, limit: 1, ...flags })
+
+    let from, totalUnlocked = 0, utxos = []
+    if (coinbase) {
+        from = wallet.coinbase.pkh
+        utxos = (await wallet.coinbase.selectUtxos(strategy)).map(utxo => { return { pkh: mcyan(from), ...utxo }})
+        totalUnlocked = (await wallet.coinbase.getBalance()).unlocked
+        
+    } else {
+        let account 
+        if (args.length > 0) {
+            account = wallet.findAccount(args[0])
+        
+        } else {
+            account = wallet.accounts[wallet.accounts.length - 1]
+        }
+        if (account) {
+            from = account.pkh
+            let intPkh = account.internal.pkh
+            utxos = [
+                ...(await account.internal.selectUtxos()).map(utxo => { return { pkh: magenta(intPkh), ...utxo }}),
+                ...(await account.external.selectUtxos()).map(utxo => { return { pkh: mmagenta(from), internal: true, ...utxo }})
+            ]
+            totalUnlocked = (await account.getBalance()).unlocked
+        } else {
+            throw `Account ${args[0]} not found in wallet.`
+        }
+    }
+    const into = options?.into
+    if (into) {
+        if (into !== from && !wallet.findAccount(into)) {
+            throw `Into-account ${into} not found in wallet.`
+        }
+    }
+    
+    const fees = utils.fromWits(options?.fees || 0.000001) // 1 microWit as default fee
+    let targetValue = 0
+    if (options?.value) {
+        if (options.value.toLowerCase() === 'all') {
+            targetValue = totalUnlocked - fees
+        
+        } else {
+            targetValue = helpers.fromWits(parseFloat(options.value))
+        }
+    }
+    let coveredValue = 0
+    if (targetValue > 0) {
+        let targetIndex = 0
+        for (; targetIndex < utxos.length && coveredValue < targetValue + fees; targetIndex ++) {
+            coveredValue += utxos[targetIndex].value
+        }
+        if (coveredValue < targetValue + fees) {
+            throw `Not enough unlocked UTXOs on ${coinbase ? mcyan(from) : mmagenta(from)} (${whole_wits(selectedBalance)} < ${myellow(whole_wits(target))}.`
+        } else {
+            utxos.splice(targetIndex)
+        }
+    } else {
+        utxos.forEach(utxo => coveredValue += utxo.value)
+    }
+    
+    if (utxos.length > 0) {
+        if (verbose || (!options?.join && !options?.split)) {
+            helpers.traceTable(
+                utxos.map((utxo, index) => [
+                    index + 1,
+                    utxo?.internal ? green(utxo.output_pointer) : mgreen(utxo.output_pointer),
+                    utxo.value
+                ]), {
+                    headlines: [ "INDEX", ":Unlocked UTXOs", "Value (Nanowits)", ],
+                    humanizers: [ helpers.commas,, helpers.commas ],
+                    colors: [ ,, myellow, ]
+                }
+            )
+            if (coinbase) {
+                console.info(`^ Wallet coinbase: ${mcyan(from)}`)
+            } else {
+                console.info(`^ Wallet account: ${mmagenta(from)}`)
+            }
+        }
+
+        const valueTransfer = coinbase
+            ? Witnet.ValueTransfer.from(wallet.coinbase) 
+            : Witnet.ValueTransfer.from(wallet.findAccount(from))
+        
+        if (options?.join) {
+            if (!options?.value) {
+                throw `--value must be specified for a JOIN operation.`
+            }
+            const recipients = [[ options?.split ? from : into, targetValue ]]
+            await helpers.traceTransaction(valueTransfer, { 
+                confirmations, dryrun, verbose, headline: `JOINING UTXOs: ${utxos.length} -> ${targetValue < coveredValue ? 2 : 1}` ,
+                fees, recipients,
+            })
+        }
+        if (options?.split) {
+            if (!options?.value) {
+                throw `--value must be specified for a SPLIT operation.`
+            }
+            const recipients = []
+            const splits = parseInt(options.split)
+            if (splits > 50) {
+                throw "Sorry, not possible to split into more than 50 UTXOs."
+            }
+            const splitBalance = Math.floor(targetValue / splits)
+            recipients.push(...Array(splits).fill([ into || from, splitBalance ])) 
+            await helpers.traceTransaction(valueTransfer, {
+                confirmations, dryrun, verbose, 
+                headline: `SPLITTING UTXOs: ${utxos.length} -> ${splitBalance * splits < coveredValue ? splits + 1 : splits}`,
+                fees, recipients,
+            })
+        }
+
+    } else {
+        console.info(`> No unlocked UTXOs on ${coinbase ? mcyan(from) : mmagenta(from)} at the moment.`)
+    }
+}
+
+async function validators(flags = {}, [], options = {}) {
+    const { coinbase, verbose } = flags
+    const wallet = await initializeWallet({ unlocked: options?.unlocked, limit: options?.limit, ...flags })
+    const order = { by: Witnet.StakesOrderBy.Coins, reverse: true }
+    let records, staked = 0
+    if (coinbase) {
+        records = await wallet.coinbase.getDelegates(order)
+    } else {
+        records = await wallet.getDelegates(order)
+    }
+    if (records.length > 0) {
+        helpers.traceTable(
+            records.map((record, index) => {
+                staked += record.value.coins
+                return [
+                    // 1 + index,
+                    record.key.withdrawer === wallet.coinbase.pkh
+                        ? (record.key.validator !== "" ? mcyan(record.key.withdrawer) : cyan(record.key.withdrawer))
+                        : (record.key.validator !== "" ? mmagenta(record.key.withdrawer) : magenta(record.key.withdrawer)),
+                    ...(record.value.epochs.witnessing > record.value.nonce || record.value.epochs.mining > record.value.nonce
+                        ? [ mcyan(record.key.validator), record.value.nonce ]
+                        : [ cyan(record.key.validator), gray(record.value.nonce || "") ]
+                    ),
+                    ...(verbose
+                        ? [ record.value.epochs.witnessing || "", record.value.epochs.mining || "" ]
+                        : [ ]
+                    ),
+                    yellow(helpers.fromNanowits(record.value.coins)),
+                ]
+            }), {
+                headlines: [
+                    // "INDEX",
+                    coinbase ? "WALLET COINBASE" : "WALLET ACCOUNTS",
+                    "DELEGATED STAKE OPERATORS",
+                    ...(verbose
+                        ? [ "Nonce", "LW_Epoch", "LM_Epoch" ]
+                        : [ "Nonce" ]
+                    ),
+                    "STAKED ($WIT)"
+                ],
+                humanizers: [
+                    ,, ...(verbose
+                        ? [ helpers.commas, helpers.commas, helpers.commas ]
+                        : [ helpers.commas ]
+                    ),
+                    helpers.commas,
+                ],
+                colors: [ 
+                    ,,, ...(verbose
+                        ? [ magenta, cyan, myellow, ]
+                        : [ myellow, ]
+                    )
+                ],
+            }
+        )
+        if (verbose) {
+            console.info(`^ Delegated stake: ${myellow(whole_wits(staked, 2))}`)
+        }
+    } else {
+        console.info(`> No validators found.`)
+    }
+}
+
+
+/// ===================================================================================================================
+/// --- Internal functions --------------------------------------------------------------------------------------------
+
+async function initializeRequest(options = {}) {    
+    // if (options?.pattern && typeof options.pattern === 'string' && utils.isHexString(options.pattern)) {
+    //     if (utils.isHexStringOfLength(options.pattern, 32)) {
+    //         throw `Searching RADON_BYTECODE by RAD_HASH not yet supported.`
+    //     } else try {
+    //         return Witnet.RadonRequest.fromHexString(pattern)
+    //     } catch {
+    //         throw `Invalid RADON_BYTECODE.`
+    //     }
+    // }   
+    let assets
+    if (!options?.args || options.args.length === 0) {
+        assets = Object.fromEntries(
+            utils.searchRadonAssets({ legacy: options?.legacy, pattern: options?.pattern, type: Witnet.RadonRequest })
+        );
+    } else {
+        assets = Object.fromEntries(
+            utils.searchRadonAssets({ legacy: options?.legacy, pattern: options?.pattern, type: Witnet.RadonTemplate })
+                .filter(([,artifact]) => (
+                    artifact.homogeneous && artifact.argsCount === args.length
+                        || (args.length === 1 && template.samples[args[0]])
+                ))
+            );
+    }
+    
+    let artifact
+    if (Object.keys(assets).length === 0) {
+        if (options?.args?.length > 0) {
+            throw `No homogenous Radon templates named after "${options?.pattern}" and requiring ${options.args.length} parameters.`
+        } else if (options?.pattern) {
+            throw `No Radon requests named after "${options.pattern}".`
+        } else {
+            throw `No Radon requests available.`
+        }
+
+    } else if (Object.keys(assets).length > 1) {
+        const prompt = inquirer.createPromptModule()
+        const user = await prompt([{ 
+            choices: Object.keys(assets),
+            message: "Found multiple Radon requests. Please, select one:", 
+            name: "key", 
+            type: "list", 
+        }])
+        artifact = assets[user.key]
+    
+    } else {
+        artifact = Object.values(assets)[0]
+    }
+
+    if (artifact instanceof Witnet.RadonTemplate) {
+        if (args.length === 0 && artifact.samples[args[0]]) {
+            artifact = artifact.buildRequest(artifact.samples[args[0]])
+        } else {
+            artifact = artifact.buildRequestModal(...args)
+        }
+    }
+    return artifact
+}
+
+async function initializeWallet(flags = {}) {
+    if (!process.env.WITNET_TOOLKIT_MASTER_KEY) {
+        throw "No master key is settled in environment."
+    } else {
+        const provider = new Witnet.Provider(flags?.provider)
+        const strategy = Witnet.UtxoSelectionStrategy[flags?.strategy || 'small-first']
+        const gap = flags['gap'] || 32
+        let wallet, xprv = process.env.WITNET_TOOLKIT_MASTER_KEY
+        if (xprv.length === 293) {
+            const prompt = inquirer.createPromptModule()
+            const user = await prompt([{ type: "password", mask: "*", message: "Enter password:", name: "passwd"}])
+            wallet = await Witnet.Wallet.fromEncryptedXprv(xprv, user.passwd, provider, strategy, gap)
+        } else {
+            wallet = await Witnet.Wallet.fromXprv(xprv, provider, strategy, gap)
+        }
+        if (!flags?.coinbase) {
+            if (flags?.unlocked) {
+                await wallet.exploreAccounts(flags?.limit || 0)
+            
+            } else {
+                wallet.deriveAccounts(parseInt(flags?.limit || 4))
+            }
+        }
+        return wallet
+    }
+}
