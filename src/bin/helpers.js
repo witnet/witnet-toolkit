@@ -487,18 +487,18 @@ async function prompt(question) {
 }
 
 async function prompter(promise) {
-    const loading = (function () {
+    const loading = (() => {
         const h = ['|', '/', '-', '\\'];
         var i = 0;
         return setInterval(() => {
-            i = (i > 3) ? 0 : i;
+            i = (i > 3) ? 0 : i
             process.stdout.write(`\b\b${h[i]} `)
             i++;
         }, 50);
     })();
     return promise
         .then(result => {
-            clearInterval(loading);
+            clearInterval(loading)
             process.stdout.write('\b\b')
             return result
         })

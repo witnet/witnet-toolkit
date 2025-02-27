@@ -151,22 +151,6 @@ export type BlockMerkleRoots = {
     vt_hash_merkle_root: Hash;
 };
 
-// Block transactions
-// export type BlockTransactions = {
-//     // A list of signed commit transactions
-//     commit_txns: Array<DataRequestCommitTransaction>;
-//     // A list of signed data request transactions
-//     data_request_txns: Array<DataRequestTransaction>;
-//     // Mint transaction,
-//     mint: MintTransaction;
-//     // A list of signed reveal transactions
-//     reveal_txns: Array<DataRequestRevealTransaction>;
-//     // A list of signed tally transactions
-//     tally_txns: Array<DataRequestTallyTransaction>;
-//     // A list of signed value transfer transactions
-//     value_transfer_txns: Array<ValueTransferTransaction>;
-// };
-
 export type BlockTransactionsHashes = {
     commit: Array<Hash>,
     data_request: Array<Hash>,
@@ -369,20 +353,6 @@ export type ProtocolInfo = {
     current_version: string;
 }
 
-// // Public Key data structure
-// export type PublicKey = {
-//     // Byte indicating how to decompress the public key
-//     compressed: number;
-//     // Public key bytes
-//     bytes: Uint8Array;
-// };
-
-// export type PublicKeyHash = {
-//     hash: Uint8Array;
-// };
-
-// export type PublicKeyHashString = string;
-
 export type RADAggregate = { filters: Array<RADFilter>; reducer: u32 };
 export type RADFilter = { op: u32; args: Array<u8> };
 export type RADRequest = {
@@ -582,25 +552,6 @@ export type TransactionReport = {
     } 
 }
 
-// export type Input = {
-//     output_pointer: UtxoPointer;
-// };
-
-// // Unspent output data structure (equivalent of Bitcoin's UTXO)
-// // It is used to locate the output by its transaction identifier and its position
-// export type UtxoPointer = {
-//     // Transaction identifier
-//     transaction_id: Hash;
-//     // Index of output inside transaction
-//     output_index: u32;
-// };
-
-// // Data request eligibility claim
-// export type DataRequestEligibilityClaim = {
-//     // A Verifiable Random Function proof of the eligibility for a given epoch, public key and data request
-//     proof: VrfProof;
-// };
-
 export type DataRequestCommitTransaction = {
     body: DataRequestCommitTransactionBody;
     signatures: Array<KeyedSignature>;
@@ -611,10 +562,6 @@ export type DataRequestCommitTransactionBody = {
     dr_pointer: Hash;
     // DataRequestRevealTransaction Signature Hash
     commitment: Hash;
-    // // Proof of eligibility for this pkh, epoch, and data request
-    // proof: DataRequestEligibilityClaim;
-    // // Inputs used as collateral
-    // collateral: Array<Input>;
     // Change from collateral. The output pkh must be the same as the inputs,
     // and there can only be one output
     outputs: Array<ValueTransferOutput>;
@@ -653,24 +600,6 @@ export type DataRequestTallyTransaction = {
     // hash: Hash;
 };
 
-// export type DataRequestTransaction = {
-//     body: DataRequestTransactionBody;
-//     signatures: Array<KeyedSignature>;
-// };
-
-// export type DataRequestTransactionBody = {
-//     inputs: Array<Input>;
-//     outputs: Array<ValueTransferOutput>;
-//     dr_output: DataRequestPayload;
-//     hash: Hash;
-// };
-
-// export type MintTransaction = {
-//     epoch: Epoch;
-//     outputs: Array<ValueTransferOutput>;
-//     hash: Hash;
-// };
-
 /// Node stats
 export type NodeStats = {
     //Number of proposed blocks
@@ -688,13 +617,3 @@ export type NodeStats = {
     //Number of slashed commits
     slashed_count: u32;
 };
-
-// export type ValueTransferTransaction = {
-//     body: ValueTransferTransactionBody;
-//     signatures: Array<KeyedSignature>;
-// };
-
-// export type ValueTransferTransactionBody = {
-//     inputs: Array<Input>;
-//     outputs: Array<ValueTransferOutput>;
-// };

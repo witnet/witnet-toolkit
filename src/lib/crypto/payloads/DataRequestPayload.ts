@@ -26,27 +26,27 @@ type DataRequestOutputSLA = {
     witnessReward: number,
 }
 
-const DR_COMMIT_TX_WEIGHT = 400;
-const DR_REVEAL_TX_WEIGHT = 200;
-const DR_TALLY_TX_WEIGHT = 100;
+const DR_COMMIT_TX_WEIGHT = 400
+const DR_REVEAL_TX_WEIGHT = 200
+const DR_TALLY_TX_WEIGHT = 100
 
-const DR_TX_WEIGHT_ALPHA = 1;
-const DR_TX_WEIGHT_BETA = 1;
+const DR_TX_WEIGHT_ALPHA = 1
+const DR_TX_WEIGHT_BETA = 1
 
-const TX_WEIGHT_INPUT_SIZE = 133;
-const TX_WEIGHT_OUTPUT_SIZE = 36;
+const TX_WEIGHT_INPUT_SIZE = 133
+const TX_WEIGHT_OUTPUT_SIZE = 36
 
 export class DataRequestPayload extends TransactionPayloadMultiSig<DataRequestParams> {
 
-    public static COLLATERAL_RATIO = 125;
-    public static MAX_WEIGHT = 80_000;
-    public static MIN_COLLATERAL = 20_000_000_000;
+    public static COLLATERAL_RATIO = 125
+    public static MAX_WEIGHT = 80_000
+    public static MIN_COLLATERAL = 20_000_000_000
 
     protected _request?: RadonRequest 
     public readonly template?: RadonTemplate
     
-    constructor (protoTypeName: string, radon: RadonRequest | RadonTemplate, specs?: any) {
-        super(protoTypeName, specs)
+    constructor (protoTypeName: string, radon: RadonRequest | RadonTemplate, initialTarget?: DataRequestParams) {
+        super(protoTypeName, initialTarget)
         if (radon instanceof RadonRequest) {
             this._request = radon
         } else if (radon instanceof RadonTemplate) {
@@ -112,11 +112,7 @@ export class DataRequestPayload extends TransactionPayloadMultiSig<DataRequestPa
     }
 
     public get fees(): Nanowits {
-        if (this._target) {
-            return this._target.fees
-        } else {
-            return 0
-        }
+        return this._target?.fees || 0
     }
 
     public get hash(): Hash | undefined {
@@ -136,24 +132,20 @@ export class DataRequestPayload extends TransactionPayloadMultiSig<DataRequestPa
     }
 
     public get parameterized(): boolean {
-        return this.template !== undefined
+        return !!this.template
     }
 
     public get prepared(): boolean {
         return (
             this.covered
                 && this._inputs.length > 0
-                && this._request !== undefined
-                && this._target !== undefined
+                && !!this._request
+                && !!this._target
         )
     }
 
     public get radArgs(): DataRequestTemplateArgs | undefined {
-        if (this.template) {
-            return this._target?.args
-        } else {
-            return undefined
-        }
+        return this.template ? this._target?.args : undefined
     }
 
     public get radHash(): HexString | undefined {
@@ -257,9 +249,7 @@ export class DataRequestPayload extends TransactionPayloadMultiSig<DataRequestPa
         const droSLA = this.droSLA        
         return {
             inputs: this.inputs
-                .map(([, utxo]) => {
-                    return { output_pointer: utxo.output_pointer }
-                }),
+                .map(([, utxo]) => ({ output_pointer: utxo.output_pointer })),
             outputs: this.outputs.map(vto => { return { 
                 pkh: vto.pkh,
                 time_lock: vto.time_lock,
@@ -290,11 +280,11 @@ export class DataRequestPayload extends TransactionPayloadMultiSig<DataRequestPa
                             },
                         }
                     }),
-                outputs: this.outputs.map(vto => { return { 
+                outputs: this.outputs.map(vto => ({ 
                     pkh: { hash: Array.from(PublicKeyHash.fromBech32(vto.pkh).toBytes20()), },
                     value: vto.value,
                     ...(vto.time_lock > 0 ? { timeLock: vto.time_lock } : {}),
-                }}),
+                })),
                 drOutput: this._toDrOutputProtobuf(),
             }
         }

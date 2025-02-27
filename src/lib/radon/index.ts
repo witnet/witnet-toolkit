@@ -25,71 +25,7 @@ export function RadonScript<InputType extends RadonAny = RadonString>(inputType:
     return new inputType();
 }
 
-// export type RadonSLA = {
-//     fees: Nanowits;
-//     burns: Nanowits;
-//     witnesses?: number;
-// }
-
-// miners-fee := `fees / 3`
-// witness-collateral := `100 * burns / witnesses`
-// burns defaults to `wit21-drs-min-collateral * witnesses`
-// rule 1: witnesses <= senate-seats
-// rule 2: wit21-drs-min-collateral <= witness-collateral <= wit21-drs-max-collateral
-// rule 3: miners-fee * 2 / 3 >= block-drs-fees-interval
-
 /// FACTORY METHODS ///////////////////////////////////////////////////////////////////////////////////////////////////
-
-// import { RadonAny, RadonString, RadonOperator } from './types'
-
-// export function PriceTickerRequest (dict: any, tags: Record<string, string[] | undefined>) {
-//     return RequestFromDictionary({
-//         retrieve: {
-//             dict, 
-//             tags,
-//         }, 
-//         aggregate: reducers.PriceAggregate(), 
-//         tally: reducers.PriceTally()
-//     })
-// };
-
-// export function PriceTickerTemplate (specs: { retrieve: retrievals.RadonRetrieval[], tests?: Record<string, string[][]> }) { 
-//     return new artifacts.RadonTemplate({
-//             retrieve: specs.retrieve, 
-//             aggregate: reducers.PriceAggregate(), 
-//             tally: reducers.PriceTally() 
-//         }, 
-//         specs?.tests
-//     );
-// };
-
-// export function RadonScript<InputType extends RadonAny = RadonString>(inputType: { new (ops?: RadonOperator): InputType; }): InputType {
-//     if (!inputType) throw TypeError("An InputType must be specified when declaring a new Radon script") 
-//     return new inputType();
-// }
-
-// export function RequestFromDictionary (specs: { 
-//     retrieve: { dict: any, tags: Record<string, string[] | undefined>, },
-//     aggregate?: reducers.RadonReducer, 
-//     tally?: reducers.RadonReducer,
-// }): artifacts.RadonRequest {
-//     const retrieve: retrievals.RadonRetrieval[] = []
-//     // const args: string[][] = []
-//     Object.keys(specs.retrieve.tags).forEach(key => {
-//         const retrieval: retrievals.RadonRetrieval = specs.retrieve.dict[key]
-//         const args = (specs.retrieve.tags as any)[key]
-//         if (retrieval.argsCount > 0) {
-//             if (!args || args.length < retrieval.argsCount) {
-//                 throw TypeError(`Insufficient args passed to retrieval named as '${key}': ${args.length} < ${retrieval.argsCount}`)
-//             } else {
-//                 retrieve.push(retrieval.foldArgs(...args))
-//             }
-//         } else {
-//             retrieve.push(retrieval)
-//         }
-//     })
-//     return new artifacts.RadonRequest({ retrieve, aggregate: specs?.aggregate, tally: specs?.tally })
-// };
 
 import { RadonRequest, RadonTemplate } from "./artifacts"
 import { RadonCCDR, RadonRetrieval } from "./retrievals"

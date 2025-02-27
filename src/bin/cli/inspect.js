@@ -129,8 +129,7 @@ async function block(flags = {}, args) {
             case 'der':
             case 'proof':
             case 'public_key':
-                if (Array.isArray(value)) return helpers.toHexString(value, true)
-                else return value;
+                return Array.isArray(value) ? helpers.toHexString(value, true) : value
             default:
                 return value
         }
@@ -153,21 +152,17 @@ async function dataRequest(flags = {}, args) {
             case 'public_key':
             case 'signature':
             case 'signatures':
-                return undefined;
+                return undefined
             
             case 'reveal':
             case 'tally':
                 if (Array.isArray(value)) {
                     const result = utils.cbor.decode(Uint8Array.from(value))
-                    if (result instanceof Buffer) {
-                        return utils.toHexString(value) 
-                    } else {
-                        return result
-                    }
+                    return Buffer.isBuffer(result) ? utils.toHexString(value) : result
                 }
             
             default:
-                return value;
+                return value
         }
     }
     

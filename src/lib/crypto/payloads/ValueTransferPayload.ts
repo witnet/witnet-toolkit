@@ -17,8 +17,8 @@ export class ValueTransferPayload extends TransactionPayloadMultiSig<ValueTransf
 
     public static MAX_WEIGHT = 20000;
     
-    constructor (protoTypeName: string, specs?: any) {
-        super(protoTypeName, specs)
+    constructor (protoTypeName: string, initialTarget?: ValueTransferParams) {
+        super(protoTypeName, initialTarget)
     }
 
     public get maxWeight(): number {
@@ -81,11 +81,11 @@ export class ValueTransferPayload extends TransactionPayloadMultiSig<ValueTransf
 
     public prepareOutputs(change?: { value: Nanowits, sender: PublicKeyHashString }): any {
         if (this._target && this._outputs.length === 0) {
-            this._outputs.push(...this._target.recipients.map(([pkh, value]) => { return {
+            this._outputs.push(...this._target.recipients.map(([pkh, value]) => ({
                 pkh, 
                 value, 
                 time_lock: this._target?.timelock || 0
-            }}));
+            })));
             super.prepareOutputs(change)
         }
     }
@@ -103,11 +103,11 @@ export class ValueTransferPayload extends TransactionPayloadMultiSig<ValueTransf
                 .map(([, utxo]) => {
                     return { output_pointer: utxo.output_pointer }
                 }),
-            outputs: this.outputs.map(vto => { return { 
+            outputs: this.outputs.map(vto => ({
                 pkh: vto.pkh,
                 time_lock: vto.time_lock,
                 value: vto.value,
-            }}) 
+            }))
         }
     }   
 
@@ -125,11 +125,11 @@ export class ValueTransferPayload extends TransactionPayloadMultiSig<ValueTransf
                             },
                         }
                     }),
-                outputs: this.outputs.map(vto => { return { 
+                outputs: this.outputs.map(vto => ({
                     pkh: { hash: Array.from(PublicKeyHash.fromBech32(vto.pkh).toBytes20()), },
                     value: vto.value,
                     ...(vto.time_lock > 0 ? { timeLock: vto.time_lock } : {}),
-                }})
+                }))
             }
         }
     }

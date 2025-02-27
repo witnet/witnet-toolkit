@@ -1,6 +1,3 @@
-// export * from "./crypto/interfaces"
-// export * from "./crypto/types"
-
 export { INodeFarm } from "./rpc/nodes"
 export { IProvider } from "./rpc/provider"
 export { IReporter } from "./rpc/reporter"
