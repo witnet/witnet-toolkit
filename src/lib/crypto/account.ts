@@ -6,12 +6,12 @@ import { Signer } from "./signer"
 
 export class Account implements IAccount {    
     
-    public readonly index: number;
-    public readonly internal: ISigner;
-    public readonly external: ISigner;
+    public readonly index: number
+    public readonly internal: ISigner
+    public readonly external: ISigner
 
-    public readonly provider: IProvider;
-    public strategy: UtxoSelectionStrategy;
+    public readonly provider: IProvider
+    public strategy: UtxoSelectionStrategy
 
     constructor(root: IBIP32, provider: IProvider, index: number, strategy?: UtxoSelectionStrategy) {
         this.index = index

@@ -268,9 +268,9 @@ export class RecoverableSignature extends Signature {
         )   
     }
 
-    public readonly message: Uint8Array;
-    public readonly pubKey: PublicKey;
-    public readonly recoveryId: number;
+    public readonly message: Uint8Array
+    public readonly pubKey: PublicKey
+    public readonly recoveryId: number
     
     constructor (pubKey: PublicKey, bytes: Uint8Array, msg: Uint8Array) {
         super(bytes)

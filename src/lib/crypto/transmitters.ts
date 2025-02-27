@@ -50,11 +50,7 @@ export abstract class Transmitter<Specs, Payload extends ITransactionPayload<Spe
     }
 
     public get payload(): Payload | undefined {
-        if (this._payload.prepared) {
-            return this._payload
-        } else {
-            return undefined
-        }
+        return this._payload.prepared ? this._payload : undefined
     }
 
     public get provider(): IProvider {
@@ -102,14 +98,13 @@ export abstract class Transmitter<Specs, Payload extends ITransactionPayload<Spe
     protected get _prepared(): boolean {
         return (
             this._payload.prepared
-                && this._signatures !== undefined 
+                && !!this._signatures
                 && this._signatures.length > 0
         )
     }
 
     public async sendTransaction(target?: any): Promise<TransactionReceipt> {
         let receipt = this._getInflightReceipt()
-        // console.log("send =>", target, receipt)
         if (!receipt || target) {
             // if inflight not yet prepared, or prepared but not yet transmitted,
             // prepare a new inflight either with specified params (if any),
@@ -132,7 +127,6 @@ export abstract class Transmitter<Specs, Payload extends ITransactionPayload<Spe
                 throw new TransmissionError(this._getInflightTransmission(), err)
             })
             .then(accepted => {
-                // console.log("accepted!!!!")
                 if (accepted) {
                     this._recoverOutputUtxos()
                     Provider.receipts[receipt.hash].status = TransactionStatus.Relayed
@@ -429,121 +423,4 @@ export abstract class TransmitterMultiSig<Specs, Payload extends ITransactionPay
             }
         }
     }
-
-    // public async signTransaction(
-    //         target?: Specs, 
-    //         reloadUtxos = false
-    //     ): Promise<TransactionReceipt>
-    // {
-    //     // console.log("signTransaction:: before validate =>", target)
-    //     target = await this._payload.validateTarget(target)
-    //     // console.log("signTransaction:: after validate =>", target)
-    //     if (!target) {
-    //         // e.g. if called from this.send() with no params
-    //         throw Error(`${this.constructor.name}: cannot sign a transaction if no params were previously specified.`)
-    //     }
-        
-    //     const inflight = this._getInflightReceipt()
-    //     if (inflight) {
-    //         // console.log("sign.pendingReceipt =>", inflight)
-    //         if (!inflight?.status) {
-    //             // recover input utxos if previously signed params were not even attempted to be sent
-    //             if (!reloadUtxos) this._recoverInputUtxos()
-            
-    //         } else if (inflight.status === TransactionStatus.Pending && !inflight.error) {
-    //             // throw exception if a formerly signed transaction is still waiting to be relayed by a provider
-    //             throw Error(`${this.constructor.name}: cannot sign until in-flight tx gets either relayed, or rejected: ${inflight.hash}`)
-    //         }
-    //     } 
-        
-    //     // clean current signatures, so new UTXOs can be consumed and therefore a new transaction hash be incepted
-    //     this._cleanSignatures(target)
-        
-    //     // try to cover transaction expenses with existing utxos on signers:
-    //     let index = 0
-    //     while (index < this.signers.length && !this._payload.prepared) {
-    //         const signer = this.signers[index ++]
-    //         if (reloadUtxos) await signer.getUtxos(true)
-    //         await this._payload.consumeUtxos(
-    //                 signer, 
-    //                 this.signers.length > 1 && index % 2 === 1 ? this.signers[index].pkh : signer.pkh
-    //             )
-    //             .catch((err: any) => {
-    //                 throw Error(
-    //                     `${this.constructor.name}: cannot consume UTXOs from ${signer.pkh}: ${err}.`
-    //                 )
-    //             })
-    //     }
-        
-    //     if (!this._payload.prepared) {
-    //         // throws exeception if not enough utxos were found to cover transaction expenses:
-    //         throw Error(
-    //             `${this.constructor.name}: insufficient funds on ${this.signers.map(signer => signer.pkh)}.`
-    //         )
-    //     } else if (!this._payload.hash) {
-    //         throw Error(
-    //             `${this.constructor.name}: internal error: unable to hashify payload: ${this._payload.toJSON(true, this.network)}}.`
-    //         )
-    //     } else {
-    //         // If all the expenses got covered...
-    //         if (this._payload.weight > this._payload.maxWeight) {
-    //             throw Error(
-    //                 `${this.constructor.name}: transaction weight exceeded block limit: ${this._payload.weight} > ${this._payload.maxWeight}.`
-    //             )
-    //         }
-    //         // => sign all transaction inputs
-    //         const signers = Object.fromEntries(this.signers.map(signer => [ signer.pkh, signer ]))
-    //         this._payload.inputs.forEach(([pkh, ]) => {    
-    //             this._signatures.push(signers[pkh].signHash(this._payload.hash))
-    //         })
-
-    //         // => return a tx receipt
-    //         if (this._payload.hash) {
-    //             return this._upsertTransactionReceipt(this._payload.hash, target)
-    //         } else {
-    //             throw Error(
-    //                 `${this.constructor.name}: internal error: cannot build a tx hash.`
-    //             )
-    //         }
-    //     }
-    // }
-
-    // protected _cleanSignatures(newTarget: Specs): any {
-    //     super._cleanSignatures(newTarget)
-    //     this._signatures = []
-    // }
-
-    // protected get _from(): Array<PublicKeyHashString> | undefined {
-    //     const signers = this.signers.map(signer => signer.pkh)
-    //     if (this._signatures.length > 0) {
-    //         if (signers.length === 1) {
-    //             return [signers[0]]
-            
-    //         } else {
-    //             return this._signatures
-    //                 .map(ks => {
-    //                     const pkh = PublicKey.fromProtobuf(ks.public_key).hash().toBech32(this.network)
-    //                     if (signers.indexOf(pkh) % 2 === 0) {
-    //                         // on inputs signed by internal accounts,
-    //                         // include the corresponding external account address instead
-    //                         return signers[signers.indexOf(pkh) + 1]
-    //                     } else {
-    //                         return pkh
-    //                     }
-    //                 })
-    //                 .filter((pkh, index, array) => index === array.indexOf(pkh))
-    //         }
-        
-    //     } else {
-    //         return undefined
-    //     }
-    // }
-
-    // protected get _prepared(): boolean {
-    //     return (
-    //         this._payload.prepared
-    //             && this._signatures !== undefined 
-    //             && this._signatures.length > 0
-    //     )
-    // }
 }

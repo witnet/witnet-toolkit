@@ -1,16 +1,16 @@
 const secp256k1 = require("secp256k1")
 
 import { bech32 } from 'bech32'
-import * as crypto from 'crypto'
+import { createDecipheriv, createHash, pbkdf2Sync } from 'crypto'
 
 export { bech32 } from 'bech32'
 
 export { PrivateKey, PublicKey, PublicKeyHash, KeyedSignature, RecoverableSignature, Signature } from "./types"
 
-const CHAIN_CODE_LENGTH = 32;
-const DEPTH_LENGTH = 1;
+const CHAIN_CODE_LENGTH = 32
+const DEPTH_LENGTH = 1
 const KEY_LENGTH = 33
-const KEY_PATH_LENGTH = 4;
+const KEY_PATH_LENGTH = 4
 
 const BECH32_LIMIT = (
     DEPTH_LENGTH 
@@ -35,8 +35,8 @@ export function decipherXprv(slip32: string, passwd: string): string {
     const iv = buffer.slice(0, 16)
     const salt = buffer.slice(16, 48)
     const data = buffer.slice(48)
-    const key = crypto.pbkdf2Sync(passwd, Buffer.from(salt), 10000, 32, 'sha256')    
-    const decipher = crypto.createDecipheriv("aes-256-cbc", key, Buffer.from(iv))
+    const key = pbkdf2Sync(passwd, Buffer.from(salt), 10000, 32, 'sha256')    
+    const decipher = createDecipheriv("aes-256-cbc", key, Buffer.from(iv))
     let decrypted = decipher.update(Buffer.from(data), undefined, 'utf-8')
     decrypted += decipher.final('utf-8')
     return decrypted
@@ -105,7 +105,7 @@ export const parseXprv = (slip32: string): {
 };
 
 export function sha256(buffer: any) {
-    const hash = crypto.createHash('sha256')
+    const hash = createHash('sha256')
     hash.update(buffer)
     return hash.digest()
 }

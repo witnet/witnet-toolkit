@@ -30,7 +30,7 @@ export class StakePayload extends TransactionPayloadMultiSig<StakeDepositParams>
 
     public get prepared(): boolean {
         return (
-            this._target !== undefined
+            !!this._target
                 && this._covered >= this._target.value 
                 && this._inputs.length > 0
         )

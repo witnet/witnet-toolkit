@@ -1,4 +1,4 @@
-const secp256k1 = require('secp256k1')
+const secp256k1 = require('@noble/secp256k1')
 import * as utils from "../utils"
 
 import { Balance, Network, QueryStakesOrder, StakeEntry, UtxoMetadata } from "../types"
@@ -36,12 +36,8 @@ export class Signer implements ISigner {
 
     public addUtxos(...utxos: Array<UtxoMetadata>) {
         // avoid adding duplicates
-        const newUtxos: Array<UtxoMetadata> = []
-        utxos.forEach(utxo => {
-            if (this.utxos.findIndex(cached => cached.output_pointer === utxo.output_pointer) < 0) {
-                newUtxos.push(utxo)
-            }
-        })
+        const existingPointers = new Set(this.utxos.map(cached => cached.output_pointer));
+        const newUtxos = utxos.filter(utxo => !existingPointers.has(utxo.output_pointer))
         this.utxos.push(...newUtxos)
     }
 
@@ -54,13 +50,10 @@ export class Signer implements ISigner {
             .stakes({ filter: {
                 validator,
                 withdrawer: this.pkh
-            }}).then(([entry, ]) => {
-                return entry.value.nonce
-            })
+            }}).then(([entry, ]) => entry.value.nonce)
     }
 
     public async getUtxos(reload = false): Promise<Array<UtxoMetadata>> {
-        // console.log("Signer.getUtxos")
         if (reload) this.consumeUtxos(0)
         if (this.utxos.length === 0) {
             const now = Math.floor(Date.now() / 1000)
@@ -70,14 +63,13 @@ export class Signer implements ISigner {
     }
 
     public async selectUtxos(strategy?: UtxoSelectionStrategy): Promise<Array<UtxoMetadata>> {
-        // console.log("Signer.selectUtxos")
         if (this.utxos.length === 0) {
             await this.getUtxos()
         }
         switch (strategy || this.strategy) {
             case UtxoSelectionStrategy.BigFirst:
                 this.utxos = this.utxos.sort((a, b) => b.value - a.value)
-                break;
+                break
 
             case UtxoSelectionStrategy.Random:
                 const len = this.utxos.length
@@ -87,11 +79,11 @@ export class Signer implements ISigner {
                     this.utxos[index] = this.utxos[len - i - 1]
                     this.utxos[len - i - 1] = tmp
                 }
-                break;
+                break
 
             case UtxoSelectionStrategy.SmallFirst:
                 this.utxos = this.utxos.sort((a, b) => a.value - b.value)
-                break;
+                break
         }
         return this.utxos
     }
@@ -111,7 +103,6 @@ export class Signer implements ISigner {
             throw new Error(`${this.constructor.name}: invalid hash length: ${buffer.length} != 32`)
         } else if (this.node.privateKey) {
             const msg = Uint8Array.from(buffer)
-            // console.log("signHash::msg =>", utils.toHexString(msg))
             const privateKey = Uint8Array.from(Buffer.from(this.node.privateKey))
             const signature = secp256k1.ecdsaSign(msg, privateKey).signature
             const der = secp256k1.signatureExport(signature)

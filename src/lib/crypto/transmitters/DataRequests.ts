@@ -30,15 +30,15 @@ export class DataRequests extends TransmitterMultiSig<DataRequestParams, DataReq
         }
     }
 
-    constructor (signers: Array<ISigner>, artifact: any) {
+    constructor (signers: Array<ISigner>, artifact: RadonRequest | RadonTemplate) {
         super("DRTransaction", new DataRequestPayload("DRTransactionBody", artifact), signers)
     }
 
-    public get request(): any| undefined {
+    public get request(): RadonRequest | undefined {
         return this._payload.request
     }
 
-    public get template(): any | undefined {
+    public get template(): RadonTemplate | undefined {
         return this._payload.template
     }
 }

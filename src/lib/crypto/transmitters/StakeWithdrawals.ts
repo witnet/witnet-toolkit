@@ -12,8 +12,8 @@ export { StakeWithdrawalParams } from "../payloads/UnstakePayload"
 
 export class StakeWithdrawals extends Transmitter<StakeWithdrawalParams, UnstakePayload> {
     
-    public static MIN_TIMELOCK_SECS = UnstakePayload.MIN_TIMELOCK_SECS;
-    public static WEIGHT = UnstakePayload.WEIGHT;
+    public static MIN_TIMELOCK_SECS = UnstakePayload.MIN_TIMELOCK_SECS
+    public static WEIGHT = UnstakePayload.WEIGHT
 
     public static from(accountable: IAccountable): StakeWithdrawals {
         if (accountable instanceof Account) {

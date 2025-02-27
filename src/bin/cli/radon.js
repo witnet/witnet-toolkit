@@ -322,8 +322,16 @@ async function dryrun(flags, args, options, settings) {
 /// CLI SUBMODULE INTERNAL METHODS ------------------------------------------------------------------------------------
 
 const extractTypeName = (str) => str ? str.split(/(?=[A-Z])/).slice(1).join("") : "Any"
-const stringifyFilter = (x, c) => { const color = c || helpers.colors.mcyan; return color(`${Witnet.RadonFilters.Opcodes[x.opcode]}(${x.args ? JSON.stringify(x.args) : ""})`) }
-const stringifyReducer = (x, c) => { const color = c || helpers.colors.mcyan; return color(`${Witnet.RadonReducers.Opcodes[x.opcode]}()`) }
+
+const stringifyFilter = (x, c) => { 
+    const color = c || helpers.colors.mcyan
+    return color(`${Witnet.RadonFilters.Opcodes[x.opcode]}(${x.args ? JSON.stringify(x.args) : ""})`) 
+}
+
+const stringifyReducer = (x, c) => { 
+    const color = c || helpers.colors.mcyan
+    return color(`${Witnet.RadonReducers.Opcodes[x.opcode]}()`) 
+}
 
 function loadAssets(flags) {
     return flags?.legacy ? require(`${WITNET_ASSETS_PATH}`).legacy : {

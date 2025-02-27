@@ -15,9 +15,9 @@ export abstract class TransactionPayload<Specs> implements ITransactionPayload<S
     protected _protoType: ProtoType;
     protected _target?: Specs;
     
-    constructor(protoTypeName: string, target?: Specs) {
+    constructor(protoTypeName: string, initialTarget?: Specs) {
         this._protoType = protoRoot.lookupType(protoTypeName)
-        this._target = this.validateTarget(target)
+        this._target = this.validateTarget(initialTarget)
         this._change = 0
         this._covered = 0
     }
@@ -25,20 +25,19 @@ export abstract class TransactionPayload<Specs> implements ITransactionPayload<S
     public get bytecode(): Uint8Array | undefined {
         // make toProtobuf return Protobuf's deserialized message
         const obj = this.toProtobuf()
-        if (obj) {
-            const err = this._protoType.verify(obj)
-            if (err) {
-                throw TypeError(err)
-            } else {
-                // console.log("\nobj =>", JSON.stringify(obj))
-                const message = this._protoType.fromObject(obj)
-                // console.log("\nmessage =>", JSON.stringify(message))
-                const bytecode = this._protoType.encode(message).finish()
-                // console.log("\nbytecode =>", bytecode)
-                return bytecode
-            }
+        
+        if (!obj) return undefined
+        
+        const err = this._protoType.verify(obj)
+        if (err) {
+            throw TypeError(err)
         } else {
-            return undefined
+            // console.log("\nobj =>", JSON.stringify(obj))
+            const message = this._protoType.fromObject(obj)
+            // console.log("\nmessage =>", JSON.stringify(message))
+            const bytecode = this._protoType.encode(message).finish()
+            // console.log("\nbytecode =>", bytecode)
+            return bytecode
         }
     }
 
@@ -48,17 +47,13 @@ export abstract class TransactionPayload<Specs> implements ITransactionPayload<S
 
     public get covered(): boolean {
         return (
-            this.fees !== undefined
+            !!this.fees
                 && this._covered >= this.value + this.fees
         )
     }
 
     public get fees(): Nanowits {
-        if (this._target) {
-            return (this._target as any)?.fees || 0
-        } else {
-            return 0
-        }
+        return (this._target as any)?.fees || 0
     }
 
     public get hash(): Hash | undefined {
@@ -99,8 +94,8 @@ export abstract class TransactionPayloadMultiSig<Specs>
     protected _inputs: Array<[PublicKeyHashString, UtxoMetadata]>
     protected _outputs: Array<ValueTransferOutput>
     
-    constructor(protoTypeName: string, specs?: Specs) {
-        super(protoTypeName, specs)
+    constructor(protoTypeName: string, initialTarget?: Specs) {
+        super(protoTypeName, initialTarget)
         this._inputs = []
         this._outputs = []
     }
@@ -138,7 +133,6 @@ export abstract class TransactionPayloadMultiSig<Specs>
             signer.consumeUtxos(index)
         }
         this._change = this._covered - (this.value + this.fees)
-        // console.log("TransactionPayloadMultiSig.consumeUtxos =>", this._change, prepared)
         if (this._change > 0 && !prepared) {
             this.prepareOutputs({ value: this._change, sender: changePkh || signer.pkh })
         }
@@ -146,7 +140,6 @@ export abstract class TransactionPayloadMultiSig<Specs>
     }
 
     public prepareOutputs(change?: { value: Nanowits, sender: PublicKeyHashString }): any {
-        // console.log("TransactionPayloadMultiSig.prepareUtxos:", change)
         if (change?.value) {
             this._outputs.push({
                 pkh: change.sender,

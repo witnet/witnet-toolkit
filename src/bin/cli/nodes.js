@@ -1,10 +1,6 @@
-const qrcode = require('qrcode-terminal');
-
+const qrcode = require('qrcode-terminal')
 const helpers = require("../helpers")
-
-const { Witnet } = require("../../../dist");
-
-// const { hexifyKeyedSignature } = require('../../../dist/lib/utils');
+const { Witnet } = require("../../../dist")
 
 const { cyan, gray, green, red, yellow, white, magenta, mcyan, mgreen, mmagenta, mred, myellow, lcyan, lgreen, lmagenta, lyellow, } = helpers.colors
 
@@ -27,7 +23,7 @@ module.exports = {
             params: "WITHDRAWER",
             options: {
                 "qrcodes": {
-                    hint: "Prints authorization QR codes, scannable from myWitWallet."
+                    hint: "Print authorization QR codes, scannable from myWitWallet."
                 }
             }
         },
@@ -201,7 +197,6 @@ async function publicKeys(flags = {}) {
     const publicKeys = await farm.publicKeys()
     helpers.traceTable(
         Object.entries(publicKeys).map(([, [pkh, publicKey]]) => [
-            // pkh instanceof Error ? cyan(url) : mcyan(url),
             pkh instanceof Error ? red(pkh) : mcyan(pkh),
             publicKey instanceof Error ? mred(publicKey.toString()) : cyan(publicKey.toString())
         ]), {

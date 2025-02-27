@@ -10,7 +10,7 @@ import { Wallet } from "../wallet"
 
 export class ValueTransfers extends TransmitterMultiSig<ValueTransferParams, ValueTransferPayload> {
     
-    public static MAX_WEIGHT = ValueTransferPayload.MAX_WEIGHT;
+    public static MAX_WEIGHT = ValueTransferPayload.MAX_WEIGHT
 
     public static from(accountable: IAccountable): ValueTransfers {
         if (accountable instanceof Wallet) {

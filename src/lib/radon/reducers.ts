@@ -40,9 +40,7 @@ export class RadonReducer {
         const json: any = {
             reducer: humanize ? Opcodes[this.opcode] : this.opcode,
         }
-        // if (this.filters && this.filters.length > 0) {
-            json.filters = this.filters?.map(filter => filter.toJSON(humanize)) || []
-        // }
+        json.filters = this.filters?.map(filter => filter.toJSON(humanize)) || []
         return json
     }
     
