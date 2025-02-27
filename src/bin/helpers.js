@@ -96,11 +96,11 @@ function cmd(...command) {
 };
 
 async function execRadonBytecode(bytecode, ...flags) {
-    if (!helpers.isHexString(bytecode)) {
+    if (!isHexString(bytecode)) {
         throw EvalError("invalid hex string")
     } else {
         const npx = os.type() === "Windows_NT" ? "npx.cmd" : "npx"
-        return cmd(npx, "witnet-toolkit", "radon", "dryrun", bytecode, ...flags)
+        return cmd(npx, "witnet", "radon", "dryrun", bytecode, ...flags)
             .catch((err) => {
                 let errorMessage = err.message.split('\n').slice(1).join('\n').trim()
                 const errorRegex = /.*^error: (?<message>.*)$.*/gm
@@ -193,7 +193,7 @@ function isHexStringOfLength(str, length) {
             (str.startsWith('0x') && str.slice(2).length === length * 2)
             || str.length === length * 2
         )
-    );
+    ) || isWildcard(str);
 }
 
 function isHexString(str) {
@@ -203,7 +203,7 @@ function isHexString(str) {
             (str.startsWith("0x") && /^[a-fA-F0-9]+$/i.test(str.slice(2)))
             || /^[a-fA-F0-9]+$/i.test(str)
         )
-    );
+    ) || isWildcard(str);
 }
 
 function toHexString(buffer, prefix0x = false) {
@@ -644,7 +644,7 @@ function traceTransactionOnStatusChange(receipt) {
 
 function traceTransactionReceipt(receipt) {
     const captions = {
-        "DataRequest": ` > DR TX hash:  `,
+        "DataRequests": ` > DR TX hash:  `,
         "ValueTransfer": ` > VTT hash:    `,
     }
     console.info(`${captions[receipt.type] || ` > TX hash:     `}${white(receipt.hash)}`)

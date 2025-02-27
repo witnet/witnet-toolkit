@@ -10,20 +10,20 @@ import { Hash } from "../../types"
 
 export { StakeWithdrawalParams } from "../payloads/UnstakePayload"
 
-export class StakeWithdrawal extends Transmitter<StakeWithdrawalParams, UnstakePayload> {
+export class StakeWithdrawals extends Transmitter<StakeWithdrawalParams, UnstakePayload> {
     
     public static MIN_TIMELOCK_SECS = UnstakePayload.MIN_TIMELOCK_SECS;
     public static WEIGHT = UnstakePayload.WEIGHT;
 
-    public static from(accountable: IAccountable): StakeWithdrawal {
+    public static from(accountable: IAccountable): StakeWithdrawals {
         if (accountable instanceof Account) {
-            return new StakeWithdrawal(accountable.external)
+            return new StakeWithdrawals(accountable.external)
         
         } else if (accountable instanceof Coinbase) {
-            return new StakeWithdrawal(accountable)
+            return new StakeWithdrawals(accountable)
         
         } else {
-            throw TypeError(`StakeWithdrawal: cannot create from instance of ${accountable.constructor.name}.`)
+            throw TypeError(`StakeWithdrawals: cannot create from instance of ${accountable.constructor.name}.`)
         }
     }
 

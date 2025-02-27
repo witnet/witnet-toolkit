@@ -158,15 +158,12 @@ async function dataRequest(flags = {}, args) {
             case 'reveal':
             case 'tally':
                 if (Array.isArray(value)) {
-                    const buff = Uint8Array.from(value)
                     const result = utils.cbor.decode(Uint8Array.from(value))
                     if (result instanceof Buffer) {
                         return utils.toHexString(value) 
                     } else {
                         return result
                     }
-                } else {
-                    return value
                 }
             
             default:

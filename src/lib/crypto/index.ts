@@ -1,7 +1,15 @@
-export * from "./wallet"
-export * from "./types"
+export {
+    PublicKeyHash,
+    TransactionCallback,
+    TransactionReceipt,
+    TransactionStatus,
+    TransmissionError,
+    UtxoSelectionStrategy,
+} from "./types"
 
-export { DataRequest, DataRequestParams } from "./transmitters/DataRequest"
-export { ValueTransfer, ValueTransferParams } from "./transmitters/ValueTransfer"
-export { StakeDeposit, StakeDepositParams } from "./transmitters/StakeDeposit"
-export { StakeWithdrawal, StakeWithdrawalParams } from "./transmitters/StakeWithdrawal"
+export * from "./transmitters/DataRequests"
+export * from "./transmitters/ValueTransfers"
+export * from "./transmitters/StakeDeposits"
+export * from "./transmitters/StakeWithdrawals"
+
+export * from "./wallet"

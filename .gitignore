@@ -9,4 +9,4 @@ dist/
 
 # Environmental configuration files
 .env
-
+*.tgz

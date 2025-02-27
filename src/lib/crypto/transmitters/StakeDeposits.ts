@@ -9,23 +9,23 @@ import { Wallet } from "../wallet"
 
 export { StakeDepositParams } from "../payloads/StakePayload"
 
-export class StakeDeposit extends TransmitterMultiSig<StakeDepositParams, StakePayload> {
+export class StakeDeposits extends TransmitterMultiSig<StakeDepositParams, StakePayload> {
     
     public static MAX_WEIGHT = StakePayload.MAX_WEIGHT;
     public static MIN_VALUE = StakePayload.MIN_VALUE;
 
-    public static from(accountable: IAccountable): StakeDeposit {
+    public static from(accountable: IAccountable): StakeDeposits {
         if (accountable instanceof Wallet) {
-            return new StakeDeposit(accountable.signers)
+            return new StakeDeposits(accountable.signers)
         
         } else if (accountable instanceof Account) {
-            return new StakeDeposit([accountable.internal, accountable.external])
+            return new StakeDeposits([accountable.internal, accountable.external])
         
         } else if (accountable instanceof Coinbase) {
-            return new StakeDeposit([accountable])
+            return new StakeDeposits([accountable])
         
         } else {
-            throw TypeError(`StakeDeposit: cannot create from instance of ${accountable.constructor.name}.`)
+            throw TypeError(`StakeDeposits: cannot create from instance of ${accountable.constructor.name}.`)
         }
     }
 

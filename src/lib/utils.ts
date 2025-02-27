@@ -1,7 +1,6 @@
 export * as cbor from 'cbor'
 
 export {
-  execRadonBytecode,
   fromHexString,
   fromNanowits,
   fromWits,
@@ -14,5 +13,5 @@ export {
   utf8ArrayToStr,
 } from "../bin/helpers"
 
-export * from "./crypto/utils"
-export * from "./radon/utils"
+export * as crypto from "./crypto/utils"
+export * as radon from "./radon/utils"

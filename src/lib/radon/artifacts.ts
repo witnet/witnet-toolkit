@@ -10,11 +10,11 @@ import {
 } from "../../bin/helpers"
 
 import { sha256 } from "../crypto/utils"
-// import { decodeRadonScript } from "./utils"
+import { parseRadonScript } from "./utils"
 
 import { RadonFilter } from "./filters"
 import { RadonReducer, Mode } from "./reducers"
-import { RadonRetrieval } from "./retrievals"
+import { RadonCCDR, RadonRetrieval } from "./retrievals"
 
 const protoBuf = require("protobufjs").Root.fromJSON(require("../../../witnet/witnet.proto.json"))
 const RADRequest = protoBuf.lookupType("RADRequest")
@@ -87,7 +87,7 @@ export class RadonRequest extends Class {
             if (retrieval?.body && retrieval.body.length > 0) {
                 specs.body = utf8ArrayToStr(Object.values(retrieval.body))
             }
-            // if (retrieval?.script) specs.script = decodeRadonScript(toHexString(retrieval.script))
+            if (retrieval?.script) specs.script = parseRadonScript(toHexString(retrieval.script))
             return new RadonRetrieval(retrieval.kind, specs)
         })
         const decodeFilter = (f: any) => {
@@ -102,14 +102,20 @@ export class RadonRequest extends Class {
     }
 
     public static fromCCDR(
-            ccdr: RadonRetrieval, 
+            ccdr: RadonCCDR, 
             providers: string[], 
             args: string[],
             tally?: RadonReducer
         ): RadonRequest
     {
-        // TODO: instanceof RadonCCDR
-        const template = RadonRequestTemplate.fromCCDR({ ccdr, providers, tally })
+        if (!(ccdr instanceof RadonCCDR)) {
+            throw new TypeError(
+                `RadonRequest: cannot create from ${
+                    (ccdr as any)?.constructor ? `instance of ${(ccdr as any).constructor.name}.` : `object: ${ccdr}`
+                }`
+            )
+        }
+        const template = RadonTemplate.fromCCDR({ ccdr, providers, tally })
         return template.buildRequestModal(...args)
     }
     
@@ -176,31 +182,37 @@ export class RadonRequest extends Class {
     }
 }
 
-export class RadonRequestTemplate extends Class {
+export class RadonTemplate extends Class {
     public readonly argsCount: number;
     public readonly homogeneous: boolean;
     public readonly samples?: Record<string, Args>;
 
     public static fromCCDR(
             specs: {
-                ccdr: RadonRetrieval, 
+                ccdr: RadonCCDR, 
                 providers: string[], 
                 tally?: RadonReducer
             }, 
             samples?: Record<string, Args>,
-        ): RadonRequestTemplate
+        ): RadonTemplate
     {
-        // TODO: instanceof RadonCCDR
+        if (!(specs.ccdr instanceof RadonCCDR)) {
+            throw new TypeError(
+                `RadonRequest: cannot create from ${
+                    (specs.ccdr as any)?.constructor ? `instance of ${(specs.ccdr as any).constructor.name}.` : `from object: ${specs.ccdr}`
+                }`
+            )
+        }
         if (specs.ccdr.argsCount < 2) {
-            throw TypeError(`RadonRequestTemplate.fromCCDR: requires parameterized CCDR.`)
+            throw TypeError(`RadonTemplate.fromCCDR: requires parameterized CCDR.`)
         }
         specs.providers.forEach(provider => {
             const [schema, ] = parseURL(provider)
             if (!schema.startsWith("http://") && !schema.startsWith("https://")) {
-                throw TypeError(`RadonRequestTemplate.fromCCDR: invalid provider: ${provider}`)
+                throw TypeError(`RadonTemplate.fromCCDR: invalid provider: ${provider}`)
             }
         })
-        return new RadonRequestTemplate({
+        return new RadonTemplate({
             retrieve: specs.ccdr.spawnRetrievals(...specs.providers),
             aggregate: Mode(),
             tally: specs.tally || Mode(),
@@ -223,7 +235,7 @@ export class RadonRequestTemplate extends Class {
         })
         this.argsCount = retrieve.map(retrieval => retrieval?.argsCount).reduce((prev, curr) => Math.max(prev, curr), 0)
         if (this.argsCount == 0) {
-            throw TypeError("RadonRequestTemplate: no parameterized retrievals were passed")
+            throw TypeError("RadonTemplate: no parameterized retrievals were passed")
         }
         this.homogeneous = !retrieve.find(retrieval => retrieval.argsCount !== this.argsCount)
         if (samples) {
@@ -237,7 +249,7 @@ export class RadonRequestTemplate extends Class {
                         Object(samples)[sample] = Array(retrieve.length).fill(sampleArgs)
                         sampleArgs = Object(samples)[sample]
                     } else if (sampleArgs?.length != retrieve.length) {
-                        throw TypeError(`RadonRequestTemplate: arguments mismatch in sample "${sample}": ${sampleArgs?.length} tuples given vs. ${retrieve.length} expected`)
+                        throw TypeError(`RadonTemplate: arguments mismatch in sample "${sample}": ${sampleArgs?.length} tuples given vs. ${retrieve.length} expected`)
                     }
                     sampleArgs?.forEach((subargs, index)=> {
                         if (subargs.length < retrieve[index].argsCount) {
