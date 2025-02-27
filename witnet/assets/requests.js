@@ -1,46 +1,170 @@
-const { Witnet } = require("../../dist")
+const { utils, Witnet } = require("../../dist")
+const retrievals = require("./retrievals")
+const templates = require("./templates")
 
 module.exports = {
-  WitOracleRequestPriceUsdtWit9: new Witnet.RadonRequest({
-    retrieve: [
-      Witnet.RadonRetrievals.HttpGet({
-        url: "https://api-cloud.bitmart.com/spot/v1/ticker?symbol=WIT_USDT",
-        script: Witnet.RadonScript(Witnet.RadonString)
-          .parseJSONMap()
-          .getMap("data")
-          .getArray("tickers")
-          .getMap(0)
-          .getFloat("last_price")
-          .power(-1)
-          .multiply(1e9)
-          .round(),
-      }),
-      Witnet.RadonRetrievals.HttpGet({
-        url: "https://data.gateapi.io/api2/1/ticker/wit_usdt",
-        script: Witnet.RadonScript(Witnet.RadonString)
-          .parseJSONMap()
-          .getFloat("last")
-          .power(-1)
-          .multiply(1e9)
-          .round(),
-      }),
-      Witnet.RadonRetrievals.HttpGet({
-        url: "https://www.mexc.com/open/api/v2/market/ticker?symbol=WIT_USDT",
-        script: Witnet.RadonScript(Witnet.RadonString)
-          .parseJSONMap()
-          .getArray("data")
-          .getMap(0)
-          .getFloat("last")
-          .power(-1)
-          .multiply(1e9)
-          .round(),
-      }),
-    ],
-    aggregate: Witnet.RadonReducers.Median(Witnet.RadonFilters.Stdev(1.4)),
-    tally: Witnet.RadonReducers.PriceTally(),
-  }),
-  WitOracleRequestRandomness: new Witnet.RadonRequest({
-    retrieve: Witnet.RadonRetrievals.RNG(),
-    tally: Witnet.RadonReducers.ConcatHash(),
-  }),
+    DeFi: {
+        "price-feeds":  {
+            WitOracleRequestPriceWitUsdt6: new Witnet.RadonRequest({
+                retrieve: [
+                    Witnet.RadonRetrievals.HttpGet({
+                        url: "https://api-cloud.bitmart.com/spot/v1/ticker?symbol=WIT_USDT",
+                        script: Witnet.RadonScript(Witnet.RadonString)
+                            .parseJSONMap()
+                            .getMap("data")
+                            .getArray("tickers")
+                            .getMap(0)
+                            .getFloat("last_price")
+                            .multiply(1e6)
+                            .round(),
+                    }),
+                    Witnet.RadonRetrievals.HttpGet({
+                        url: "https://data.gateapi.io/api2/1/ticker/wit_usdt",
+                        script: Witnet.RadonScript(Witnet.RadonString)
+                            .parseJSONMap()
+                            .getFloat("last")
+                            .multiply(1e6)
+                            .round(),
+                    }),
+                    Witnet.RadonRetrievals.HttpGet({
+                        url: "https://www.mexc.com/open/api/v2/market/ticker?symbol=WIT_USDT",
+                        script: Witnet.RadonScript(Witnet.RadonString)
+                            .parseJSONMap()
+                            .getArray("data")
+                            .getMap(0)
+                            .getFloat("last")
+                            .multiply(1e6)
+                            .round(),
+                    }),
+                ],
+                aggregate: Witnet.RadonReducers.Median(Witnet.RadonFilters.Stdev(1.4)),
+                tally: Witnet.RadonReducers.PriceTally(),
+            }),
+            WitOracleRequestPriceUsdtWit9: new Witnet.RadonRequest({
+                retrieve: [
+                    Witnet.RadonRetrievals.HttpGet({
+                        url: "https://api-cloud.bitmart.com/spot/v1/ticker?symbol=WIT_USDT",
+                        script: Witnet.RadonScript(Witnet.RadonString)
+                            .parseJSONMap()
+                            .getMap("data")
+                            .getArray("tickers")
+                            .getMap(0)
+                            .getFloat("last_price")
+                            .power(-1)
+                            .multiply(1e9)
+                            .round(),
+                    }),
+                    Witnet.RadonRetrievals.HttpGet({
+                        url: "https://data.gateapi.io/api2/1/ticker/wit_usdt",
+                        script: Witnet.RadonScript(Witnet.RadonString)
+                            .parseJSONMap()
+                            .getFloat("last")
+                            .power(-1)
+                            .multiply(1e9)
+                            .round(),
+                    }),
+                    Witnet.RadonRetrievals.HttpGet({
+                        url: "https://www.mexc.com/open/api/v2/market/ticker?symbol=WIT_USDT",
+                        script: Witnet.RadonScript(Witnet.RadonString)
+                            .parseJSONMap()
+                            .getArray("data")
+                            .getMap(0)
+                            .getFloat("last")
+                            .power(-1)
+                            .multiply(1e9)
+                            .round(),
+                    }),
+                ],
+                aggregate: Witnet.RadonReducers.Median(Witnet.RadonFilters.Stdev(1.4)),
+                tally: Witnet.RadonReducers.PriceTally(),
+            }),
+        },
+    },
+    GameFi: {
+        WitOracleRequestRandomness: new Witnet.RadonRequest({
+            retrieve: Witnet.RadonRetrievals.RNG(),
+            tally: Witnet.RadonReducers.ConcatHash(),
+        }),
+    },
 }
+
+// const { Witnet } = require("../../dist")
+// module.exports = {
+//   WitOracleRequestPriceWitUsdt6: new Witnet.RadonRequest({
+//     retrieve: [
+//       Witnet.RadonRetrievals.HttpGet({
+//         url: "https://api-cloud.bitmart.com/spot/v1/ticker?symbol=WIT_USDT",
+//         script: Witnet.RadonScript(Witnet.RadonString)
+//           .parseJSONMap()
+//           .getMap("data")
+//           .getArray("tickers")
+//           .getMap(0)
+//           .getFloat("last_price")
+//           .multiply(1e6)
+//           .round(),
+//       }),
+//       Witnet.RadonRetrievals.HttpGet({
+//         url: "https://data.gateapi.io/api2/1/ticker/wit_usdt",
+//         script: Witnet.RadonScript(Witnet.RadonString)
+//           .parseJSONMap()
+//           .getFloat("last")
+//           .multiply(1e6)
+//           .round(),
+//       }),
+//       Witnet.RadonRetrievals.HttpGet({
+//         url: "https://www.mexc.com/open/api/v2/market/ticker?symbol=WIT_USDT",
+//         script: Witnet.RadonScript(Witnet.RadonString)
+//           .parseJSONMap()
+//           .getArray("data")
+//           .getMap(0)
+//           .getFloat("last")
+//           .multiply(1e6)
+//           .round(),
+//       }),
+//     ],
+//     aggregate: Witnet.RadonReducers.Median(Witnet.RadonFilters.Stdev(1.4)),
+//     tally: Witnet.RadonReducers.PriceTally(),
+//   }),
+//   WitOracleRequestPriceUsdtWit9: new Witnet.RadonRequest({
+//     retrieve: [
+//       Witnet.RadonRetrievals.HttpGet({
+//         url: "https://api-cloud.bitmart.com/spot/v1/ticker?symbol=WIT_USDT",
+//         script: Witnet.RadonScript(Witnet.RadonString)
+//           .parseJSONMap()
+//           .getMap("data")
+//           .getArray("tickers")
+//           .getMap(0)
+//           .getFloat("last_price")
+//           .power(-1)
+//           .multiply(1e9)
+//           .round(),
+//       }),
+//       Witnet.RadonRetrievals.HttpGet({
+//         url: "https://data.gateapi.io/api2/1/ticker/wit_usdt",
+//         script: Witnet.RadonScript(Witnet.RadonString)
+//           .parseJSONMap()
+//           .getFloat("last")
+//           .power(-1)
+//           .multiply(1e9)
+//           .round(),
+//       }),
+//       Witnet.RadonRetrievals.HttpGet({
+//         url: "https://www.mexc.com/open/api/v2/market/ticker?symbol=WIT_USDT",
+//         script: Witnet.RadonScript(Witnet.RadonString)
+//           .parseJSONMap()
+//           .getArray("data")
+//           .getMap(0)
+//           .getFloat("last")
+//           .power(-1)
+//           .multiply(1e9)
+//           .round(),
+//       }),
+//     ],
+//     aggregate: Witnet.RadonReducers.Median(Witnet.RadonFilters.Stdev(1.4)),
+//     tally: Witnet.RadonReducers.PriceTally(),
+//   }),
+//   WitOracleRequestRandomness: new Witnet.RadonRequest({
+//     retrieve: Witnet.RadonRetrievals.RNG(),
+//     tally: Witnet.RadonReducers.ConcatHash(),
+//   }),
+// }
