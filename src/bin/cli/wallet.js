@@ -12,6 +12,10 @@ const { bblue, bcyan, bgreen, cyan, gray, green, lcyan, lmagenta, lyellow, magen
 /// CLI SUBMODULE CONSTANTS ===========================================================================================
 
 module.exports = {
+    envars: {
+        WITNET_TOOLKIT_MASTER_KEY: "=> Wallet's master key in XPRV format, as exported from either a node, Sheikah or myWitWallet.",
+        WITNET_TOOLKIT_PROVIDER_URL: "=> Wit/Oracle RPC provider(s) to connect to, if no otherwise specified."
+    },
     flags: {
         await: {
             hint: "Await any involved transaction to get eventually mined (default: false).",
@@ -24,7 +28,7 @@ module.exports = {
             param: "NUMBER",
         },
         dryrun: {
-            hint: "Prepare and sign involved transactions, withoug any actual tranmission taking place."
+            hint: "Prepare and sign involved transactions, without any actual tranmission taking place."
         },
         gap: {
             hint: "Max indexing gap when searching for funded accounts (default: 32).",
@@ -332,7 +336,7 @@ async function resolve(flags = {}, [pattern, ...args], options ={}) {
     const witnesses = parseInt(options?.witnesses || 3)
 
     await helpers.traceTransaction(
-        Witnet.DataRequest.from(account, request), {
+        Witnet.DataRequests.from(account, request), {
             confirmations, dryrun, headline: `DATA REQUEST TRANSACTION`, verbose, color: bgreen, 
             fees, witnesses,
         }
@@ -362,7 +366,7 @@ async function stake(flags = {}, [authorization], options = {}) {
     const value = options.value.toLowerCase() === 'all' ? (await account.getBalance()).unlocked - fees : utils.fromWits(options.value)
 
     await helpers.traceTransaction(
-        Witnet.StakeDeposit.from(account), {
+        Witnet.StakeDeposits.from(account), {
             confirmations, dryrun, headline: `STAKE DEPOSIT TRANSACTION`, verbose, color: bcyan, 
             authorization, fees, value, withdrawer: account.pkh,
         }
@@ -392,7 +396,7 @@ async function transfer(flags, args = [], options = {}) {
     const recipients = [[ Witnet.PublicKeyHash.fromBech32(args[0]).toBech32(wallet.network), value ]]
     
     await helpers.traceTransaction(
-        Witnet.ValueTransfer.from(account), { 
+        Witnet.ValueTransfers.from(account), { 
             confirmations, dryrun, headline: `VALUE TRANSFER TRANSACTION`, verbose, color: bblue,
             fees, recipients,
         }
@@ -422,7 +426,7 @@ async function unstake(flags, [validator], options = {}) {
     const value = utils.fromWits(options.value) // options.value.toLowerCase() === 'all' ? (await account.getStakedOn(validator)) - fees : utils.fromWits(options.value)
 
     await helpers.traceTransaction(
-        Witnet.StakeWithdrawal.from(account), {
+        Witnet.StakeWithdrawals.from(account), {
             confirmations, dryrun, headline: `STAKE WITHDRAWAL TRANSACTION`, verbose, 
             fees, value, validator,
         }
@@ -514,8 +518,8 @@ async function utxos(flags, args = [], options = {}) {
         }
 
         const valueTransfer = coinbase
-            ? Witnet.ValueTransfer.from(wallet.coinbase) 
-            : Witnet.ValueTransfer.from(wallet.findAccount(from))
+            ? Witnet.ValueTransfers.from(wallet.coinbase) 
+            : Witnet.ValueTransfers.from(wallet.findAccount(from))
         
         if (options?.join) {
             if (!options?.value) {
@@ -630,11 +634,11 @@ async function initializeRequest(options = {}) {
     let assets
     if (!options?.args || options.args.length === 0) {
         assets = Object.fromEntries(
-            utils.searchRadonAssets({ legacy: options?.legacy, pattern: options?.pattern, type: Witnet.RadonRequest })
+            utils.radon.assets.search({ legacy: options?.legacy, pattern: options?.pattern, type: Witnet.RadonRequest })
         );
     } else {
         assets = Object.fromEntries(
-            utils.searchRadonAssets({ legacy: options?.legacy, pattern: options?.pattern, type: Witnet.RadonTemplate })
+            utils.radon.assets.search({ legacy: options?.legacy, pattern: options?.pattern, type: Witnet.RadonTemplate })
                 .filter(([,artifact]) => (
                     artifact.homogeneous && artifact.argsCount === args.length
                         || (args.length === 1 && template.samples[args[0]])

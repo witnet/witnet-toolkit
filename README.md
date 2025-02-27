@@ -69,7 +69,7 @@ const result = JSON.parse(await request.execDryRun())
 
 ### Optional environment constiables
 ```
-WITNET_TOOLKIT_WALLET_KEY=
+WITNET_TOOLKIT_MASTER_KEY=
 WITNET_TOOLKIT_PROVIDER_URL=
 WITNET_TOOLKIT_REPORTER_URL=
 ```

@@ -12,7 +12,7 @@ import { CrossChainRPC } from "./ccdr"
  * - JSON ETH-RPC 
  * - JSON WIT-RPC 
  */
-export * as CCDR from "./ccdr"
+export * as RPC from "./ccdr"
 
 export enum Methods {
     None = 0x0,
@@ -30,6 +30,7 @@ export interface Specs {
 }
 
 export class RadonRetrieval {
+    
     public readonly argsCount: number;
     public readonly method: Methods;
     public readonly authority?: string;
@@ -77,6 +78,7 @@ export class RadonRetrieval {
     public isParameterized(): boolean {
         return this.argsCount > 0
     }
+    
     /**
      * Creates a new Radon Retrieval by orderly replacing indexed wildcards with given parameters.
      * Fails if not parameterized, of if passing too many parameters. 
@@ -155,6 +157,25 @@ export class RadonRetrieval {
 
     public opsCount(): any {
         return countOps(this.script?.encode() || [])
+    }
+}
+
+export class RadonCCDR extends RadonRetrieval {
+    constructor (rpc: CrossChainRPC, script?: RadonAny) {
+        super(Methods.HttpPost, {
+            url: "\\0\\",
+            body: JSON.stringify({
+                jsonrpc: "2.0",
+                methods: rpc.method,
+                params: rpc?.params,
+                id: 1,
+            }).replaceAll('\\\\', '\\'),
+            headers: { "Content-Type": "application/json;charset=UTF-8" },
+            script
+        })
+    }
+    public isParameterized(): boolean {
+        return this.argsCount > 1
     }
 }
 
@@ -255,44 +276,18 @@ export function GraphQLQuery (specs: {
     });
 };
 
-// /**
-//  * Creates a Cross Chain RPC retrieval on top of a HTTP/POST request.
-//  * @param specs rpc: JsonRPC object encapsulating method and parameters, 
-//  *              script?: RadonScript to apply to returned value
-//  *              presets?: Map containing preset parameters (only on parameterized retrievals).
-//  */
-// export function CrossChainRPC  (specs: {
-//     rpc: JsonRPC,
-//     script?: RadonAny
-// }) {
-//     return new RadonRetrieval(Methods.HttpPost, {
-//         url: "\\0\\",
-//         body: JSON.stringify({
-//             jsonrpc: "2.0",
-//             method: specs.rpc.method,
-//             params: specs.rpc?.params,
-//             id: 1,
-//         }).replaceAll('\\\\', '\\'),
-//         headers: { "Content-Type": "application/json;charset=UTF-8" },
-//         script: specs?.script,
-//     });
-// };
-
-export class RadonCCDR extends RadonRetrieval {
-    constructor (rpc: CrossChainRPC, script?: RadonAny) {
-        super(Methods.HttpPost, {
-            url: "\\0\\",
-            body: JSON.stringify({
-                jsonrpc: "2.0",
-                methods: rpc.method,
-                params: rpc?.params,
-                id: 1,
-            }).replaceAll('\\\\', '\\'),
-            headers: { "Content-Type": "application/json;charset=UTF-8" },
-            script
-        })
-    }
-    public isParameterized(): boolean {
-        return this.argsCount > 1
-    }
+/**
+ * Creates a Cross Chain Data Retrievals retrieval on top of a HTTP/POST request.
+ */
+export function CrossChainDataRetrieval(specs : {
+    /**
+     * CrossChainRPC object encapsulating RPC method and parameters.
+     */
+    rpc: CrossChainRPC,
+    /**
+     * RadonScript to reduce returned value.
+     */
+    script?: RadonAny
+}) {
+    return new RadonCCDR(specs.rpc, specs.script)
 }

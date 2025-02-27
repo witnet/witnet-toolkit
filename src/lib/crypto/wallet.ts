@@ -21,7 +21,7 @@ export class Wallet implements IWallet {
     public strategy: UtxoSelectionStrategy;
     
     static async fromXprv(xprv: string, provider: IProvider, strategy?: UtxoSelectionStrategy, gap?: number): Promise<Wallet> {
-        const { chainCode, privateKey } = utils.decodeXprv(xprv);
+        const { chainCode, privateKey } = utils.parseXprv(xprv);
         const root = bip32.fromPrivateKey(Buffer.from(privateKey), Buffer.from(chainCode));
         return provider.constants() // assure provider the network connecting to is known
             .then(() => new Wallet(root, provider, strategy, gap))

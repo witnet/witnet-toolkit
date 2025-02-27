@@ -22,16 +22,16 @@
     ".": {
       "require": "./dist/index.js",
       "default": "./dist/index.js",
-      "types:": "./dist/lib/radon/*.d.ts"
+      "types": "./dist/*.d.ts"
     },
     "./assets": "./witnet/assets/index.js"
   },
-  "types": "./dist/lib/radon",
+  "types": "./dist/",
   "scripts": {
     "build": "pbjs --target json witnet/witnet.proto -o witnet/witnet.proto.json && tsc -p tsconfig.json",
     "fmt": "eslint --ext .js,.ts,.cjs . --ignore-path .gitignore",
     "fmt!": "eslint --ext .js,.ts,.cjs . --fix --ignore-path .gitignore",
-    "postintall": "npx witnet --update --version",
+    "postinstall": "npx witnet --update --version",
     "prepare": "pnpm run build",
     "test": "cross-env-shell WITNET_TOOLKIT_ASSETS_PATH='../../../witnet/assets' node ./src/bin/toolkit.js"
   },

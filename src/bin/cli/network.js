@@ -492,12 +492,17 @@ async function versions(flags = {}) {
         const records = Object.fromEntries(
             Object.entries(protocolInfo.all_checkpoints_periods)
                 .sort(([a], [b]) => b - a)
-                .map(([version, period]) => [ version, { period }])
+                .map(([version, period]) => [ version , { period }])
         )
         Object.entries(protocolInfo.all_versions.efv).forEach(([key, epoch]) => {
             if (records[key]) records[key].epoch = epoch
         })
-        helpers.traceTable(Object.entries(records).map(([key, props]) => [ key, props?.epoch, props?.period, ]), {
+        helpers.traceTable(
+            Object.entries(records).map(([key, props]) => [ 
+                key === "V1_7" ? "V1_0" : key, 
+                props?.epoch, 
+                props?.period, 
+            ]), {
             headlines: [
                 ":Version",
                 "Activation epoch",

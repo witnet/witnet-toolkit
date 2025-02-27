@@ -5,6 +5,8 @@ import * as crypto from 'crypto'
 
 export { bech32 } from 'bech32'
 
+export { PrivateKey, PublicKey, PublicKeyHash, KeyedSignature, RecoverableSignature, Signature } from "./types"
+
 const CHAIN_CODE_LENGTH = 32;
 const DEPTH_LENGTH = 1;
 const KEY_LENGTH = 33
@@ -40,7 +42,7 @@ export function decipherXprv(slip32: string, passwd: string): string {
     return decrypted
 }
 
-export const decodeXprv = (slip32: string): {
+export const parseXprv = (slip32: string): {
     chainCode: Uint8Array,
     keyPath: Array<number>,
     privateKey: Uint8Array,

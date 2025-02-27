@@ -8,22 +8,22 @@ import { Account } from "../account"
 import { Coinbase } from "../coinbase"
 import { Wallet } from "../wallet"
 
-export class ValueTransfer extends TransmitterMultiSig<ValueTransferParams, ValueTransferPayload> {
+export class ValueTransfers extends TransmitterMultiSig<ValueTransferParams, ValueTransferPayload> {
     
     public static MAX_WEIGHT = ValueTransferPayload.MAX_WEIGHT;
 
-    public static from(accountable: IAccountable): ValueTransfer {
+    public static from(accountable: IAccountable): ValueTransfers {
         if (accountable instanceof Wallet) {
-            return new ValueTransfer(accountable.signers)
+            return new ValueTransfers(accountable.signers)
         
         } else if (accountable instanceof Account) {
-            return new ValueTransfer([accountable.internal, accountable.external])
+            return new ValueTransfers([accountable.internal, accountable.external])
         
         } else if (accountable instanceof Coinbase) {
-            return new ValueTransfer([accountable])
+            return new ValueTransfers([accountable])
         
         } else {
-            throw TypeError(`ValueTransfer: cannot create from instance of ${accountable.constructor.name}.`)
+            throw TypeError(`ValueTransfers: cannot create from instance of ${accountable.constructor.name}.`)
         }
     }
 

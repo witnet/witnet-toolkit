@@ -10,23 +10,23 @@ import { Wallet } from "../wallet"
 
 export { DataRequestParams } from "../payloads/DataRequestPayload"
 
-export class DataRequest extends TransmitterMultiSig<DataRequestParams, DataRequestPayload> {
+export class DataRequests extends TransmitterMultiSig<DataRequestParams, DataRequestPayload> {
     
     public static COLLATERAL_RATIO = DataRequestPayload.COLLATERAL_RATIO;
     public static MAX_WEIGHT = DataRequestPayload.MAX_WEIGHT;
 
-    public static from(accountable: IAccountable, artifact: RadonRequest | RadonTemplate): DataRequest {
+    public static from(accountable: IAccountable, artifact: RadonRequest | RadonTemplate): DataRequests {
         if (accountable instanceof Wallet) {
-            return new DataRequest(accountable.signers, artifact)
+            return new DataRequests(accountable.signers, artifact)
         
         } else if (accountable instanceof Account) {
-            return new DataRequest([accountable.internal, accountable.external], artifact)
+            return new DataRequests([accountable.internal, accountable.external], artifact)
         
         } else if (accountable instanceof Coinbase) {
-            return new DataRequest([accountable], artifact)
+            return new DataRequests([accountable], artifact)
         
         } else {
-            throw TypeError(`DataRequest: cannot create from instance of ${accountable.constructor.name}.`)
+            throw TypeError(`DataRequests: cannot create from instance of ${accountable.constructor.name}.`)
         }
     }
 
