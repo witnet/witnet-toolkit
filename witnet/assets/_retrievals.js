@@ -1,7 +1,5 @@
-/* eslint-disable no-unused-vars */
-
-const legacy = require('witnet-toolkit/assets')?.legacy
 const { utils, Witnet } = require("witnet-toolkit")
+const { legacy } = require("witnet-toolkit/assets")
 
 module.exports = {
   // path: { ... path: {

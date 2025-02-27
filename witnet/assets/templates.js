@@ -1,3 +1,2 @@
 const { utils, Witnet } = require("../../dist")
-const retrievals = require('./retrievals')
-module.exports = {}
+const retrievals = require("./retrievals")
