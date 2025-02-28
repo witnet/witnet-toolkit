@@ -65,7 +65,12 @@ export class RadonRetrieval {
                 } catch {}
             }
         }
-        this.headers = specs?.headers
+        if (specs?.headers) {
+            if (typeof specs.headers !== 'object' || Array.isArray(specs.headers)) {
+                throw new TypeError("RadonRetrieval: HTTP headers must be of type Record<string, string>")
+            }
+            this.headers = specs?.headers
+        }
         this.body = specs?.body
         if (specs?.script) this.script = new RadonScript(specs?.script)
         this.argsCount = Math.max(
