@@ -249,7 +249,7 @@ export class RadonTemplate extends Class {
                         Object(samples)[sample] = Array(retrieve.length).fill(sampleArgs)
                         sampleArgs = Object(samples)[sample]
                     } else if (sampleArgs?.length != retrieve.length) {
-                        throw TypeError(`RadonTemplate: arguments mismatch in sample "${sample}": ${sampleArgs?.length} tuples given vs. ${retrieve.length} expected`)
+                        throw TypeError(`RadonTemplate: arguments mismatch in sample "${sample}": ${sampleArgs?.length} samples given vs. ${retrieve.length} expected`)
                     }
                     sampleArgs?.forEach((subargs, index)=> {
                         if (subargs.length < retrieve[index].argsCount) {
