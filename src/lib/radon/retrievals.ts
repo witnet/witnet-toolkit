@@ -41,8 +41,10 @@ export class RadonRetrieval {
     public readonly schema?: string;
     public readonly script?: RadonScript;
     public readonly url?: string;
+
+    public readonly samples?: Record<string, string[]>;
     
-    constructor(method: Methods, specs?: Specs) {
+    constructor(method: Methods, specs?: Specs, samples?: Record<string, string[]>) {
         if (method === Methods.RNG && (specs?.url || specs?.headers?.size || specs?.body)) {
             throw TypeError("RadonRetrieval: RNG accepts no URLs or headers");
         } else if (!specs?.url && (method == Methods.HttpPost || method == Methods.HttpGet)) {
@@ -73,6 +75,10 @@ export class RadonRetrieval {
             ...Object.values(this?.headers || {}).map(value => helpers.getWildcardsCountFromString(value)) ?? [],
             this.script?.argsCount() || 0,
         )
+        if (samples && this.argsCount === 0) {
+            throw new TypeError("RadonRetrieval: passed samples to non-parameterized RadonRetrieval.")
+        }
+        this.samples = samples
     }
     
     public isParameterized(): boolean {
@@ -199,52 +205,56 @@ export function RNG (script?: RadonAny) {
 /**
  * Creates a Witnet HTTP/GET Radon RadonRetrieval.
  * @param specs RadonRetrieval parameters: URL, http headers (optional), Radon script (optional), 
- * pre-set tuples (optional to parameterized sources, only).
+ * pre-set samples (optional to parameterized sources, only).
  */
 export function HttpGet (specs: {
     url: string,
     headers?: Record<string, string>,
     script?: RadonAny,
-    tuples?: Map<string, string[]>
+    samples?: Record<string, string[]>
 }) {
     return new RadonRetrieval(
         Methods.HttpGet, { 
             url: specs.url, 
             headers: specs.headers, 
             script: specs.script, 
-        }
+        },
+        specs?.samples,
     );
 };
 
 /**
  * Creates a Witnet HTTP/HEAD Radon RadonRetrieval.
  * @param specs RadonRetrieval parameters: URL, http headers (optional), Radon script (optional), 
- * pre-set tuples (optional to parameterized sources, only).
+ * pre-set samples (optional to parameterized sources, only).
  */
 export function HttpHead (specs: {
     url: string,
     headers?: Record<string, string>,
     script?: RadonAny,
+    samples?: Record<string, string[]>
 }) {
     return new RadonRetrieval(
         Methods.HttpHead, { 
             url: specs.url, 
             headers: specs.headers, 
             script: specs.script, 
-        }
+        },
+        specs?.samples,
     );
 };
 
 /**
  * Creates a Witnet HTTP/POST Radon RadonRetrieval.
  * @param specs RadonRetrieval parameters: URL, HTTP body (optional), HTTP headers (optional), Radon Script (optional), 
- * pre-set tuples (optional to parameterized sources, only).
+ * pre-set samples (optional to parameterized sources, only).
  */
 export function HttpPost (specs?: {
     url: string,
     body: string,
     headers?: Record<string, string>,
     script?: RadonAny,
+    samples?: Record<string, string[]>
 }) {
     return new RadonRetrieval(
         Methods.HttpPost, { 
@@ -252,28 +262,31 @@ export function HttpPost (specs?: {
             headers: specs?.headers, 
             body: specs?.body, 
             script: specs?.script, 
-        }
+        },
+        specs?.samples,
     );
 };
 
 /**
  * Creates a Witnet GraphQL Radon RadonRetrieval (built on top of an HTTP/POST request).
  * @param specs RadonRetrieval parameters: URL, GraphQL query string, Radon Script (optional), 
- * pre-set tuples (optional to parameterized sources, only).
+ * pre-set samples (optional to parameterized sources, only).
  */
 export function GraphQLQuery (specs: { 
     url: string, 
     query: string, 
-    script?: RadonAny,  
+    script?: RadonAny,
+    samples?: Record<string, string[]>
 }) {
-    return new RadonRetrieval(Methods.HttpPost, {
-        url: specs.url, 
-        body: `{\"query\":\"${graphQlCompress(specs.query).replaceAll('"', '\\"')}\"}`,
-        headers: {
-            "Content-Type": "application/json;charset=UTF-8"
-        },
-        script: specs?.script,
-    });
+    return new RadonRetrieval(
+        Methods.HttpPost, {
+            url: specs.url, 
+            body: `{\"query\":\"${graphQlCompress(specs.query).replaceAll('"', '\\"')}\"}`,
+            headers: { "Content-Type": "application/json;charset=UTF-8" },
+            script: specs?.script,
+        }, 
+        specs?.samples
+    );
 };
 
 /**
