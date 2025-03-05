@@ -28,7 +28,7 @@ module.exports = {
             param: "NUMBER",
         },
         dryrun: {
-            hint: "Prepare and sign involved transactions, without any actual tranmission taking place."
+            hint: "Prepare and sign involved transactions, without any actual transmission taking place."
         },
         gap: {
             hint: "Max indexing gap when searching for funded accounts (default: 32).",
@@ -63,7 +63,7 @@ module.exports = {
             },
         },
         authorize: {
-            hint: "Authorize give address to stake into the wallet's coinbase account.",
+            hint: "Authorize given address to stake into the wallet's coinbase account.",
             params: "WITHDRAWER_ADDRESS",
         },
         // "create*": {
@@ -433,45 +433,51 @@ async function unstake(flags, [validator], options = {}) {
     )
 }
 
-async function utxos(flags, args = [], options = {}) {
-    const { coinbase, dryrun, verbose } = flags
-    const confirmations = flags?.confirmations ? parseInt(flags.confirmations) : (flags?.await ? 0 : (options?.join && options?.split ? 0 : undefined))
-    
+async function utxos(flags, [from, ], options = {}) {
+    const { dryrun, verbose } = flags
     const wallet = await initializeWallet({ unlocked: true, limit: 1, ...flags })
-
-    let from, totalUnlocked = 0, utxos = []
+    const account = (
+        from
+            ? (from === wallet.coinbase.pkh ? wallet.coinbase : wallet.findAccount(from))
+            : ((await wallet.coinbase.getBalance()).unlocked > 0 ? wallet.coinbase : wallet.accounts[0])
+    )
+    if (!account)  {
+        throw `Address ${from} does not belong to the wallet.`
+    } else {
+        from = account.pkh
+    }
+    const coinbase = account.pkh === wallet.coinbase.pkh
+    let totalUnlocked = 0, utxos = []
     if (coinbase) {
-        from = wallet.coinbase.pkh
-        utxos = (await wallet.coinbase.selectUtxos(strategy)).map(utxo => { return { pkh: mcyan(from), ...utxo }})
+        // from = wallet.coinbase.pkh
+        utxos = (await wallet.coinbase.selectUtxos()).map(utxo => { return { pkh: mcyan(from), ...utxo }})
         totalUnlocked = (await wallet.coinbase.getBalance()).unlocked
         
     } else {
-        let account 
-        if (args.length > 0) {
-            account = wallet.findAccount(args[0])
-        
-        } else {
-            account = wallet.accounts[wallet.accounts.length - 1]
-        }
-        if (account) {
-            from = account.pkh
-            let intPkh = account.internal.pkh
-            utxos = [
-                ...(await account.internal.selectUtxos()).map(utxo => { return { pkh: magenta(intPkh), ...utxo }}),
-                ...(await account.external.selectUtxos()).map(utxo => { return { pkh: mmagenta(from), internal: true, ...utxo }})
-            ]
-            totalUnlocked = (await account.getBalance()).unlocked
-        } else {
-            throw `Account ${args[0]} not found in wallet.`
-        }
+        // from = account.pkh
+        let intPkh = account.internal.pkh
+        utxos = [
+            ...(await account.internal.selectUtxos()).map(utxo => { return { pkh: magenta(intPkh), internal: true, ...utxo }}),
+            ...(await account.external.selectUtxos()).map(utxo => { return { pkh: mmagenta(from), ...utxo }})
+        ]
+        totalUnlocked = (await account.getBalance()).unlocked
     }
     const into = options?.into
     if (into) {
-        if (into !== from && !wallet.findAccount(into)) {
-            throw `Into-account ${into} not found in wallet.`
+        if (into !== from && !wallet.findAccount(into) && into !== wallet.coinbase.pkh) {
+            const prompt = inquirer.createPromptModule()
+            const user = await prompt([{ 
+                message: `Into-account ${into} does not belong to the wallet. Proceed anyway?`, 
+                name: "continue", 
+                type: "input", 
+            }])
+            if (!user.continue.toLowerCase().startsWith("y")) {
+                throw `Into-account ${into} not found in wallet.`
+            }
         }
     }
     
+    const confirmations = flags?.confirmations ? parseInt(flags.confirmations) : (flags?.await ? 0 : (options?.join && options?.split ? 0 : undefined))
     const fees = utils.fromWits(options?.fees || 0.000001) // 1 microWit as default fee
     let targetValue = 0
     if (options?.value) {
@@ -481,7 +487,7 @@ async function utxos(flags, args = [], options = {}) {
         } else {
             targetValue = helpers.fromWits(parseFloat(options.value))
         }
-    }
+    }   
     let coveredValue = 0
     if (targetValue > 0) {
         let targetIndex = 0
@@ -489,7 +495,7 @@ async function utxos(flags, args = [], options = {}) {
             coveredValue += utxos[targetIndex].value
         }
         if (coveredValue < targetValue + fees) {
-            throw `Not enough unlocked UTXOs on ${coinbase ? mcyan(from) : mmagenta(from)} (${whole_wits(selectedBalance)} < ${myellow(whole_wits(target))}.`
+            throw `Not enough unlocked UTXOs on ${coinbase ? mcyan(from) : mmagenta(from)} (${whole_wits(coveredValue)} < ${myellow(whole_wits(targetValue + fees))}.`
         } else {
             utxos.splice(targetIndex)
         }
@@ -525,7 +531,7 @@ async function utxos(flags, args = [], options = {}) {
             if (!options?.value) {
                 throw `--value must be specified for a JOIN operation.`
             }
-            const recipients = [[ options?.split ? from : into, targetValue ]]
+            const recipients = [[ options?.split ? from : (into || from), targetValue ]]
             await helpers.traceTransaction(valueTransfer, { 
                 confirmations, dryrun, verbose, headline: `JOINING UTXOs: ${utxos.length} -> ${targetValue < coveredValue ? 2 : 1}` ,
                 fees, recipients,
