@@ -142,14 +142,14 @@ export class StakePayload extends TransactionPayloadMultiSig<StakeDepositParams>
                         validator: { hash: Array.from(PublicKeyHash.fromHexString(this._target.authorization.substring(0, 40)).toBytes20()) },
                         withdrawer: { hash: Array.from(PublicKeyHash.fromBech32(this._target.withdrawer).toBytes20()) },
                     },
-                    value: this._target?.value,
+                    value: this._target.value,
                 },
                 ...(
                     this._outputs.length > 0 ? { change : {
                         pkh: { hash: Array.from(PublicKeyHash.fromBech32(this.outputs[0].pkh).toBytes20()) },
                         value: this.outputs[0].value,
                         // timeLock: 0,
-                    }} : {}
+                    }} : { change: { pkh: { hash: Array(20).fill(0) }}}
                 ),
             }
         }

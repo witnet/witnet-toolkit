@@ -133,7 +133,7 @@ export abstract class TransactionPayloadMultiSig<Specs>
             signer.consumeUtxos(index)
         }
         this._change = this._covered - (this.value + this.fees)
-        if (this._change > 0 && !prepared) {
+        if (this._change >= 0 && !prepared) {
             this.prepareOutputs({ value: this._change, sender: changePkh || signer.pkh })
         }
         return this._change
