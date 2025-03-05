@@ -661,7 +661,7 @@ function traceTransactionReceipt(receipt) {
     }
     if (receipt?.recipients) {
         console.info(` > Recipient/s: ${
-            mmagenta(receipt.recipients.map(([pkh,]) => pkh).filter((pkh, index, array) => index === array.indexOf(pkh)))
+            mmagenta(receipt.recipients.filter((pkh, index, array) => index === array.indexOf(pkh)))
         }`)
     }
     console.info(` > Fees:        ${yellow(whole_wits(receipt.fees, 2))}`)
