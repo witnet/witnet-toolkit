@@ -1,4 +1,4 @@
-const secp256k1 = require('@noble/secp256k1')
+const secp256k1 = require('secp256k1')
 import * as utils from "../utils"
 
 import { Balance, Network, QueryStakesOrder, StakeEntry, UtxoMetadata } from "../types"
