@@ -134,13 +134,13 @@ export class RadonRetrieval {
     }
 
     public toJSON(humanize?: boolean): any {
-        const Kinds = [ "", "HTTP-GET", "RNG", "HTTP-POST", "HTTP-HEAD" ]
+        const kind = [ "", "HTTP-GET", "RNG", "HTTP-POST", "HTTP-HEAD" ]
         let json: any = {
-            kind: Kinds[this.method] // humanize ? Methods[this.method] : this.method,
+            kind: kind[this.method] // humanize ? Methods[this.method] : this.method,
         }
         if (this.url) json.url = this.url
         if (this.headers) {
-            json.headers = this.headers;
+            json.headers = Object.entries(this.headers);
         }
         if (this.body) json.body = this.body
         json.script = humanize ? this.script?.toString() : Array.from(helpers.fromHexString(this.script?.toBytecode() || '0x80'))
