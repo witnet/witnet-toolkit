@@ -79,10 +79,10 @@ export class RadonRequest extends Class {
             const specs: any = {}
             if (retrieval?.url) { specs.url = retrieval.url }
             if (retrieval?.headers) {
-                specs.headers = retrieval.headers.map((stringPair: any) => [
+                specs.headers = Object.fromEntries(retrieval.headers.map((stringPair: any) => [
                     stringPair.left,
                     stringPair.right
-                ])
+                ]))
             }
             if (retrieval?.body && retrieval.body.length > 0) {
                 specs.body = utf8ArrayToStr(Object.values(retrieval.body))
