@@ -48,7 +48,7 @@ export interface ISigner extends IAccountable {
     consumeUtxos(index: number): any
     getDelegateNonce(validator: PublicKeyHashString): Promise<number>
     getUtxos(force?: boolean): Promise<Array<UtxoMetadata>>
-    selectUtxos(strategy?: UtxoSelectionStrategy): Promise<Array<UtxoMetadata>>
+    selectUtxos(specs?: { cover?: Nanowits, strategy?: UtxoSelectionStrategy }): Promise<Array<UtxoMetadata>>
     signHash(hash: any): KeyedSignature
 }
 

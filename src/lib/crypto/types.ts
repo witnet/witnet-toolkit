@@ -95,6 +95,7 @@ export type UtxoPointer = {
 export enum UtxoSelectionStrategy {
     BigFirst = "big-first",
     Random = "random",
+    SlimFit = "slim-fit",
     SmallFirst = "small-first",
 }
 

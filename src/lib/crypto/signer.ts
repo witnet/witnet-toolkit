@@ -1,7 +1,7 @@
 const secp256k1 = require('secp256k1')
 import * as utils from "../utils"
 
-import { Balance, Network, QueryStakesOrder, StakeEntry, UtxoMetadata } from "../types"
+import { Balance, Nanowits, Network, QueryStakesOrder, StakeEntry, UtxoMetadata } from "../types"
 import { IBIP32, IProvider, ISigner } from "./interfaces"
 import { KeyedSignature, PublicKey, PublicKeyHashString, UtxoSelectionStrategy } from "./types"
 
@@ -62,12 +62,17 @@ export class Signer implements ISigner {
         return this.utxos
     }
 
-    public async selectUtxos(strategy?: UtxoSelectionStrategy): Promise<Array<UtxoMetadata>> {
+    public async selectUtxos(specs?: {
+        cover?: Nanowits,
+        strategy?: UtxoSelectionStrategy
+    }): Promise<Array<UtxoMetadata>> {
         if (this.utxos.length === 0) {
             await this.getUtxos()
         }
-        switch (strategy || this.strategy) {
+        const strategy = specs?.strategy || this.strategy
+        switch (strategy) {
             case UtxoSelectionStrategy.BigFirst:
+            case UtxoSelectionStrategy.SlimFit:
                 this.utxos = this.utxos.sort((a, b) => b.value - a.value)
                 break
 
@@ -84,6 +89,12 @@ export class Signer implements ISigner {
             case UtxoSelectionStrategy.SmallFirst:
                 this.utxos = this.utxos.sort((a, b) => a.value - b.value)
                 break
+        }
+        if (strategy === UtxoSelectionStrategy.SlimFit && specs?.cover !== undefined) {
+            const slimFitIndex = this.utxos.findIndex(utxo => utxo.value <= (specs?.cover || 0))
+            if (slimFitIndex >= 2) {
+                return this.utxos.slice(slimFitIndex - 1)
+            }
         }
         return this.utxos
     }

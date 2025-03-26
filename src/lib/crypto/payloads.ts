@@ -121,7 +121,7 @@ export abstract class TransactionPayloadMultiSig<Specs>
         } 
         const prepared = this.prepared
         if (!this.covered) {
-            const utxos = await signer.selectUtxos()
+            const utxos = await signer.selectUtxos({ cover: this.fees + this.value - this._covered })
             let index = 0
             while (index < utxos.length && !this.covered) {
                 const utxo = utxos[index ++]

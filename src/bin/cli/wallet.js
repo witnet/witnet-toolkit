@@ -39,7 +39,7 @@ module.exports = {
             param: "URL",
         },
         strategy: {
-            hint: "UTXOs selection strategy: `big-first`, `random`, `small-first` (default: `small-first`).",
+            hint: "UTXOs selection strategy: `big-first`, `random`, `slim-fit`, `small-first` (default: `small-first`).",
             param: "STRATEGY",
         },
         verbose: {
@@ -447,21 +447,46 @@ async function utxos(flags, [from, ], options = {}) {
         from = account.pkh
     }
     const coinbase = account.pkh === wallet.coinbase.pkh
-    let totalUnlocked = 0, utxos = []
+
+    // query total unlocked
+    let totalUnlocked = 0
+    if (coinbase) {
+        totalUnlocked = (await wallet.coinbase.getBalance()).unlocked
+    } else {
+        totalUnlocked = (await account.getBalance()).unlocked
+    }
+
+    // extract confirmations and fees from CLI 
+    const confirmations = flags?.confirmations ? parseInt(flags.confirmations) : (flags?.await ? 0 : (options?.join && options?.split ? 0 : undefined))
+    const fees = utils.fromWits(options?.fees || 0.000001) // 1 microWit as default fee
+
+    // extract target value, if any, from CLI
+    let targetValue = 0
+    if (options?.value) {
+        if (options.value.toLowerCase() === 'all') {
+            targetValue = totalUnlocked - fees
+        
+        } else {
+            targetValue = helpers.fromWits(parseFloat(options.value))
+        }
+    }
+
+    // select utxos based on selected strategy, and target value (which might be relevant on some strategies)
+    let utxos = []
     if (coinbase) {
         // from = wallet.coinbase.pkh
-        utxos = (await wallet.coinbase.selectUtxos()).map(utxo => { return { pkh: mcyan(from), ...utxo }})
-        totalUnlocked = (await wallet.coinbase.getBalance()).unlocked
+        utxos = (await wallet.coinbase.selectUtxos({ cover: targetValue })).map(utxo => { return { pkh: mcyan(from), ...utxo }})
         
     } else {
         // from = account.pkh
         let intPkh = account.internal.pkh
         utxos = [
-            ...(await account.internal.selectUtxos()).map(utxo => { return { pkh: magenta(intPkh), internal: true, ...utxo }}),
-            ...(await account.external.selectUtxos()).map(utxo => { return { pkh: mmagenta(from), ...utxo }})
+            ...(await account.internal.selectUtxos({ cover: targetValue })).map(utxo => { return { pkh: magenta(intPkh), internal: true, ...utxo }}),
+            ...(await account.external.selectUtxos({ cover: targetValue })).map(utxo => { return { pkh: mmagenta(from), ...utxo }})
         ]
-        totalUnlocked = (await account.getBalance()).unlocked
     }
+
+    // determine into address, other than from, if specified
     const into = options?.into
     if (into) {
         if (into !== from && !wallet.findAccount(into) && into !== wallet.coinbase.pkh) {
@@ -477,17 +502,7 @@ async function utxos(flags, [from, ], options = {}) {
         }
     }
     
-    const confirmations = flags?.confirmations ? parseInt(flags.confirmations) : (flags?.await ? 0 : (options?.join && options?.split ? 0 : undefined))
-    const fees = utils.fromWits(options?.fees || 0.000001) // 1 microWit as default fee
-    let targetValue = 0
-    if (options?.value) {
-        if (options.value.toLowerCase() === 'all') {
-            targetValue = totalUnlocked - fees
-        
-        } else {
-            targetValue = helpers.fromWits(parseFloat(options.value))
-        }
-    }   
+    // select actual utxos to operate with:
     let coveredValue = 0
     if (targetValue > 0) {
         let targetIndex = 0
@@ -503,6 +518,7 @@ async function utxos(flags, [from, ], options = {}) {
         utxos.forEach(utxo => coveredValue += utxo.value)
     }
     
+    // only if at least one utxo is selected, proceed with report and other operations, if any
     if (utxos.length > 0) {
         if (verbose || (!options?.join && !options?.split)) {
             helpers.traceTable(
