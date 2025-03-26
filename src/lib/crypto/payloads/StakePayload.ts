@@ -47,40 +47,6 @@ export class StakePayload extends TransactionPayloadMultiSig<StakeDepositParams>
                 + this._outputs.length * TX_WEIGHT_OUTPUT_SIZE 
         );
     }
-    
-    // public async consumeUtxos(
-    //     signer: ISigner, 
-    //     changePkh?: PublicKeyHashString,
-    // ): Promise<number> {
-    //     if (!this._target) {
-    //         throw new Error(`${this.constructor.name}: internal error: no in-flight params.`)
-        
-    //     } else {
-    //         if (!this._covered) {
-    //             const utxos = await signer.selectUtxos()
-    //             let index = 0
-    //             while (index < utxos.length && !this.covered) {
-    //                 const utxo = utxos[index ++]
-    //                 if (utxo) {
-    //                     this._inputs.push([ signer.pkh, utxo ])
-    //                     this._covered += utxo.value
-    //                 }
-    //             }
-    //             signer.consumeUtxos(index)
-    //         }
-    //         const change = this._covered - (this.value + this._target.fees)
-    //         if (change > 0) {
-    //             // change goes to signer of last added UTXO:
-    //             this._outputs.push({
-    //                 pkh: changePkh || signer.pkh,
-    //                 value: change,
-    //                 time_lock: 0
-    //             })
-    //         }
-    //         this._change = change
-    //         return change
-    //     }
-    // }
 
     public intoReceipt(target: StakeDepositParams, network?: Network) {
         return {
