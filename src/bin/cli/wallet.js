@@ -707,7 +707,13 @@ async function initializeWallet(flags = {}) {
         throw "No master key is settled in environment."
     } else {
         const provider = new Witnet.Provider(flags?.provider)
-        const strategy = Witnet.UtxoSelectionStrategy[flags?.strategy || 'small-first']
+        const strategies = {
+            'small-first': Witnet.UtxoSelectionStrategy.SmallFirst,
+            'slim-fit': Witnet.UtxoSelectionStrategy.SlimFit,
+            'big-first': Witnet.UtxoSelectionStrategy.BigFirst,
+            'random': Witnet.UtxoSelectionStrategy.Random,
+        }
+        const strategy = strategies[flags?.strategy || 'small-first'] || Witnet.UtxoSelectionStrategy.SmallFirst
         const gap = flags['gap'] || 32
         let wallet, xprv = process.env.WITNET_TOOLKIT_MASTER_KEY
         if (xprv.length === 293) {
