@@ -79,7 +79,7 @@ export class Signer implements ISigner {
             case UtxoSelectionStrategy.Random:
                 const len = this.utxos.length
                 for (let i = 0; i < len; i ++) {
-                    const index = Math.floor(Math.random() * len - i)
+                    const index = Math.floor(Math.random() * (len - i))
                     const tmp = this.utxos[index]
                     this.utxos[index] = this.utxos[len - i - 1]
                     this.utxos[len - i - 1] = tmp
