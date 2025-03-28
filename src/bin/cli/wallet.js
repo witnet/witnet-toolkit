@@ -475,14 +475,14 @@ async function utxos(flags, [from, ], options = {}) {
     let utxos = []
     if (coinbase) {
         // from = wallet.coinbase.pkh
-        utxos = (await wallet.coinbase.selectUtxos({ cover: targetValue })).map(utxo => { return { pkh: mcyan(from), ...utxo }})
+        utxos = (await wallet.coinbase.selectUtxos({ cover: targetValue })).map(utxo => ({ pkh: mcyan(from), ...utxo }))
         
     } else {
         // from = account.pkh
         let intPkh = account.internal.pkh
         utxos = [
-            ...(await account.internal.selectUtxos({ cover: targetValue })).map(utxo => { return { pkh: magenta(intPkh), internal: true, ...utxo }}),
-            ...(await account.external.selectUtxos({ cover: targetValue })).map(utxo => { return { pkh: mmagenta(from), ...utxo }})
+            ...(await account.internal.selectUtxos({ cover: targetValue })).map(utxo => ({ pkh: magenta(intPkh), internal: true, ...utxo })),
+            ...(await account.external.selectUtxos({ cover: targetValue })).map(utxo => ({ pkh: mmagenta(from), ...utxo }))
         ]
     }
 
@@ -712,6 +712,9 @@ async function initializeWallet(flags = {}) {
             'slim-fit': Witnet.UtxoSelectionStrategy.SlimFit,
             'big-first': Witnet.UtxoSelectionStrategy.BigFirst,
             'random': Witnet.UtxoSelectionStrategy.Random,
+        }
+        if (flags?.strategy && !strategies[flags.strategy]) {
+            throw `Unrecognised UTXO selection strategy "${flags.strategy}"`
         }
         const strategy = strategies[flags?.strategy || 'small-first'] || Witnet.UtxoSelectionStrategy.SmallFirst
         const gap = flags['gap'] || 32
