@@ -1,9 +1,12 @@
-import * as utils from "../utils"
-
 import { default as axios, AxiosHeaders } from "axios"
+
+import { Root as ProtoRoot } from "protobufjs"
+const protoRoot = ProtoRoot.fromJSON(require("../../../witnet/witnet.proto.json")) 
+const protoBuf = protoRoot.lookupType("ConsensusConstants")
 
 import { PublicKeyHashString, TransactionReceipt } from "../crypto/types"
 import { Epoch, Hash, Network, UtxoMetadata } from "../types"
+import * as utils from "../utils"
 
 import {
     Balance, Balance2, Block, ConsensusConstants, DataRequestReport, 
@@ -15,7 +18,7 @@ import {
 
 export interface IProvider {
     network?: Network;
-    // receipts: Record<Hash, any>;
+    networkId?: number;
     
     blocks(since: Epoch, limit: number): Promise<Array<[number, Hash/*, PublicKeyHashString*/]>>;
     constants(): Promise<ConsensusConstants>;
@@ -54,20 +57,19 @@ export class ProviderError extends Error {
 
 export class Provider implements IProvider {
     
-    public network?: Network;
+    public readonly endpoints: string[]
+
     public static receipts: Record<Hash, TransactionReceipt> = {};
 
-    public readonly endpoints: string[]
-    
     protected _constants?: ConsensusConstants
     protected _headers: AxiosHeaders;
     
     static async initialized(url?: string): Promise<Provider> {
-        const provider = new Provider(url || "https://rpc.witnet.io")
+        const provider = new Provider(url || process.env.WITNET_TOOLKIT_PROVIDER_URL || "https://rpc.witnet.io")
         return provider.constants().then(() => provider)
     }
 
-    constructor(url: string) {
+    constructor(url?: string) {
         this.endpoints = []
         if (url !== undefined) {
             const urls = url.replaceAll(',', ';').split(';')
@@ -84,6 +86,54 @@ export class Provider implements IProvider {
         this._headers = new AxiosHeaders({ 
             "Content-Type": "application/json" 
         })
+    }
+
+    public get network(): Network | undefined {
+        if (this._constants) {
+            return this._constants.bootstrapping_committee[0].startsWith('wit') ? "mainnet": "testnet"
+        } else {
+            return undefined
+        }
+    }
+
+    public get networkId(): number | undefined {
+        if (this._constants) {
+            const obj: any = {}
+            obj.activityPeriod = this._constants.activity_period;
+            obj.bootstrapHash = { SHA256: Array.from(utils.fromHexString(this._constants.bootstrap_hash)) }
+            obj.bootstrappingCommittee = this._constants.bootstrapping_committee
+            obj.checkpointZeroTimestamp = this._constants.checkpoint_zero_timestamp
+            obj.checkpointsPeriod = this._constants.checkpoints_period
+            obj.collateralAge = this._constants.collateral_age
+            obj.collateralMinimum = this._constants.collateral_minimum
+            obj.epochsWithMinimumDifficulty = this._constants.epochs_with_minimum_difficulty
+            obj.extraRounds = this._constants.extra_rounds
+            obj.genesisHash = { SHA256: Array.from(utils.fromHexString(this._constants.genesis_hash)) }
+            obj.halvingPeriod = this._constants.halving_period
+            obj.initialBlockReward = this._constants.initial_block_reward
+            obj.maxDrWeight = this._constants.max_dr_weight
+            obj.maxVtWeight = this._constants.max_vt_weight
+            if (this._constants.minimum_difficulty > 0) obj.minimumDifficulty = this._constants.minimum_difficulty
+            obj.miningBackupFactor = this._constants.mining_backup_factor
+            obj.miningReplicationFactor = this._constants.mining_replication_factor
+            obj.reputationExpireAlphaDiff = this._constants.reputation_expire_alpha_diff
+            obj.reputationIssuance = this._constants.reputation_issuance
+            obj.reputationIssuanceStop = this._constants.reputation_issuance_stop
+            obj.reputationPenalizationFactor = this._constants.reputation_penalization_factor
+            obj.superblockCommitteeDecreasingPeriod = this._constants.superblock_committee_decreasing_period
+            obj.superblockCommitteeDecreasingStep = this._constants.superblock_committee_decreasing_step
+            obj.superblockPeriod = this._constants.superblock_period
+            obj.superblockSigningCommitteeSize = this._constants.superblock_signing_committee_size
+            // console.log(obj)
+            const message = protoBuf.fromObject(obj)
+            // console.log(message)
+            const buffer = protoBuf.encode(message).finish()
+            const hash = utils.toHexString(utils.sha256(buffer)) 
+            // console.log(hash)
+            const hex = hash.substring(0, 4)
+            return parseInt(hex, 16)
+        } 
+        return undefined
     }
     
     protected nextURL(): string {
@@ -130,7 +180,6 @@ export class Provider implements IProvider {
             return this
                 .callApiMethod<ConsensusConstants>(Methods.GetConsensusConstants)
                 .then((constants: ConsensusConstants) => {
-                    this.network = constants.bootstrapping_committee[0].startsWith('wit') ? "mainnet": "testnet"
                     this._constants = constants
                     return constants
                 })
@@ -201,7 +250,7 @@ export class Provider implements IProvider {
     }
     
     /// Get node status
-    public async syncStatus(): Promise<any> {
+    public async syncStatus(): Promise<SyncStatus> {
         return this.callApiMethod<SyncStatus>(Methods.SyncStatus);
     }
     

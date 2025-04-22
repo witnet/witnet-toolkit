@@ -213,7 +213,7 @@ export class NodeFarm extends Provider implements INodeFarm {
         return this.batchApiMethod<NodeStats>(Methods.NodeStats)
     }
 
-    public async syncStatus(): Promise<Record<string, SyncStatus>> {
+    public async syncStatus(): Promise<any> {
         return this.batchApiMethod<SyncStatus>(Methods.SyncStatus)
     }
 
