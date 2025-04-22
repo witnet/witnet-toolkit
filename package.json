@@ -24,9 +24,12 @@
       "default": "./dist/index.js",
       "types": "./dist/*.d.ts"
     },
-    "./assets": "./witnet/assets/index.js"
+    "./utils": {
+      "require": "./dist/src/lib/utils.js",
+      "default": "./dist/src/lib/utils.js",
+      "types": "./dist/src/lib/*.d.ts"
+    }
   },
-  "types": "./dist/",
   "scripts": {
     "build": "pbjs --target json witnet/witnet.proto -o witnet/witnet.proto.json && tsc -p tsconfig.json",
     "fmt": "eslint --ext .js,.ts,.cjs . --ignore-path .gitignore",
