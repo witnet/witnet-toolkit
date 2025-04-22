@@ -4,6 +4,7 @@ import BIP32Factory from 'bip32';
 import * as ecc from 'tiny-secp256k1';
 const bip32 = BIP32Factory(ecc);
 
+import { Provider } from "../rpc"
 import { Balance, Network, QueryStakesOrder, StakeEntry, StakesOrderBy } from "../types"
 import { Account } from "./account"
 import { Coinbase } from "./coinbase"
@@ -20,18 +21,41 @@ export class Wallet implements IWallet {
     public readonly provider: IProvider;
     public strategy: UtxoSelectionStrategy;
     
-    static async fromXprv(xprv: string, provider: IProvider, strategy?: UtxoSelectionStrategy, gap?: number): Promise<Wallet> {
+    static async fromXprv(
+        xprv: string, 
+        options?: {
+            gap?: number,
+            limit?: number,
+            provider?: IProvider, 
+            strategy?: UtxoSelectionStrategy, 
+            unlocked?: boolean,
+        }
+    ): Promise<Wallet> {
         const { chainCode, privateKey } = utils.parseXprv(xprv);
         const root = bip32.fromPrivateKey(Buffer.from(privateKey), Buffer.from(chainCode));
-        return provider.constants() // assure provider the network connecting to is known
-            .then(() => new Wallet(root, provider, strategy, gap))
-            .catch(err => {
-                throw Error(`Wallet: cannot read consensus constants from the provider: ${err}`)
-            });
+        const provider = options?.provider || (await Provider.initialized())
+        await provider.constants()
+        const wallet = new Wallet(root, provider, options?.strategy, options?.gap)
+        if (options?.unlocked) {
+            await wallet.exploreAccounts(options?.limit || 1)
+        } else {
+            wallet.deriveAccounts(options?.limit || 1)
+        }
+        return wallet
     }
 
-    static async fromEncryptedXprv(xprv: string, passwd: string, provider: IProvider, strategy?: UtxoSelectionStrategy, gap?: number): Promise<Wallet> {
-        return Wallet.fromXprv(utils.decipherXprv(xprv, passwd), provider, strategy, gap)
+    static async fromEncryptedXprv(
+        xprv: string, 
+        passwd: string, 
+        options?: {
+            gap?: number,
+            limit?: number,
+            provider?: IProvider, 
+            strategy?: UtxoSelectionStrategy, 
+            onlyUnlocked?: boolean
+        }
+    ): Promise<Wallet> {
+        return Wallet.fromXprv(utils.decipherXprv(xprv, passwd), options)
     }
     
     constructor(root: IBIP32, provider: IProvider, strategy?: UtxoSelectionStrategy, gap?: number) {
