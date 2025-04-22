@@ -36,7 +36,7 @@ export abstract class TransactionPayload<Specs> implements ITransactionPayload<S
             const message = this._protoType.fromObject(obj)
             // console.log("\nmessage =>", JSON.stringify(message))
             const bytecode = this._protoType.encode(message).finish()
-            // console.log("\nbytecode =>", bytecode)
+            // console.log("\nbytecode =>", toHexString(bytecode))
             return bytecode
         }
     }

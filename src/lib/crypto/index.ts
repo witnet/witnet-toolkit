@@ -1,4 +1,5 @@
 export {
+    PublicKey,
     PublicKeyHash,
     TransactionCallback,
     TransactionReceipt,
