@@ -1,4 +1,4 @@
 export * from "./crypto"
-export * from "./radon"
+export * as Radon from "./radon"
 export * from "./rpc"
 export * from "./types"

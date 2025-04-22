@@ -1,9 +1,10 @@
 const qrcodes = require('qrcode-terminal')
 const inquirer = require('inquirer')
 
-const { utils, Witnet } = require("../../../dist");
+const { utils, Witnet } = require("../../../dist/src");
 
 const helpers = require("../helpers");
+const { loadAssets } = require("./radon")
 
 const { whole_wits } = helpers
 const { bblue, bcyan, bgreen, cyan, gray, green, lcyan, lmagenta, lyellow, magenta, mcyan, mgreen, mmagenta, myellow, normal, yellow, white, } = helpers.colors
@@ -20,9 +21,6 @@ module.exports = {
         await: {
             hint: "Await any involved transaction to get eventually mined (default: false).",
         },
-        // coinbase: {
-        //     hint: "Use wallet's coinbase address (supersedes --from, --limit and --unlocked options)."
-        // },
         confirmations: {
             hint: "Number of epochs to await after any involved transaction gets mined (implies --await).",
             param: "NUMBER",
@@ -329,7 +327,7 @@ async function resolve(flags = {}, [pattern, ...args], options ={}) {
         throw "--from address not found in wallet."
     }
     
-    const request = await initializeRequest({ legacy: options?.legacy, pattern, args })
+    const request = await loadRadonRequest(args, { legacy: options?.legacy, pattern })
     
     const confirmations = flags?.confirmations ? parseInt(flags?.confirmations) : (flags?.await ? 0 : undefined)
     const fees = utils.fromWits(options?.fees || 0.5) // 0.5 Wits as default fees
@@ -527,7 +525,7 @@ async function utxos(flags, [from, ], options = {}) {
                     utxo?.internal ? green(utxo.output_pointer) : mgreen(utxo.output_pointer),
                     utxo.value
                 ]), {
-                    headlines: [ "INDEX", ":Unlocked UTXOs", "Value (Nanowits)", ],
+                    headlines: [ "INDEX", ":Unlocked UTXOs", "Value ($nanoWIT)", ],
                     humanizers: [ helpers.commas,, helpers.commas ],
                     colors: [ ,, myellow, ]
                 }
@@ -643,7 +641,9 @@ async function validators(flags = {}, [], options = {}) {
 /// ===================================================================================================================
 /// --- Internal functions --------------------------------------------------------------------------------------------
 
-async function initializeRequest(options = {}) {    
+async function loadRadonRequest(args = [], options = {}) {    
+  
+    // TODO:
     // if (options?.pattern && typeof options.pattern === 'string' && utils.isHexString(options.pattern)) {
     //     if (utils.isHexStringOfLength(options.pattern, 32)) {
     //         throw `Searching RADON_BYTECODE by RAD_HASH not yet supported.`
@@ -653,50 +653,103 @@ async function initializeRequest(options = {}) {
     //         throw `Invalid RADON_BYTECODE.`
     //     }
     // }   
-    let assets
-    if (!options?.args || options.args.length === 0) {
-        assets = Object.fromEntries(
-            utils.radon.assets.search({ legacy: options?.legacy, pattern: options?.pattern, type: Witnet.RadonRequest })
-        );
-    } else {
-        assets = Object.fromEntries(
-            utils.radon.assets.search({ legacy: options?.legacy, pattern: options?.pattern, type: Witnet.RadonTemplate })
-                .filter(([,artifact]) => (
-                    artifact.homogeneous && artifact.argsCount === args.length
-                        || (args.length === 1 && template.samples[args[0]])
-                ))
-            );
+    
+    // load Radon assets from environment
+    let assets = utils.searchRadonAssets(
+        {
+            assets: loadAssets(options),
+            pattern: options?.pattern,
+        }, 
+        (key, pattern) => key.toLowerCase().indexOf(pattern.toLowerCase()) >= 0
+    );
+    
+    if (args.length > 0) {
+        // ignore RadonRequests if args were passed from the CLI
+        assets = assets.filter(([,artifact]) => !(artifact instanceof Witnet.Radon.RadonRequest));
     }
     
-    let artifact
+    // sort Radon assets alphabetically 
+    assets = assets.sort((a, b) => {
+        if (a[0] < b[0]) return -1;
+        else if (a[0] > b[0]) return 1;
+        else return 0;
+    })
+    
+    let artifact, key
     if (Object.keys(assets).length === 0) {
-        if (options?.args?.length > 0) {
-            throw `No homogenous Radon templates named after "${options?.pattern}" and requiring ${options.args.length} parameters.`
-        } else if (options?.pattern) {
-            throw `No Radon requests named after "${options.pattern}".`
+        if (options?.pattern) {
+            throw `No Radon assets named after "${options.pattern}".`
         } else {
-            throw `No Radon requests available.`
+            throw `No Radon assets declared yet.`
         }
 
     } else if (Object.keys(assets).length > 1) {
         const prompt = inquirer.createPromptModule()
         const user = await prompt([{ 
-            choices: Object.keys(assets),
-            message: "Found multiple Radon requests. Please, select one:", 
+            choices: assets.map(([key,]) => key),
+            message: "Please, select one Radon asset:", 
             name: "key", 
             type: "list", 
-        }])
-        artifact = assets[user.key]
+            pageSize: 24,
+        }]);
+        [key, artifact] = assets.find(([key,]) => key === user.key)
     
     } else {
-        artifact = Object.values(assets)[0]
+        [key, artifact] = Object.values(assets)[0]
     }
 
-    if (artifact instanceof Witnet.RadonTemplate) {
-        if (args.length === 0 && artifact.samples[args[0]]) {
-            artifact = artifact.buildRequest(artifact.samples[args[0]])
+    if (!(artifact instanceof Witnet.Radon.RadonRequest)) {
+        let templateArgs = []
+        if (args.length === 0 && artifact?.samples) {
+            const prompt = inquirer.createPromptModule()
+            const sample = await prompt([{
+                choices: Object.keys(artifact.samples),
+                message: "Select pre-settled Radon args: ",
+                name: "key",
+                type: "list",
+            }])
+            templateArgs = artifact.samples[sample.key] 
+        
+        } else if (args.length === 1 && artifact?.samples) {
+            const sample = Object.keys(artifact.samples).find(sample => sample.toLowerCase() === args[0].toLowerCase())
+            if (sample) templateArgs = artifact.samples[sample]
+        }
+        
+        if (artifact instanceof Witnet.Radon.RadonRetrieval) {
+            if (templateArgs.length === 0) templateArgs = [ ...args ]
+            if (templateArgs.length < artifact.argsCount) {
+                throw `${key}: missing ${artifact.argsCount - templateArgs.length} out of ${artifact.argsCount} parameters.`
+            }
+            artifact = new Witnet.Radon.RadonRequest({ sources: artifact.foldArgs(templateArgs) })
+        
         } else {
-            artifact = artifact.buildRequestModal(...args)
+            if (artifact instanceof Witnet.Radon.RadonModal) {
+                if (templateArgs.length === 0) templateArgs = [ ...args ]
+                if (templateArgs.length === 0 && templateArgs.length < artifact.argsCount + 1) {
+                    throw `${key}: missing ${artifact.argsCount + 1 - templateArgs.length} out of ${artifact.argsCount + 1} parameters.`
+                }
+                artifact.providers = templateArgs.splice(0, 1)[0].split(';')
+                artifact = artifact.buildRadonRequest(templateArgs)
+            
+            } else if (artifact instanceof Witnet.Radon.RadonTemplate) {
+                if (templateArgs.length === 0) {
+                    templateArgs = new Array(artifact.sources.length)
+                    artifact.sources.forEach((retrieval, index) => {
+                        templateArgs[index] = args.splice(0, retrieval.argsCount)
+                        if (templateArgs[index].length < retrieval.argsCount) {
+                            throw `${key}: missing ${
+                                retrieval.argsCount - templateArgs[index].length
+                            } out of ${
+                                retrieval.argsCount
+                            } expected args for template source #${index + 1}.`
+                        }
+                    })
+                }
+                artifact = artifact.buildRadonRequest(templateArgs)
+            
+            } else {
+                throw `${key}: unsupported Radon asset type ${artifact?.constructor.name}` 
+            }
         }
     }
     return artifact
@@ -722,17 +775,17 @@ async function initializeWallet(flags = {}) {
         if (xprv.length === 293) {
             const prompt = inquirer.createPromptModule()
             const user = await prompt([{ type: "password", mask: "*", message: "Enter password:", name: "passwd"}])
-            wallet = await Witnet.Wallet.fromEncryptedXprv(xprv, user.passwd, provider, strategy, gap)
+            wallet = await Witnet.Wallet.fromEncryptedXprv(xprv, user.passwd, { 
+                gap, provider, strategy,
+                limit: flags?.limit,
+                unlocked: flags?.unlocked, 
+            })
         } else {
-            wallet = await Witnet.Wallet.fromXprv(xprv, provider, strategy, gap)
-        }
-        if (!flags?.coinbase) {
-            if (flags?.unlocked) {
-                await wallet.exploreAccounts(flags?.limit || 0)
-            
-            } else {
-                wallet.deriveAccounts(parseInt(flags?.limit || 4))
-            }
+            wallet = await Witnet.Wallet.fromXprv(xprv, {
+                gap, provider, strategy, 
+                limit: flags?.limit || 1,
+                unlocked: flags?.unlocked,
+            })
         }
         return wallet
     }

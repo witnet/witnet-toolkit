@@ -71,7 +71,7 @@ const white = (str) => `\x1b[1;98m${str}\x1b[0m`
 const yellow = (str) => `\x1b[33m${str}\x1b[0m`
 
 function countLeaves(t, obj) {
-    if (!obj) return 0;
+    if (!obj || typeof obj === "string") return 0;
     if (obj instanceof t) return 1;
     if (Array.isArray(obj)) return obj.reduce((sum, item) => sum + countLeaves(t, item), 0)
     else return Object.values(obj).reduce((sum, item) => sum + countLeaves(t, item), 0);
@@ -101,15 +101,16 @@ async function execRadonBytecode(bytecode, ...flags) {
     } else {
         const npx = os.type() === "Windows_NT" ? "npx.cmd" : "npx"
         return cmd(npx, "witnet", "radon", "dryrun", bytecode, ...flags)
-            .catch((err) => {
-                let errorMessage = err.message.split('\n').slice(1).join('\n').trim()
-                const errorRegex = /.*^error: (?<message>.*)$.*/gm
-                const matched = errorRegex.exec(err.message)
-                if (matched) {
-                    errorMessage = matched.groups.message
-                }
-                console.error(errorMessage || err)
-            })
+            // .catch((err) => {
+            //     let errorMessage = err.message.split('\n').slice(1).join('\n').trim()
+            //     const errorRegex = /.*^error: (?<message>.*)$.*/gm
+            //     const matched = errorRegex.exec(err.message)
+            //     if (matched) {
+            //         errorMessage = matched.groups.message
+            //     }
+            //     console.log(errorMessage || err)
+            //     console.error(errorMessage || err)
+            // })
     }
 }
 
@@ -350,6 +351,26 @@ function getWildcardsCountFromString(str) {
         }
     }
     return maxArgsIndex
+}
+
+function checkRpcWildcards(wildcards) {
+    if (typeof wildcards === 'object') {
+        Object.values(wildcards).forEach(wildcard => {
+            if (Array.isArray(wildcard)) wildcard.forEach(item => checkRpcWildcards(item));
+            else checkRpcWildcards(wildcard)
+        })
+    
+    } else if (Array.isArray(wildcards)) {
+        wildcards.forEach(wildcard => checkRpcWildcards(wildcard))
+    
+    } else if (typeof wildcards === 'string') {
+        if (isWildcard(wildcards)) {
+            const char = wildcards.charAt(1)
+            if (char < '1' || char > '9') {
+                throw `RPC: wildcards not in range [1 .. 9].`
+            }
+        }
+    }
 }
 
 
@@ -727,6 +748,6 @@ module.exports = {
     prompt, prompter,
     traceChecklists, traceHeader, traceTable, 
     traceTransaction, traceTransactionOnStatusChange, traceTransactionOnCheckpoint, traceTransactionReceipt, 
-    isWildcard, getWildcardsCountFromString, replaceWildcards, spliceWildcard,
+    checkRpcWildcards, isWildcard, getWildcardsCountFromString, replaceWildcards, spliceWildcard,
     txJsonReplacer, 
 }
