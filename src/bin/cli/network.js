@@ -5,7 +5,7 @@ const FLAGS_LIMIT_MAX = 2048
 const FLAGS_LIMIT_DEFAULT = 64
 const OPTIONS_DEFAULT_SINCE = -2048
 
-const { white, gray, lyellow, mgreen, myellow, yellow, } = helpers.colors;
+const { cyan, white, gray, green, lcyan, lyellow, mcyan, mgreen, mred, myellow, yellow, } = helpers.colors;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /// CLI SUBMODULE CONSTANTS ===========================================================================================
@@ -42,7 +42,7 @@ module.exports = {
             },
         },
         constants: {
-            hint: "Show network consensus constants.",
+            hint: "Show network's consensus constants.",
         },
         // "dataProviders*": {
         //     hint: "List data providers queried at least once by data requests during last <RANGE> epochs.",
@@ -97,7 +97,7 @@ module.exports = {
             },
         },
         provider: {
-            hint: "Show the underlying Wit/Oracle RPC provider being used."
+            hint: "Show the underlying Wit/RPC provider and network id being used."
         },
         senate: {
             hint: "List distinct identities that have lately validated at least one block.",
@@ -108,7 +108,7 @@ module.exports = {
                 },
             },
         },
-        stakers: {
+        stakes: {
             hint: "List active stake entries at present time.",
             options: {
                 validator: { hint: "Filter by validator address.", param: "WIT_ADDRESS", },
@@ -137,7 +137,7 @@ module.exports = {
     subcommands: {
         blocks, constants, holders, knownPeers,
         mempool, fees: priorities, powers, provider,
-        senate, stakers, supplyInfo, syncStatus, 
+        senate, stakes, supplyInfo, syncStatus, 
         versions, wips,
     },
 };
@@ -290,11 +290,15 @@ async function priorities(flags = {}) {
     console.info(await provider.priorities())
 }
 
-function provider(flags = {}) {
-    const provider = new Witnet.Provider(flags?.provider)
-    provider.endpoints.forEach(url => {
-        console.info(helpers.colors.yellow(url))
-    })
+async function provider(flags = {}) {
+    const provider = await Witnet.Provider.initialized(flags?.provider)
+    console.info(`> Witnet RPC provider: ${white(provider.endpoints)}`)
+    console.info(`> Witnet environment:  ${
+        provider.networkId === 40941
+            ? lcyan("MAINNET") 
+            : (provider.network === "testnet" ? cyan("TESTNET") : mred("Unknown"))
+    }`)
+    console.info(`> Witnet network id:   ${green("0x" + provider.networkId.toString(16).toUpperCase())}`)    
 }
 
 async function senate(flags = {}, _args = [], options = {}) {
@@ -367,7 +371,7 @@ async function senate(flags = {}, _args = [], options = {}) {
     }
 }
 
-async function stakers(flags = {}, _args = [], options = {}) {
+async function stakes(flags = {}, _args = [], options = {}) {
     const provider = new Witnet.Provider(flags?.provider)
     const query = {
         params: {
