@@ -3,8 +3,7 @@ import { decode as cborDecode } from 'cbor'
 
 import { fromHexString, isHexString } from "../../bin/helpers"
 
-import { RadonRequest, RadonTemplate } from "./artifacts"
-import { RadonCCDR, RadonRetrieval } from "./retrievals"
+import { RadonRequest, RadonModal, RadonTemplate, RadonRetrieval } from "./index"
 
 import {
   RadonAny,
@@ -42,120 +41,123 @@ export function parseRadonScript(bytecode: any): RadonAny {
   return parseScript(array)
 }
 
-/**
- * Namespace description
- */
-export namespace assets {
 
-  export function flatten<T extends RadonRequest | RadonTemplate | RadonRetrieval>(
-    tree: any,
-    type?: { new(specs: any): T; },
-    headers?: string[]
-  ): any {
-    if (!headers) headers = []
-    const entries = []
-    for (const key in tree) {
-      if (
-        (type && tree[key] instanceof type)
-        || (!type && (
-            tree[key] instanceof RadonRequest
-            || tree[key] instanceof RadonRequest
-            || tree[key] instanceof RadonRetrieval
-        ))
-      ) {
-        entries.push({
-          key,
-          artifact: tree[key],
-        })
-      } else if (typeof tree[key] === "object") {
-        entries.push(...flatten(
-          tree[key],
-          type,
-          [...headers, key]
-        ))
-      }
-    }
-    return entries
-  };
-
-  export function require<T extends RadonRequest | RadonTemplate | RadonRetrieval | RadonCCDR>(
-    name: string,
-    type?: { new (specs: any): T; },
-  ): T {
-    const found = loadModuleAssets({
-      legacy: true, 
-      flattened: true, 
-      type: type, 
-    }).find((entry: { key: string, artifact: any }) => entry.key === name)
-    if (found) {
-      return found[0].artifact
-    } else {
-      throw Error(`Radon asset "${name}" not available.`)
+export function flattenRadonAssets<T extends RadonRequest | RadonTemplate | RadonModal | RadonRetrieval>(
+  tree: any,
+  type?: { new(specs: any): T; },
+  headers?: string[]
+): any {
+  if (!headers) headers = []
+  const entries = []
+  for (const key in tree) {
+    if (
+      (type && tree[key] instanceof type)
+      || (!type && (
+          tree[key] instanceof RadonRequest
+          || tree[key] instanceof RadonTemplate
+          || tree[key] instanceof RadonModal
+          || tree[key] instanceof RadonRetrieval
+      ))
+    ) {
+      entries.push({
+        key,
+        artifact: tree[key],
+      })
+    } else if (typeof tree[key] === "object") {
+      entries.push(...flattenRadonAssets(
+        tree[key],
+        type,
+        [...headers, key]
+      ))
     }
   }
+  return entries
+};
 
-  /**
-   * Search Witnet Radon assets declared or imported within current repository, 
-   * whose names complies with the provided `pattern` and `filterFn`. 
-   * If no `filterFn` is specified, search will include assets whose names 
-   * are suffixed by given `pattern` (case insensitive).
-   * @param options Search options
-   * @param filterFn Filtering function.
-   * @returns An array of Radon assets of the specified kind complying with the search pattern. 
-   */
-  export function search<T extends RadonRequest | RadonTemplate | RadonRetrieval | RadonCCDR>(
-    options: {
-      /**
-       * Whether to import legacy Witnet Radon assets, or not.
-       */
-      legacy?: boolean,
-      /**
-       * Limits number of returned Radon assets.
-       */
-      limit?: number,
-      /**
-       * Offsets returned array of Radon assets.
-       */
-      offset?: number,
-      /**
-       * Name pattern searched for.
-       */
-      pattern: string,
-      /**
-       * Specific type of Radon asset to search for: `RadonRequest`, `RadonRequest`, `RadonRetrieval` or `RadonCCDR`.
-       */
-      type: { new(specs: any): T; },
-    },
-    filterFn?: (key: string, pattern: string) => boolean,
-  ): Array<[key: string, artifact: T]> {
-    const defaultFilter = (key: string, pattern: string) => key.toLowerCase().endsWith(pattern.toLowerCase())
-    return (
-      loadModuleAssets({ legacy: options?.legacy, flattened: true, type: options.type })
-        .filter((entry: { key: string, artifact: any }) => (filterFn || defaultFilter)(entry.key, options.pattern || ""))
-        .slice(options?.offset || 0, options?.limit)
-        .map((entry: { key: string, artifact: any | T }) => [entry.key, entry.artifact])
-    );
+export function requireRadonAsset<T extends RadonRequest | RadonTemplate | RadonModal | RadonRetrieval>(specs: {
+  artifact: string,
+  assets?: any,
+  type?: { new (specs: any): T; },
+}): T {
+  const stuff = (
+    specs?.assets 
+      ? flattenRadonAssets(specs.assets, specs?.type) 
+      : loadModuleAssets({ flattened: true, type: specs?.type })
+  );
+  const found = stuff.find((entry: { key: string, artifact: any }) => entry.key === specs.artifact)
+  if (found) {
+    return found[0].artifact
+  } else {
+    throw Error(`Radon asset "${specs.artifact}" not available.`)
   }
 }
 
+/**
+ * Search Witnet Radon assets declared or imported within current repository, 
+ * whose names complies with the provided `pattern` and `filterFn`. 
+ * If no `filterFn` is specified, search will include assets whose names 
+ * are suffixed by given `pattern` (case insensitive).
+ * @param options Search options
+ * @param filterFn Filtering function.
+ * @returns An array of Radon assets of the specified kind complying with the search pattern. 
+ */
+export function searchRadonAssets<T extends RadonRequest | RadonTemplate | RadonModal | RadonRetrieval>(
+  options: {
+    /**
+     * Object containing structured heriarchy of Radon assets. If not provided, Radon assets declared within project's environment.
+     */
+    assets?: any,
+    /**
+     * Limits number of returned Radon assets.
+     */
+    limit?: number,
+    /**
+     * Offsets returned array of Radon assets.
+     */
+    offset?: number,
+    /**
+     * Name pattern searched for.
+     */
+    pattern: string,
+    /**
+     * Specific type of Radon asset to search for: `RadonRequest`, `RadonRequest`, `RadonRetrieval` or `RadonCCDR`.
+     */
+    type?: { new (specs: any): T; },
+  },
+  filterFn?: (key: string, pattern: string) => boolean,
+): Array<[key: string, artifact: T]> {
+  const defaultFilter = (key: string, pattern: string) => key.toLowerCase().endsWith(pattern.toLowerCase())
+  const stuff = (
+    options?.assets
+      ? flattenRadonAssets(options.assets, options?.type)
+      : loadModuleAssets({ flattened: true, type: options?.type })
+  );
+  return (
+    stuff
+      .filter((entry: { key: string, artifact: any }) => (filterFn || defaultFilter)(entry.key, options.pattern || ""))
+      .slice(options?.offset || 0, options?.limit)
+      .map((entry: { key: string, artifact: any | T }) => [entry.key, entry.artifact])
+  );
+}
 
 
 // ====================================================================================================================
 // --- INTERNAL METHODS -----------------------------------------------------------------------------------------------
 
-function loadModuleAssets<T extends RadonRequest | RadonTemplate | RadonRetrieval>(
+function loadModuleAssets<T extends RadonRequest | RadonTemplate | RadonModal | RadonRetrieval>(
   options: {
-    legacy?: boolean,
+    // legacy?: boolean,
     flattened?: boolean,
     type?: { new(specs: any): T; },
   },
 ): any {
-  const stuff = options?.legacy ? require(`${WITNET_ASSETS_PATH}`).legacy : {
-    requests: require(`${WITNET_ASSETS_PATH}/requests`),
-    templates: require(`${WITNET_ASSETS_PATH}/templates`),
-    retrievals: require(`${WITNET_ASSETS_PATH}/retrievals`),
-  };
-  return options?.flattened ? assets.flatten(stuff, options?.type) : stuff
+  // const stuff = options?.legacy ? require(`${WITNET_ASSETS_PATH}`).legacy : {
+  //   requests: require(`${WITNET_ASSETS_PATH}/requests`),
+  //   templates: require(`${WITNET_ASSETS_PATH}/templates`),
+  //   retrievals: require(`${WITNET_ASSETS_PATH}/retrievals`),
+  // };
+  const stuff = require(`${WITNET_ASSETS_PATH}`)
+  return options?.flattened ? flattenRadonAssets(stuff, options?.type) : stuff
 }
 
 function parseScript(array: any, script?: any): any {
