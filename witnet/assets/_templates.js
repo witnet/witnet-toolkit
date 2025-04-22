@@ -1,23 +1,24 @@
-const { utils, Witnet } = require("witnet-toolkit")
-const { legacy } = require("witnet-toolkit/assets")
+const { assets, Witnet } = require("witnet-toolkit")
+const { RadonModal, RadonScript, RadonTemplate } = Witnet.Radon
+const { filters, reducers, retrievals, types } = Witnet.Radon
 
-const { retrievals } = require('./retrievals')
+const sources = require("./sources")
 
 module.exports = {
   /// //// REQUEST TEMPLATES ///////////////////////////////////////////////////////
   // path: { ... path: {
-  //      WitOracleRequestTemplateXXX: Witnet.RequestTemplate({
-  //          retrieve: [ 
-  //              retrievals..XX1,
+  //      WitOracleRequestTemplateXXX: new RadonTemplate({
+  //          sources: [ 
+  //              sources..XX1,
   //              // ...
-  //              retrievals..XX2.foldArgs(...args: string[]),
+  //              sources..XX2.foldArgs(...args: string[]),
   //              // ...
-  //              Witnet.Radon.Retrievals..
+  //              retrievals..({ ..
   //              // ...
   //          ],
-  //          aggregate?: Witnet.Radon.Reducers..,
-  //          tally?: Witnet.Radon.Reducers..,
-  //          tests?: {
+  //          sourcesReducer?: Witnet.Radon.Reducers..,
+  //          witnessReducer?: Witnet.Radon.Reducers..,
+  //          samples?: {
   //              "test-description-1": [
   //                  [ "..", ... ], // source #0 args (string[])
   //                  ...
@@ -25,11 +26,11 @@ module.exports = {
   //              ...
   //          }
   //      }),
-  //      WitOracleRequestTemplateYYY: Witnet.RequestTemplate({
-  //          retrieve: retrievals..YY1.spawnRetrievals(argIndex = 0, ...values: string[])
-  //          aggregate?: Witnet.Radon.Reducers..,
-  //          tally?: Witnet.Radon.Reducers..,
+  //      WitOracleRequestTemplateYYY: new RadonTemplate({
+  //          sources: sources..YY1.spawnRetrievals(argIndex = 0, ...values: string[])
+  //          sourcesReducer?: reducers..,
+  //          witnessReducer?: reducers..,
   //      }),  
   //      ...
   // }, ... },
-}
+};

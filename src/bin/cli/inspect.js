@@ -1,7 +1,7 @@
 const moment = require("moment")
 
 const helpers = require("../helpers")
-const { utils, Witnet } = require("../../../dist");
+const { utils, Witnet } = require("../../../dist/src");
 
 const FLAGS_LIMIT_DEFAULT = 100
 
@@ -107,7 +107,7 @@ async function balance(flags = {}, args) {
         helpers.fromNanowits(balance.locked + balance.staked + balance.unlocked)
     ])
     helpers.traceTable(records, {
-        headlines: [ "Locked ($WIT)", "Staked ($WIT)", "Unlocked (Wits", "BALANCE ($WIT)" ],
+        headlines: [ "Locked ($WIT)", "Staked ($WIT)", "Unlocked ($WIT)", "BALANCE ($WIT)" ],
         humanizers: [ helpers.commas, helpers.commas, helpers.commas, helpers.commas ],
         colors: [ gray, yellow, myellow, lyellow ],
     })
@@ -208,6 +208,7 @@ async function utxos(flags = {}, args = [], options = {}) {
     const provider = new Witnet.Provider(flags?.provider)
     let utxos = await provider.getUtxoInfo(args[0], options["small-first"] || false)
     let totalBalance = 0
+    console.log(now)
     if (!flags?.verbose) {
         utxos = utxos
             .filter(utxo => utxo.timelock <= now)
@@ -219,7 +220,7 @@ async function utxos(flags = {}, args = [], options = {}) {
                 ]
             });
         helpers.traceTable(utxos, {
-            headlines: [ ":UTXOs", "Value (Nanowits)", ],
+            headlines: [ ":UTXOs", "Value ($nanoWIT)", ],
             humanizers: [ , helpers.commas ],
             colors: [ , myellow, ]
         })
@@ -229,12 +230,12 @@ async function utxos(flags = {}, args = [], options = {}) {
                 totalBalance += utxo.value
                 return [
                     utxo.output_pointer,
-                    utxo.timelock > now ? gray(moment.unix(now - utxo.timelock).toNow(true)) : "",
+                    utxo.timelock > now ? gray(moment.unix(utxo.timelock).fromNow()) : "",
                     utxo.timelock > now ? gray(helpers.commas(utxo.value)) : myellow(helpers.commas(utxo.value)),
                 ]
             });
         helpers.traceTable(utxos, {
-            headlines: [ ":UTXOs", "Time lock", "Value (Nanowits)", ],
+            headlines: [ ":UTXOs", "Timelock", "Value ($nanoWIT)", ],
         })
     }
     console.info(`^ Showing ${utxos.length} UTXOs: ${lyellow(helpers.whole_wits(totalBalance, 2))}.`)
