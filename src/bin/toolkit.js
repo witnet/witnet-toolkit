@@ -18,7 +18,7 @@ const {
   
 /// CONSTANTS =======================================================================================================  
   
-const version = '2.0.2'
+const version = '2.0.8'
 const toolkitDownloadUrlBase = `https://github.com/witnet/witnet-rust/releases/download/${version}/`
 const toolkitDownloadNames = {
   win32: (arch) => `witnet_toolkit-${arch}-pc-windows-msvc.exe`,
@@ -239,7 +239,7 @@ async function main () {
     await command(settings, args.slice(3))
     process.exit(0)
 
-  } else if (args[2]) try {
+  } else if (args[2] && !args[2].startsWith(`--`)) try {
     var cmd = args[2]
     const module = require(`./cli/${args[2]}`)
     var [args, flags, ] = extractFromArgs(args.slice(3), module.flags)
@@ -274,7 +274,6 @@ async function main () {
   console.info("    --update    Forces update of underlying binaries.")
   console.info("    --version   Prints toolkit name and version as first line.")
   console.info("\nCOMMANDS:")
-  // console.info("    history     Historical scoreboards from the Wit/Oracle blockchain.")
   console.info("    inspect     Inspect public data from the Wit/Oracle blockchain.")
   console.info("    network     Dynamic information from the Wit/Oracle P2P network.")
   console.info("    nodes       Interact with your private Wit/Oracle nodes, if reachable.")
