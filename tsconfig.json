@@ -23,7 +23,7 @@
     "noImplicitReturns": true, /* Report error when not all code paths in function return a value. */
     "outDir": "./dist", /* Redirect output structure to the directory. */
     "resolveJsonModule": true,
-    "rootDir": "./src",
+    "rootDir": "./",
     "skipLibCheck": true,
     "strict": true, /* Enable all strict type-checking options. */
     "strictNullChecks": true, /* Enable strict null checks. */
@@ -40,6 +40,7 @@
   ],
   "include": [
     "src/**/*.d.ts",
+    "witnet/witnet.proto.json",
     "types"
   ]
 }
