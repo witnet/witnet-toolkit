@@ -1,5 +1,5 @@
 const helpers = require("../helpers")
-const { Witnet } = require("../../../dist");
+const { Witnet } = require("../../../dist/src");
 
 const FLAGS_LIMIT_MAX = 2048
 const FLAGS_LIMIT_DEFAULT = 64

@@ -1,10 +1,10 @@
-const { utils, Witnet } = require("witnet-toolkit")
-const { legacy } = require("witnet-toolkit/assets")
+const { assets, utils, Witnet } = require("witnet-toolkit")
+const { RadonScript, retrievals, types } = Witnet.Radon
 
 module.exports = {
   // path: { ... path: {
   /// //// HTTP-GET RETRIEVALS /////////////////////////////////////////////////////
-  //      RadonRetrievalXX1: Witnet.Radon.Retrievals.HttpGet(
+  //      RadonRetrievalXX1: retrievals.HttpGet(
   //          url: "http-or-https://authority/path?query",
   //          headers?: {
   //              "http-header-tag": "http-header-value",
@@ -13,7 +13,7 @@ module.exports = {
   //          script?: Witnet.Radon.Script()..,
   //      }),
   /// //// HTTP-POST RETRIEVALS ////////////////////////////////////////////////////
-  //      RadonRetrievalXX2: Witnet.Radon.Retrievals.HttpPost(
+  //      RadonRetrievalXX2: retrievals.HttpPost(
   //          url: "http-or-https://authority/path?query",
   //          body?: "...",
   //          headers?: {
@@ -23,7 +23,7 @@ module.exports = {
   //          script?: Witnet.Radon.Script()..,
   //      }),
   /// //// GRAPH-QL QUERIES ////////////////////////////////////////////////////////
-  //      RadonRetrievalXX3: Witnet.Radon.Retrievals.GraphQLQuery(
+  //      RadonRetrievalXX3: retrievals.GraphQLQuery(
   //          url: "http-or-https://authority/path?query",
   //          query: "...",
   //          headers?: {

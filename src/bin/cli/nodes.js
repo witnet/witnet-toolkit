@@ -1,6 +1,6 @@
 const qrcode = require('qrcode-terminal')
 const helpers = require("../helpers")
-const { Witnet } = require("../../../dist")
+const { Witnet } = require("../../../dist/src")
 
 const { cyan, gray, green, red, yellow, white, magenta, mcyan, mgreen, mmagenta, mred, myellow, lcyan, lgreen, lmagenta, lyellow, } = helpers.colors
 
