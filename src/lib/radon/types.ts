@@ -4,6 +4,8 @@ import * as helpers from "../../bin/helpers"
 import { Opcodes as RadonReducerOpcodes } from './reducers'
 import * as Utils from '../utils'
 
+export { HexString as RadonBytecode } from "../types"
+
 export enum RadonEncodings {
     HexString = 0,
     Base64 = 1,

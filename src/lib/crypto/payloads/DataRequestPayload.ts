@@ -10,7 +10,7 @@ import { TransactionPayloadMultiSig } from "../payloads"
 import { PublicKeyHash, PublicKeyHashString, TransactionParams } from "../types"
 import { sha256 } from "../utils"
 
-export type DataRequestTemplateArgs = string | string[] | string[][]
+export type DataRequestTemplateArgs = any | string | string[] | string[][]
     
 export type DataRequestParams = TransactionParams & {
     args?: DataRequestTemplateArgs,
@@ -51,6 +51,8 @@ export class DataRequestPayload extends TransactionPayloadMultiSig<DataRequestPa
             this._request = radon
         } else if (radon instanceof RadonTemplate) {
             this.template = radon
+        } else {
+            throw new TypeError(`DataRequestPayload: unsupported Radon asset type: ${(radon as any)?.constructor.name}`)
         }
     }
 
@@ -219,28 +221,12 @@ export class DataRequestPayload extends TransactionPayloadMultiSig<DataRequestPa
         }
         if (this.template) {
             const args = target?.args
-            if (Array.isArray(args) && args.length > 0) {
-                if (Array.isArray(args[0])) {
-                    this._request = this.template.buildRequest(...(args as string[][]))
-                } else {
-                    if (this.template.homogeneous) {
-                        this._request = this.template.buildRequestModal(...(args as string[]))
-                    } else {
-                        throw new TypeError(
-                            `${this.constructor.name}: cannot build modal request out from heterogeneous sources: ${args}`
-                        );
-                    }
-                }
-            } else if (
-                typeof args === 'string'
-                    && this.template.homogeneous
-                    && this.template.argsCount === 1
-            ) {
-                this._request = this.template.buildRequestModal(args)
+            if (args === undefined) {
+                throw new TypeError(`${this.constructor.name}: no template args were passed.`)
+            } else if (typeof args === 'string') {
+                this._request = this.template.buildRadonRequest([args])
             } else {
-                throw new TypeError(
-                    `${this.constructor.name}: unsupported args when building request out from template: ${args}`
-                );
+                this._request = this.template.buildRadonRequest(args)
             }
         }
     }
