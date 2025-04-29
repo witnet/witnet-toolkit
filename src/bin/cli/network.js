@@ -291,7 +291,7 @@ async function priorities(flags = {}) {
 }
 
 async function provider(flags = {}) {
-    const provider = await Witnet.Provider.initialized(flags?.provider)
+    const provider = await Witnet.Provider.fromEnv(flags?.provider)
     console.info(`> Witnet RPC provider: ${white(provider.endpoints)}`)
     console.info(`> Witnet environment:  ${
         provider.networkId === 40941
