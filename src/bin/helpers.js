@@ -9,7 +9,7 @@ const colorstrip = (str) => str.replace(
 );
 
 const commas = (number) => {
-    parts = number.toString().split('.')
+    let parts = number.toString().split('.')
     const result = parts.length <= 1
         ? `${parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",")}`
         : `${parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",")}.${parts[1]}`
@@ -331,9 +331,12 @@ function showUsageOptions(options) {
 
 function showUsageSubcommand(cmd, subcmd, module) {
     showUsageHeadline(cmd, subcmd, module)
-    if (module?.flags) showUsageFlags(module?.flags)
-    if (module?.router[subcmd]?.options) showUsageOptions(module.router[subcmd]?.options)
-    if (module?.envars) showUsageEnvars(module?.envars)
+    showUsageFlags({ ...module?.flags, ...module.router[subcmd]?.flags })
+    showUsageOptions({ ...module?.options, ...module.router[subcmd]?.options })
+    showUsageEnvars({ ...module.router[subcmd]?.envars, ...module?.envars })
+    // if (module?.flags) showUsageFlags(module?.flags)
+    // if (module?.router[subcmd]?.options) showUsageOptions(module.router[subcmd]?.options)
+    // if (module?.envars) showUsageEnvars(module?.envars)
 }
 
 function showVersion() {
@@ -665,7 +668,7 @@ function traceTransactionOnStatusChange(receipt) {
 
 function traceTransactionReceipt(receipt) {
     const captions = {
-        "DataRequests": ` > DR TX hash:  `,
+        "DataRequest": ` > DRT hash:    `,
         "ValueTransfer": ` > VTT hash:    `,
     }
     console.info(`${captions[receipt.type] || ` > TX hash:     `}${white(receipt.hash)}`)
@@ -678,22 +681,25 @@ function traceTransactionReceipt(receipt) {
         }
         console.info(` > Withdrawer:  ${mmagenta(receipt.withdrawer)}`)
     } else {
-        console.info(` > Account/s:   ${mmagenta(receipt.from)}`)
+        console.info(` > Signer/s:    ${mmagenta(receipt.from)}`)
     }
     if (receipt?.recipients) {
         console.info(` > Recipient/s: ${
             mmagenta(receipt.recipients.filter((pkh, index, array) => index === array.indexOf(pkh)))
         }`)
     }
-    console.info(` > Fees:        ${yellow(whole_wits(receipt.fees, 2))}`)
-    console.info(` > Value:       ${myellow(whole_wits(receipt.value, 2))}`)
+    console.info(` > Fees:        ${yellow(receipt.fees.toString(2))}`)
+    console.info(` > Value:       ${myellow(receipt.value.toString(2))}`)
     console.info(` > Weight:      ${mgreen(commas(receipt.weight))}`) 
+    if (receipt?.witnesses) {
+        console.info(` > Witnesses:   ${receipt.witnesses}`) 
+    }
 }
 
 async function traceTransaction(transmitter, options) {
     const color = options?.color || ((x) => `\x1b[30;45m${x}\x1b[0m`)
-    let receipt = await transmitter.signTransaction(options, options?.strategy)
-    if (options?.dryrun || options?.verbose) {
+    let receipt = await transmitter.signTransaction(options, options?.reload)
+    if (options?.verbose) {
         console.info(
             `\n${gray(JSON.stringify(receipt.tx, txJsonReplacer))}`
         )
@@ -702,28 +708,32 @@ async function traceTransaction(transmitter, options) {
         console.info(`\n ${color(`  ${options.headline}  `)}\n`)
     }
     traceTransactionReceipt(receipt)
-    if (!options?.dryrun) {
-        try {
-            if (options?.confirmations !== undefined) {
-                receipt = await transmitter.waitTransaction({ 
-                    confirmations: options?.confirmations,
-                    onCheckpoint: traceTransactionOnCheckpoint,
-                    onStatusChange: traceTransactionOnStatusChange,
-                })
-            } else {
-                receipt = await transmitter.sendTransaction(options, options?.strategy)
-            }
-        } catch (err) {
-            if (err?.inFlight && err.inFlight) {
-                console.info(`\n${gray(JSON.stringify(err.inFligt?.message, txJsonReplacer))}`)
-            }
-            throw err
+    if (!options?.force) {
+        // prompt user confirmation 
+        console.info()
+        const answer = await prompt(" ^^^ Send transaction? [y/N] ^^^")
+        if (!answer.toLowerCase().startsWith("y")) {
+            return receipt
         }
-        if (options?.verbose) {
-            console.info(`\n${yellow(JSON.stringify(receipt, txJsonReplacer))}`)
+    }
+    try {
+        if (options?.confirmations !== undefined) {
+            receipt = await transmitter.waitTransaction({ 
+                confirmations: options?.confirmations,
+                onCheckpoint: traceTransactionOnCheckpoint,
+                onStatusChange: traceTransactionOnStatusChange,
+            })
+        } else {
+            receipt = await transmitter.sendTransaction(options, options?.strategy)
         }
-    } else {
-        console.info(`\n${mred(` ^^^ DRY-RUN ^^^ `)}`)
+    } catch (err) {
+        if (err?.inFlight && err.inFlight) {
+            console.info(`\n${gray(JSON.stringify(err.inFligt?.message, txJsonReplacer))}`)
+        }
+        throw err
+    }
+    if (options?.verbose) {
+        console.info(`\n${yellow(JSON.stringify(receipt, txJsonReplacer))}`)
     }
     return receipt
 }
