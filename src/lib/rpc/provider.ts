@@ -64,8 +64,21 @@ export class Provider implements IProvider {
     protected _constants?: ConsensusConstants
     protected _headers: AxiosHeaders;
     
-    static async initialized(url?: string): Promise<Provider> {
-        const provider = new Provider(url || process.env.WITNET_TOOLKIT_PROVIDER_URL || "https://rpc.witnet.io")
+    /**
+     * Create and initialize a Provider object connected to the default Wit/RPC endpoint.
+     * Defaults to https://rpc-01.witnet.io if no WITNET_SDK_PROVIDER_URL envar is settled
+     * on the environment.
+     */
+    static async fromEnv(url?: string): Promise<Provider> {
+        return Provider.fromURL(url || process.env.WITNET_SDK_PROVIDER_URL || "https://rpc-01.witnet.io")
+    }
+    
+    /**
+     * Create and initialize a Provider object connected to the specified Wit/RPC endpoint.
+     * @param url Wit/RPC endpoint URL.
+     */
+    static async fromURL(url: string): Promise<Provider> {
+        const provider = new Provider(url)
         return provider.constants().then(() => provider)
     }
 
@@ -81,7 +94,7 @@ export class Provider implements IProvider {
             })
             this.endpoints = urls
         } else {
-            this.endpoints.push(process.env.WITNET_TOOLKIT_PROVIDER_URL || "https://rpc-01.witnet.io")
+            this.endpoints.push(process.env.WITNET_SDK_PROVIDER_URL || "https://rpc-01.witnet.io")
         }
         this._headers = new AxiosHeaders({ 
             "Content-Type": "application/json" 
@@ -296,7 +309,7 @@ export class Provider implements IProvider {
     }
     
     /// Get utxos
-    public getUtxoInfo(pkh: PublicKeyHashString, smallFirst = true): Promise<Array<UtxoMetadata>> {
+    public async getUtxos(pkh: PublicKeyHashString, smallFirst = true): Promise<Array<UtxoMetadata>> {
         return this
             .callApiMethod<UtxoInfo>(Methods.GetUtxoInfo, [pkh, ])
             .then((result: UtxoInfo) => {
