@@ -1,33 +1,19 @@
 import { ValueTransferPayload, ValueTransferParams } from "../payloads/ValueTransferPayload"
 export { ValueTransferParams } from "../payloads/ValueTransferPayload"
 
-import { IAccountable, ISigner } from "../interfaces"
+import { ILedger } from "../interfaces"
 import { TransmitterMultiSig } from "../transmitters"
-
-import { Account } from "../account"
-import { Coinbase } from "../coinbase"
-import { Wallet } from "../wallet"
+import { PublicKeyHashString } from "../types"
 
 export class ValueTransfers extends TransmitterMultiSig<ValueTransferParams, ValueTransferPayload> {
     
     public static MAX_WEIGHT = ValueTransferPayload.MAX_WEIGHT
 
-    public static from(accountable: IAccountable): ValueTransfers {
-        if (accountable instanceof Wallet) {
-            return new ValueTransfers(accountable.signers)
-        
-        } else if (accountable instanceof Account) {
-            return new ValueTransfers([accountable.internal, accountable.external])
-        
-        } else if (accountable instanceof Coinbase) {
-            return new ValueTransfers([accountable])
-        
-        } else {
-            throw TypeError(`ValueTransfers: cannot create from instance of ${accountable.constructor.name}.`)
-        }
+    public static from(ledger: ILedger): ValueTransfers {
+        return new ValueTransfers(ledger)
     }
 
-    constructor (signers: Array<ISigner>) {
-        super("VTTransaction", new ValueTransferPayload("VTTransactionBody"), signers)
+    constructor (ledger: ILedger, changePkh?: PublicKeyHashString) {
+        super("VTTransaction", new ValueTransferPayload("VTTransactionBody"), ledger, changePkh)
     }
 }

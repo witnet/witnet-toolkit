@@ -4,7 +4,7 @@ const protoRoot = ProtoRoot.fromJSON(require("../../../witnet/witnet.proto.json"
 import { Hash, Nanowits, UtxoMetadata, ValueTransferOutput } from "../types"
 import { toHexString } from "../utils"
 
-import { ISigner, ITransactionPayload, ITransactionPayloadMultiSig } from "./interfaces"
+import { ILedger, IProvider, ITransactionPayload, ITransactionPayloadMultiSig } from "./interfaces"
 import { sha256 } from "./utils"
 import { PublicKeyHashString } from "./types";
 
@@ -71,8 +71,8 @@ export abstract class TransactionPayload<Specs> implements ITransactionPayload<S
         }
     }
 
-    abstract consumeUtxos(signer: ISigner): Promise<number>;
-    abstract prepareOutputs(change?: { value: Nanowits, sender: PublicKeyHashString }, params?: any): any;
+    abstract consumeUtxos(ledger: ILedger): Promise<number>;
+    abstract prepareOutputs(change?: { value: Nanowits, pkh: PublicKeyHashString }, params?: any): any;
     abstract resetTarget(target: Specs): any;
     abstract toJSON(humanize: boolean): any;
     abstract toProtobuf(): any;
@@ -91,7 +91,7 @@ export abstract class TransactionPayloadMultiSig<Specs>
     extends TransactionPayload<Specs>
     implements ITransactionPayloadMultiSig<Specs>
 {
-    protected _inputs: Array<[PublicKeyHashString, UtxoMetadata]>
+    protected _inputs: Array<Utxo>
     protected _outputs: Array<ValueTransferOutput>
     
     constructor(protoTypeName: string, initialTarget?: Specs) {
@@ -100,7 +100,7 @@ export abstract class TransactionPayloadMultiSig<Specs>
         this._outputs = []
     }
 
-    public get inputs(): Array<[PublicKeyHashString, UtxoMetadata]> {
+    public get inputs(): Array<Utxo> {
         return this._inputs
     }
 
@@ -115,34 +115,73 @@ export abstract class TransactionPayloadMultiSig<Specs>
         )
     }
 
-    public async consumeUtxos(signer: ISigner, changePkh?: PublicKeyHashString): Promise<number> {
+    public async consumeUtxos(ledger: ILedger, reload?: boolean): Promise<number> {
         if (!this._target) {
             throw new Error(`${this.constructor.name}: internal error: no in-flight params.`)
         } 
         const prepared = this.prepared
         if (!this.covered) {
-            const utxos = await signer.selectUtxos({ cover: this.fees + this.value - this._covered })
-            let index = 0
-            while (index < utxos.length && !this.covered) {
-                const utxo = utxos[index ++]
-                if (utxo) {
-                    this._inputs.push([ signer.pkh, utxo ])
-                    this._covered += utxo.value
+            
+            // consume utxos as to cover this.value, at least
+            const utxos = await ledger.selectUtxos({ 
+                value: this.value.pedros - this._covered, 
+                reload,
+            })
+            this._covered += utxos.map(utxo => utxo.value).reduce((prev, curr) => prev + curr)
+            this._inputs.push(...utxos)
+            ledger.consumeUtxos(...utxos)
+
+            // try to cover fees only if this.value is covered first
+            if (this._covered >= this.value.pedros) {
+                if ((this._target as any)?.fees instanceof Coins) {
+                    this._fees = (this._target as any).fees.pedros;
+                    if (this._covered < this.value.pedros + this._fees) {
+                        const extras = await ledger.selectUtxos({ 
+                            value: this.value.pedros + this._fees  - this._covered,
+                        })
+                        ledger.consumeUtxos(...extras)
+                        this._inputs.push(...extras)
+                    }
+                    this._change = this._covered - (this.value.pedros + this._fees)
+                } else {
+                    const priority = (this._target as any)?.fees as TransactionPriority || TransactionPriority.Opulent
+                    let estimatedFees = await this._estimateNetworkFees(ledger.provider, priority);
+                    while (this._fees < estimatedFees) {
+                        this._fees = estimatedFees
+                        this._outputs = []
+                        // add more utxos only if the ones selected for covering the value and the estimate fees don't suffice:
+                        if (this._covered < this.value.pedros + this._fees) {
+                            const extras = await ledger.selectUtxos({ 
+                                value: this.value.pedros + this._fees - this._covered 
+                            })
+                            ledger.consumeUtxos(...extras)
+                            this._covered += extras.map(utxo => utxo.value).reduce((prev, curr) => prev + curr)
+                            this._inputs.push(...extras)
+                        }
+                        this._change = this._covered - (this.value.pedros + this._fees)
+                        if (this._change < 0) {
+                            // insufficient funds ...
+                            break
+                        } else {
+                            this.prepareOutputs({ value: this._change, pkh: ledger.changePkh })
+                            // iterate until actual fees match estimated fees
+                            estimatedFees = await this._estimateNetworkFees(ledger.provider, priority)
+                        }
+                    }
                 }
             }
-            signer.consumeUtxos(index)
         }
-        this._change = this._covered - (this.value + this.fees)
+        // prepare outputs, only if value and fees got fully covered for the first time:
         if (this._change >= 0 && !prepared) {
-            this.prepareOutputs({ value: this._change, sender: changePkh || signer.pkh })
+            this.prepareOutputs({ value: this._change, pkh: ledger.changePkh })
         }
         return this._change
     }
 
-    public prepareOutputs(change?: { value: Nanowits, sender: PublicKeyHashString }): any {
+    public prepareOutputs(change?: { value: Nanowits, pkh: PublicKeyHashString }): any {
         if (change?.value) {
             this._outputs.push({
-                pkh: change.sender,
+                pkh: change.pkh,
                 value: change.value,
                 time_lock: 0,
             })

@@ -1,11 +1,8 @@
 import { StakePayload, StakeDepositParams } from "../payloads/StakePayload"
 
-import { IAccountable, ISigner } from "../interfaces"
+import { ILedger } from "../interfaces"
 import { TransmitterMultiSig } from "../transmitters"
-
-import { Account } from "../account"
-import { Coinbase } from "../coinbase"
-import { Wallet } from "../wallet"
+import { PublicKeyHashString } from "../types"
 
 export { StakeDepositParams } from "../payloads/StakePayload"
 
@@ -14,22 +11,11 @@ export class StakeDeposits extends TransmitterMultiSig<StakeDepositParams, Stake
     public static MAX_WEIGHT = StakePayload.MAX_WEIGHT;
     public static MIN_VALUE = StakePayload.MIN_VALUE;
 
-    public static from(accountable: IAccountable): StakeDeposits {
-        if (accountable instanceof Wallet) {
-            return new StakeDeposits(accountable.signers)
-        
-        } else if (accountable instanceof Account) {
-            return new StakeDeposits([accountable.internal, accountable.external])
-        
-        } else if (accountable instanceof Coinbase) {
-            return new StakeDeposits([accountable])
-        
-        } else {
-            throw TypeError(`StakeDeposits: cannot create from instance of ${accountable.constructor.name}.`)
-        }
+    public static from(ledger: ILedger): StakeDeposits {
+        return new StakeDeposits(ledger)
     }
 
-    constructor (signers: Array<ISigner>) {
-        super("StakeTransaction", new StakePayload("StakeTransactionBody"), signers)
+    constructor (ledger: ILedger, changePkh?: PublicKeyHashString) {
+        super("StakeTransaction", new StakePayload("StakeTransactionBody"), ledger, changePkh)
     }
 }

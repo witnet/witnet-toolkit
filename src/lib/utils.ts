@@ -16,7 +16,8 @@ export {
 export {
   decipherXprv,
   parseXprv,
-  sha256
+  sha256,
+  totalBalance,
 } from "./crypto/utils"
 
 export {

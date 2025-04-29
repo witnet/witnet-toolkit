@@ -1,4 +1,4 @@
-import { HexString } from "../types"
+import { HexString, QueryStakesOrder, StakeEntry } from "../types"
 import { IBIP32, ICoinbase, IProvider } from "./interfaces"
 import { PublicKeyHash, PublicKeyHashString, RecoverableSignature, UtxoSelectionStrategy } from "./types"
 
@@ -18,6 +18,14 @@ export class Coinbase extends Signer implements ICoinbase {
         const ks = this.signHash(msg)
         const signature = RecoverableSignature.fromKeyedSignature(ks, msg)
         return signature.pubKey.hash().toHexString() + signature.toHexString()
+    }
+
+    public getWithdrawers(order?: QueryStakesOrder): Promise<Array<StakeEntry>> {
+        return this.provider
+            .stakes({
+                filter: { validator: this.pkh },
+                params: { order }
+            })
     }
 
 }

@@ -1,32 +1,58 @@
 const secp256k1 = require('secp256k1')
 import * as utils from "../utils"
 
-import { Balance, Nanowits, Network, QueryStakesOrder, StakeEntry, UtxoMetadata } from "../types"
+import { Balance, Nanowits, Network, QueryStakesOrder, StakeEntry } from "../types"
 import { IBIP32, IProvider, ISigner } from "./interfaces"
-import { KeyedSignature, PublicKey, PublicKeyHashString, UtxoSelectionStrategy } from "./types"
+import { KeyedSignature, PublicKey, PublicKeyHashString, Utxo, UtxoCacheInfo, UtxoSelectionStrategy } from "./types"
+import { selectUtxos } from "./utils"
 
 export class Signer implements ISigner {
     
     protected node: IBIP32;
-    protected utxos: Array<UtxoMetadata> = []
+    protected utxos: Array<Utxo> = []
     
-    public readonly provider: IProvider;
-    public strategy: UtxoSelectionStrategy;
+    public readonly provider: IProvider
+    public strategy: UtxoSelectionStrategy
 
-    constructor(node: IBIP32, provider: IProvider, strategy?: UtxoSelectionStrategy) {
+    constructor(
+        node: IBIP32, 
+        provider: IProvider, 
+        strategy?: UtxoSelectionStrategy,
+    ) {
         this.node = node
         this.provider = provider
-        this.strategy = strategy || UtxoSelectionStrategy.SmallFirst
+        this.strategy = strategy || UtxoSelectionStrategy.SlimFit
         if (!provider.network) {
-            throw Error(`Signer: interal error: unintialized provider.`)
+            throw Error(`Signer: internal error: unintialized provider.`)
         }
+    }
+
+    // ================================================================================================================
+    // --- ILedger ----------------------------------------------------------------------------------------------------
+
+    public get cacheInfo(): UtxoCacheInfo {
+        const now = Math.floor(Date.now() / 1000)
+        let expendable: Nanowits = 0
+        let timelock: number = Number.MAX_SAFE_INTEGER
+        this.utxos.map(utxo => {
+            expendable += utxo.value
+            if (utxo.timelock > now && utxo.timelock < timelock) {
+                timelock = utxo.timelock
+            }
+        })
+        if (timelock === Number.MAX_SAFE_INTEGER) timelock = 0;
+        return { expendable, timelock, size: this.utxos.length }
+    }
+
+    public get changePkh(): PublicKeyHashString {
+        return this.pkh
     }
 
     public get network(): Network {
         return this.provider.network || "mainnet"
     }
 
-    public get pkh(): string {
+    public get pkh(): PublicKeyHashString {
         return this.publicKey.hash().toBech32(this.network)
     }
 
@@ -34,69 +60,83 @@ export class Signer implements ISigner {
         return PublicKey.fromUint8Array(this.node.publicKey)
     }
 
-    public addUtxos(...utxos: Array<UtxoMetadata>) {
-        // avoid adding duplicates
+    public addUtxos(...utxos: Array<Utxo>): { excluded: Array<Utxo>, included: Array<Utxo> } {
+        const excluded: Array<Utxo> = []
         const existingPointers = new Set(this.utxos.map(cached => cached.output_pointer));
-        const newUtxos = utxos.filter(utxo => !existingPointers.has(utxo.output_pointer))
-        this.utxos.push(...newUtxos)
+        const included: Array<Utxo> = utxos.filter(utxo => {
+            if (utxo.signer === this.pkh) {
+                // avoid adding duplicates
+                if (!existingPointers.has(utxo.output_pointer)) {
+                    existingPointers.add(utxo.output_pointer)
+                    return true
+                } else {
+                    return false
+                }
+            } else {
+                excluded.push(utxo)
+                return false;
+            }
+        })
+        this.utxos.push(...included)
+        return { excluded, included }
     }
 
-    public consumeUtxos(index: number): any {
-        this.utxos.splice(0, index)
+    public consumeUtxos(...utxos: Array<Utxo>): Array<Utxo> {
+        this.utxos = this.utxos.filter(cached => {
+            const incomingIndex = utxos.findIndex(incoming => cached.output_pointer === incoming.output_pointer);
+            if (incomingIndex >= 0) {
+                return false
+            } else {
+                utxos.splice(incomingIndex, 1)
+                return true
+            }
+        })
+        return utxos
     }
 
-    public async getDelegateNonce(validator: PublicKeyHashString): Promise<number> {
-        return this.provider
-            .stakes({ filter: {
-                validator,
-                withdrawer: this.pkh
-            }}).then(([entry, ]) => entry.value.nonce)
+    public async getBalance(): Promise<Balance> {
+        return this.provider.getBalance(this.pkh)
     }
 
-    public async getUtxos(reload = false): Promise<Array<UtxoMetadata>> {
-        if (reload) this.consumeUtxos(0)
+    public async getDelegatees(order?: QueryStakesOrder): Promise<Array<StakeEntry>> {
+        return this.provider.stakes({
+            filter: { withdrawer: this.pkh },
+            params: { order },
+        })
+    }
+
+    public getSigner(pkh?: PublicKeyHashString): ISigner | undefined { 
+        return (!pkh || pkh === this.pkh) ? this : undefined
+    }
+
+    public async getUtxos(reload = false): Promise<Array<Utxo>> {
+        if (reload) this.utxos = []
         if (this.utxos.length === 0) {
-            const now = Math.floor(Date.now() / 1000)
-            this.utxos = (await this.provider.getUtxoInfo(this.pkh)).filter(utxo => utxo.timelock <= now)
+            this.utxos = (await this.provider.getUtxos(this.pkh))
+                .map(utxo => ({ ...utxo, signer: this.pkh }))
         }
         return this.utxos
     }
 
     public async selectUtxos(specs?: {
-        cover?: Nanowits,
+        value?: Nanowits,
+        reload?: boolean,
         strategy?: UtxoSelectionStrategy
-    }): Promise<Array<UtxoMetadata>> {
-        if (this.utxos.length === 0) {
-            await this.getUtxos()
-        }
-        const strategy = specs?.strategy || this.strategy
-        switch (strategy) {
-            case UtxoSelectionStrategy.BigFirst:
-            case UtxoSelectionStrategy.SlimFit:
-                this.utxos = this.utxos.sort((a, b) => b.value - a.value)
-                break
-
-            case UtxoSelectionStrategy.Random:
-                const len = this.utxos.length
-                for (let i = 0; i < len; i ++) {
-                    const index = Math.floor(Math.random() * (len - i))
-                    const tmp = this.utxos[index]
-                    this.utxos[index] = this.utxos[len - i - 1]
-                    this.utxos[len - i - 1] = tmp
-                }
-                break
-
-            case UtxoSelectionStrategy.SmallFirst:
-                this.utxos = this.utxos.sort((a, b) => a.value - b.value)
-                break
-        }
-        if (strategy === UtxoSelectionStrategy.SlimFit && specs?.cover !== undefined) {
-            const slimFitIndex = this.utxos.findIndex(utxo => utxo.value <= (specs?.cover || 0))
-            if (slimFitIndex >= 2) {
-                return this.utxos.slice(slimFitIndex - 1)
-            }
-        }
-        return this.utxos
+    }): Promise<Array<Utxo>> {
+        return this
+            .getUtxos(specs?.reload || this.utxos.length === 0)
+            .then(utxos => selectUtxos({ utxos, value: specs?.value, strategy: specs?.strategy || this.strategy }))
+    }
+    
+    // ================================================================================================================
+    // --- ISigner ----------------------------------------------------------------------------------------------------
+    
+    public async getStakeEntryNonce(validator: PublicKeyHashString): Promise<number> {
+        return this.provider
+            .stakes({ filter: {
+                validator,
+                withdrawer: this.pkh
+            }}).then(([entry, ]) => entry.value.nonce)
     }
 
     public signHash(hash: any): KeyedSignature {
@@ -131,23 +171,5 @@ export class Signer implements ISigner {
         } else {
             throw Error(`Signer: invalid BIP32 node: no private key`)
         }
-    }
-
-    /// IAccountable ----------------------------------------------------------
-
-    public async countUtxos(reload?: boolean): Promise<number> {
-        if (reload || this.utxos.length === 0) await this.getUtxos(true)
-        return this.utxos.length
-    }
-
-    public async getBalance(): Promise<Balance> {
-        return this.provider.getBalance(this.pkh)
-    }
-
-    public async getDelegates(order?: QueryStakesOrder): Promise<Array<StakeEntry>> {
-        return this.provider.stakes({
-            filter: { withdrawer: this.pkh },
-            params: { order },
-        })
     }
 }

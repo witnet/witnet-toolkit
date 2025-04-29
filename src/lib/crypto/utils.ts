@@ -2,6 +2,8 @@ const secp256k1 = require("secp256k1")
 
 import { bech32 } from 'bech32'
 import { createDecipheriv, createHash, pbkdf2Sync } from 'crypto'
+import { Balance, Nanowits } from '../types'
+import { Utxo, UtxoSelectionStrategy } from './types'
 
 export { bech32 } from 'bech32'
 
@@ -104,8 +106,51 @@ export const parseXprv = (slip32: string): {
     }
 };
 
+export function selectUtxos(specs: { 
+    utxos: Array<Utxo>, 
+    value?: Nanowits, 
+    strategy?: UtxoSelectionStrategy, 
+}): Array<Utxo> {
+    const strategy = specs.strategy || UtxoSelectionStrategy.SlimFit
+    switch (strategy) {
+        case UtxoSelectionStrategy.BigFirst:
+        case UtxoSelectionStrategy.SlimFit:
+            specs.utxos = specs.utxos.sort((a, b) => b.value - a.value)
+            break
+
+        case UtxoSelectionStrategy.Random:
+            const len = specs.utxos.length
+            for (let i = 0; i < len; i ++) {
+                const index = Math.floor(Math.random() * (len - i))
+                const tmp = specs.utxos[index]
+                specs.utxos[index] = specs.utxos[len - i - 1]
+                specs.utxos[len - i - 1] = tmp
+            }
+            break
+
+        case UtxoSelectionStrategy.SmallFirst:
+            specs.utxos = specs.utxos.sort((a, b) => a.value - b.value)
+            break
+    }
+    if (strategy === UtxoSelectionStrategy.SlimFit && specs.value !== undefined) {
+        const slimFitIndex = specs.utxos.findIndex(utxo => utxo.value <= (specs.value || 0))
+        if (slimFitIndex >= 2) {
+            specs.utxos = specs.utxos.slice(slimFitIndex - 1)
+        } else {
+            specs.utxos = specs.utxos.slice(-1)
+        }
+    }
+    // remove locked UTXOs from final selection:
+    const now = Math.floor(Date.now() / 1000)
+    return specs.utxos.filter(utxo => utxo.timelock <= now)
+}
+
 export function sha256(buffer: any) {
     const hash = createHash('sha256')
     hash.update(buffer)
     return hash.digest()
+}
+
+export function totalBalance(balance: Balance) {
+    return Object.values(balance).reduce((sum, value) => sum + value, 0)
 }

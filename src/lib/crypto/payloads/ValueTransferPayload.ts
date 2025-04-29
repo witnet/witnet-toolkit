@@ -1,5 +1,5 @@
 import { fromHexString } from "../../../bin/helpers"
-import { Nanowits } from "../../types"
+import { IProvider, Nanowits } from "../../types"
 
 import { TransactionPayloadMultiSig } from "../payloads"
 import { PublicKeyHash, PublicKeyHashString, TransactionParams } from "../types"
@@ -29,7 +29,7 @@ export class ValueTransferPayload extends TransactionPayloadMultiSig<ValueTransf
         return this._target?.recipients.reduce((prev, [,curr]) => prev + curr, 0) || 0
     }
 
-    public get weight(): Nanowits {
+    public get weight(): number {
         return (
             this._inputs.length * TX_WEIGHT_INPUT_SIZE 
                 + this._outputs.length * TX_WEIGHT_OUTPUT_SIZE * TX_WEIGHT_GAMMA
@@ -57,7 +57,7 @@ export class ValueTransferPayload extends TransactionPayloadMultiSig<ValueTransf
     public toJSON(): any {
         return {
             inputs: this.inputs
-                .map(([, utxo]) => {
+                .map(utxo => {
                     return { output_pointer: utxo.output_pointer }
                 }),
             outputs: this.outputs.map(vto => ({
@@ -72,7 +72,7 @@ export class ValueTransferPayload extends TransactionPayloadMultiSig<ValueTransf
         if (this.prepared) {
             return {    
                 inputs: this.inputs
-                    .map(([, utxo]) => { 
+                    .map(utxo => { 
                         const transactionId = utxo.output_pointer.split(':')[0]
                         const outputIndex = parseInt(utxo.output_pointer.split(':')[1])
                         return {

@@ -1,4 +1,7 @@
+export { ICoinbase } from "./interfaces"
+
 export {
+    Coins,
     PublicKey,
     PublicKeyHash,
     TransactionCallback,

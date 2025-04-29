@@ -85,6 +85,17 @@ export type Transmission = {
     message: any;
 }
 
+export type Utxo = UtxoMetadata & { signer: PublicKeyHashString }
+
+export type UtxoCacheInfo = {
+    // total amount of expendable funds with currently cached UTXOs
+    expendable: Nanowits, 
+    // number of cached UTXOs
+    size: number, 
+    // earliest of all timelocks in the caché
+    timelock: number,
+}
+
 export type UtxoPointer = {
     // transaction identifier
     transaction_id: Hash;
