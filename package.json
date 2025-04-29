@@ -38,7 +38,7 @@
     "fmt!": "eslint --ext .js,.ts,.cjs . --fix --ignore-path .gitignore",
     "postinstall": "npx witnet --update --version",
     "prepare": "pnpm run build",
-    "test": "cross-env-shell WITNET_TOOLKIT_ASSETS_PATH='../../../witnet/assets' node ./src/bin/toolkit.js"
+    "test": "cross-env-shell WITNET_SDK_RADON_ASSETS_PATH='../../../witnet/assets' node ./src/bin/toolkit.js"
   },
   "dependencies": {
     "axios": "^1.7.9",

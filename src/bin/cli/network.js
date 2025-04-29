@@ -12,7 +12,7 @@ const { cyan, white, gray, green, lcyan, lyellow, mcyan, mgreen, mred, myellow, 
 
 module.exports = {
     envars: {
-        WITNET_TOOLKIT_PROVIDER_URL: "=> Wit/Oracle RPC provider(s) to connect to, if no otherwise specified."
+        WITNET_SDK_PROVIDER_URL: "=> Wit/Oracle RPC provider(s) to connect to, if no otherwise specified."
     },
     flags: {
         limit: { 
@@ -441,7 +441,7 @@ async function stakes(flags = {}, _args = [], options = {}) {
 }
 
 async function supplyInfo(flags = {}) {
-    const reporter = new Witnet.Reporter(flags?.provider || process.env.WITNET_TOOLKIT_PROVIDER_URL)
+    const reporter = new Witnet.Reporter(flags?.provider || process.env.WITNET_SDK_PROVIDER_URL)
     const data = await reporter.supplyInfo()
     console.info(`> Supply info at epoch ${helpers.colors.white(helpers.commas(data.epoch))}:`)
     const records = []

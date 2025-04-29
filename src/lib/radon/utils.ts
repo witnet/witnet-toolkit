@@ -17,7 +17,7 @@ import {
   RadonOperators,
 } from "./types"
 
-const WITNET_ASSETS_PATH = process.env.WITNET_TOOLKIT_ASSETS_PATH || "../../../../../witnet/assets"
+const WITNET_ASSETS_PATH = process.env.WITNET_SDK_RADON_ASSETS_PATH || "../../../../../witnet/assets"
 
 export { execRadonBytecode } from "../../bin/helpers"
 
