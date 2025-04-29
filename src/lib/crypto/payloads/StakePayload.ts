@@ -59,7 +59,7 @@ export class StakePayload extends TransactionPayloadMultiSig<StakeDepositParams>
     public toJSON(_humanize = false, network?: Network): any {
         return {
             inputs: this.inputs
-                .map(([, utxo]) => {
+                .map(utxo => {
                     return { output_pointer: utxo.output_pointer }
                 }),
             ...(
@@ -89,7 +89,7 @@ export class StakePayload extends TransactionPayloadMultiSig<StakeDepositParams>
         if (this.prepared && this._target) {
             return {    
                 inputs: this.inputs
-                    .map(([, utxo]) => { 
+                    .map(utxo => { 
                         const transactionId = utxo.output_pointer.split(':')[0]
                         const outputIndex = parseInt(utxo.output_pointer.split(':')[1])
                         return {

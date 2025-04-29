@@ -1,6 +1,6 @@
 import { Epoch, Nanowits, ValueTransferOutput } from "../../types"
 
-import { ISigner } from "../interfaces"
+import { ILedger, IProvider } from "../interfaces"
 import { TransactionPayload } from "../payloads"
 import { PublicKeyHash, PublicKeyHashString, TransactionParams } from "../types"
 
@@ -46,23 +46,41 @@ export class UnstakePayload extends TransactionPayload<StakeWithdrawalParams> {
         return this._target?.value || 0
     }
 
-    public get weight(): Nanowits {
+    public get weight(): number {
         return UnstakePayload.WEIGHT
     }
     
-    public async consumeUtxos(signer: ISigner): Promise<number> {
+    public async consumeUtxos(ledger: ILedger): Promise<number> {
         if (!this._target) {
             throw new Error(`${this.constructor.name}: internal error: no in-flight params.`)
         
         } else if (!this._covered) {
-            this._covered = this._target?.nonce || (await signer.getDelegateNonce(this._target.validator))
-            this._outputs.push({
-                pkh: signer.pkh,
-                value: this.value,
-                time_lock: UnstakePayload.MIN_TIMELOCK_SECS
-            })
+            const signer = ledger.getSigner()
+            if (!signer) {
+                throw new Error(
+                    `${this.constructor.name}: internal error: no default Signer for ${ledger.constructor.name} ${ledger.pkh}.`
+                )
+            }
+            // settle fees if none specified
+            if (this._target?.fees instanceof Coins) {
+                this._fees = this._target.fees.pedros
+            } else {
+                const priority = this._target?.fees as TransactionPriority || TransactionPriority.Medium
+                this._fees = await this._estimateNetworkFees(ledger.provider, priority)
+            }
+            // determine whether withdrawn amount covers MORE than the fees
+            this._change = this.value.pedros - this._fees
+            if (this._change > 0) {
+                // settle nonce if none specified
+                this._covered = this._target?.nonce || await signer.getStakeEntryNonce(this._target.validator)
+                this._outputs.push({
+                    pkh: signer.pkh,
+                    value: this.value.pedros - this._fees,
+                    time_lock: UnstakePayload.MIN_TIMELOCK_SECS
+                })
+            }
         }
-        return 0
+        return this._change;
     }
 
     public intoReceipt(target: StakeWithdrawalParams) {

@@ -34,10 +34,10 @@ export interface IProvider {
     getBalance(pkh: PublicKeyHashString): Promise<Balance2>;
     getBlock(blockHash: Hash, showTransactionHashes?: boolean): Promise<Block>;
     getDataRequest(drTxHash: Hash): Promise<DataRequestReport>;
+    getSuperblock(epoch: Epoch): Promise<SuperblockReport>;
     getTransaction(txHash: Hash): Promise<TransactionReport>;
     getTransactionReceipt(txHash: Hash): Promise<TransactionReceipt>;
-    getSuperblock(epoch: Epoch): Promise<SuperblockReport>;
-    getUtxoInfo(pkh: PublicKeyHashString, smallestFirst?: boolean): Promise<Array<UtxoMetadata>>;
+    getUtxos(pkh: PublicKeyHashString, smallestFirst?: boolean): Promise<Array<UtxoMetadata>>;
         
     sendRawTransaction(tx: any): Promise<boolean>;
 }

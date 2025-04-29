@@ -7,7 +7,6 @@ import {
     Nanowits, 
     Network, 
     StakeEntry, 
-    UtxoMetadata, 
     ValueTransferOutput, 
 } from "../types"
 
@@ -16,50 +15,59 @@ import {
     PublicKey, 
     PublicKeyHashString,
     TransactionReceipt,
-    UtxoSelectionStrategy,
+    Utxo, UtxoCacheInfo, UtxoSelectionStrategy,
 } from "./types"
 
 export { BIP32Interface as IBIP32 } from 'bip32'
 export { IProvider } from "../rpc"
 
-export interface IAccount extends IAccountable {
+export interface IAccount extends ILedger {
     index: number
     internal: ISigner
     external: ISigner
 }
 
-export interface IAccountable {
+export interface ILedger {
+    
+    cacheInfo: UtxoCacheInfo
+    changePkh: PublicKeyHashString,
     network?: Network
     pkh: PublicKeyHashString
     provider: IProvider
     publicKey: PublicKey
     strategy: UtxoSelectionStrategy
+    
+    addUtxos(...utxos: Array<Utxo>): { excluded: Array<Utxo>, included: Array<Utxo> }
+    consumeUtxos(...utxos: Array<Utxo>): any
+    selectUtxos(specs?: { 
+        value?: Nanowits, 
+        reload?: boolean, 
+        strategy?: UtxoSelectionStrategy,
+    }): Promise<Array<Utxo>>
+
     getBalance(): Promise<Balance>
-    getDelegates(order?: QueryStakesOrder, leftJoin?: boolean): Promise<Array<StakeEntry>>
-    countUtxos(reload?: boolean): Promise<number>
+    getDelegatees(order?: QueryStakesOrder, leftJoin?: boolean): Promise<Array<StakeEntry>>
+    getSigner(pkh?: PublicKeyHashString): ISigner | undefined
+    getUtxos(specs?: any): Promise<Array<Utxo>>
 }
 
 export interface ICoinbase extends ISigner {
     authorizeStake(withdrawer: PublicKeyHashString): HexString
+    getWithdrawers(order?: QueryStakesOrder): Promise<Array<StakeEntry>>
 }
 
-export interface ISigner extends IAccountable {
-    addUtxos(...utxos: Array<UtxoMetadata>): any
-    consumeUtxos(index: number): any
-    getDelegateNonce(validator: PublicKeyHashString): Promise<number>
-    getUtxos(force?: boolean): Promise<Array<UtxoMetadata>>
-    selectUtxos(specs?: { cover?: Nanowits, strategy?: UtxoSelectionStrategy }): Promise<Array<UtxoMetadata>>
+export interface ISigner extends ILedger {
+    getStakeEntryNonce(validator: PublicKeyHashString): Promise<number>
     signHash(hash: any): KeyedSignature
 }
 
-export interface IWallet extends IAccountable {
+export interface IWallet extends ILedger {
     accounts?: Array<IAccount>
     coinbase: ICoinbase
-    gap: number
-    signers: Array<ISigner>
     deriveAccounts(index: number): Array<IAccount>
-    exploreAccounts(gap?: number): Promise<Array<IAccount>>
-    findAccount(pkh: PublicKeyHashString, gap?: number): IAccount | undefined
+    exploreAccounts(params?: any): Promise<Array<IAccount>>
+    getAccount(pkh: PublicKeyHashString, gap?: number): IAccount | undefined
+    getSigner(pkh?: PublicKeyHashString, gap?: number): ISigner | undefined
 }
 
 interface IHashable {
@@ -76,7 +84,7 @@ export interface ITransmitter {
     transactions: Array<Hash>,
     type: string
     sendTransaction(params?: any): Promise<TransactionReceipt>
-    signTransaction(params?: any): Promise<TransactionReceipt>
+    signTransaction(params?: any, reload?: boolean): Promise<TransactionReceipt>
     waitTransaction(params?: any): Promise<TransactionReceipt>
 }
 
@@ -90,7 +98,7 @@ export interface ITransactionPayload<Specs> extends IHashable {
     target?: Specs
     value: Nanowits
     weight: number
-    consumeUtxos(signer: ISigner, params?: any): any
+    consumeUtxos(ledger: ILedger, params?: any): any
     intoReceipt(target: Specs, network?: Network): any
     prepareOutputs(params?: any): any
     resetTarget(target: Specs): any
@@ -99,6 +107,5 @@ export interface ITransactionPayload<Specs> extends IHashable {
 }
 
 export interface ITransactionPayloadMultiSig<Specs> extends ITransactionPayload<Specs> {
-    inputs: Array<[PublicKeyHashString, UtxoMetadata]>
-    consumeUtxos(signer: ISigner, changePkh?: PublicKeyHashString, params?: any): any
+    inputs: Array<Utxo>
 }

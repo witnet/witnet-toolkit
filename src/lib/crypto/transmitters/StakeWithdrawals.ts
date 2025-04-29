@@ -1,11 +1,10 @@
 import { UnstakePayload, StakeWithdrawalParams } from "../payloads/UnstakePayload"
 
 import { TransactionReceipt } from "../types"
-import { IAccountable, ISigner } from "../interfaces"
+import { ILedger } from "../interfaces"
 import { Transmitter } from "../transmitters"
+import { PublicKeyHashString } from "../types"
 
-import { Account } from "../account"
-import { Coinbase } from "../coinbase"
 import { Hash } from "../../types"
 
 export { StakeWithdrawalParams } from "../payloads/UnstakePayload"
@@ -15,24 +14,16 @@ export class StakeWithdrawals extends Transmitter<StakeWithdrawalParams, Unstake
     public static MIN_TIMELOCK_SECS = UnstakePayload.MIN_TIMELOCK_SECS
     public static WEIGHT = UnstakePayload.WEIGHT
 
-    public static from(accountable: IAccountable): StakeWithdrawals {
-        if (accountable instanceof Account) {
-            return new StakeWithdrawals(accountable.external)
-        
-        } else if (accountable instanceof Coinbase) {
-            return new StakeWithdrawals(accountable)
-        
-        } else {
-            throw TypeError(`StakeWithdrawals: cannot create from instance of ${accountable.constructor.name}.`)
-        }
+    public static from(ledger: ILedger): StakeWithdrawals {
+        return new StakeWithdrawals(ledger)
     }
 
-    constructor (signer: ISigner) {
-        super("UnstakeTransaction", new UnstakePayload("UnstakeTransactionBody"), [signer])
+    constructor (ledger: ILedger, changePkh?: PublicKeyHashString) {
+        super("UnstakeTransaction", new UnstakePayload("UnstakeTransactionBody"), ledger, changePkh)
     }
 
-    public async signTransaction(params?: StakeWithdrawalParams): Promise<TransactionReceipt> {
-        return super.signTransaction(params, false)
+    public async signTransaction(params?: StakeWithdrawalParams, reload?: boolean): Promise<TransactionReceipt> {
+        return super.signTransaction(params, reload)
     }
 
     public _signTransactionPayload(): Hash {
@@ -42,7 +33,14 @@ export class StakeWithdrawals extends Transmitter<StakeWithdrawalParams, Unstake
                 `${this.constructor.name}: internal error: unable to hashify payload: ${this._payload.toJSON(true)}}.`
             )
         } else {
-            this._signatures.push(this.signers[0].signHash(hash))
+            const signer = this.ledger.getSigner()
+            if (signer) {
+                this._signatures.push(signer.signHash(hash))
+            } else {
+                throw Error(
+                    `${this.constructor.name}: internal error: no default Signer found in ${this.ledger.constructor.name} ${this.ledger.pkh}.`
+                )
+            }            
             return hash
         }
         

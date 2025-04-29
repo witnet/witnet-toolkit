@@ -10,8 +10,8 @@ import { Provider } from "../rpc"
 import { Block, Hash, Network, SyncStatus } from "../types"
 
 import { 
+    ILedger,
     IProvider, 
-    ISigner, 
     ITransmitter, 
     ITransactionPayload, 
     ITransactionPayloadMultiSig, 
@@ -26,26 +26,30 @@ import {
     TransactionStatus, 
     Transmission,
     TransmissionError,
+    Utxo,
 } from "./types"
 
 
 export abstract class Transmitter<Specs, Payload extends ITransactionPayload<Specs>> implements ITransmitter {
     
-    public readonly signers: Array<ISigner>;
+    public readonly ledger: ILedger;
+    public readonly changePkh: PublicKeyHashString;
     
     protected _payload: Payload;
     protected _protoBuf: ProtoType;
     protected _signatures: Array<KeyedSignature> = []
     protected _transactions: Array<Hash> = []
 
-    constructor (protoTypeName: string, payload: Payload, signers: Array<ISigner>) {
+    constructor (protoTypeName: string, payload: Payload, ledger: ILedger, changePkh?: PublicKeyHashString) {
         this._protoBuf = protoRoot.lookupType(protoTypeName)
         this._payload = payload;
-        this.signers = signers
-        if (signers.length === 0) {
-            throw TypeError(`${this.constructor.name}: no signer was passed.`)
-        } else if (!signers[0].provider.network) {
-            throw TypeError(`${this.constructor.name}: signer's provider is not initialized.`)
+        this.ledger = ledger
+        if (!ledger.provider.network) {
+            throw TypeError(`${this.constructor.name}: ledger's provider is not initialized.`)
+        }
+        this.changePkh = changePkh || ledger.changePkh
+        if (!ledger.getSigner(this.changePkh)) {
+            throw TypeError(`${this.constructor.name}: ledger holds no Signer for change address ${this.changePkh}.`)
         }
     }
 
@@ -54,7 +58,7 @@ export abstract class Transmitter<Specs, Payload extends ITransactionPayload<Spe
     }
 
     public get provider(): IProvider {
-        return this.signers[0].provider
+        return this.ledger.provider
     }
 
     public get network(): Network {
@@ -70,25 +74,14 @@ export abstract class Transmitter<Specs, Payload extends ITransactionPayload<Spe
     }
 
     protected get _from(): Array<PublicKeyHashString> | undefined {
-        const signers = this.signers.map(signer => signer.pkh)
         if (this._signatures.length > 0) {
-            if (signers.length === 1) {
-                return [signers[0]]
-            
-            } else {
-                return this._signatures
-                    .map(ks => {
-                        const pkh = PublicKey.fromProtobuf(ks.public_key).hash().toBech32(this.network)
-                        if (signers.indexOf(pkh) % 2 === 0) {
-                            // on inputs signed by internal accounts,
-                            // include the corresponding external account address instead
-                            return signers[signers.indexOf(pkh) + 1]
-                        } else {
-                            return pkh
-                        }
-                    })
-                    .filter((pkh, index, array) => index === array.indexOf(pkh))
-            }
+            return this._signatures
+                .map(ks => {
+                    const pkh = PublicKey.fromProtobuf(ks.public_key).hash().toBech32(this.network)
+                    return this.ledger.getSigner(pkh)?.pkh || this.ledger.pkh
+                })
+                // avoid repetitions
+                .filter((pkh, index, array) => index === array.indexOf(pkh))
         
         } else {
             return undefined
@@ -164,26 +157,20 @@ export abstract class Transmitter<Specs, Payload extends ITransactionPayload<Spe
         // clean current signatures, so new UTXOs can be consumed and therefore a new transaction hash be incepted
         this._cleanSignatures(target)
         
-        // try to cover transaction expenses with existing utxos on signers:
-        let index = 0
-        while (index < this.signers.length && !this._payload.prepared) {
-            const signer = this.signers[index ++]
-            if (reloadUtxos) await signer.getUtxos(true)
-            await this._payload.consumeUtxos(
-                    signer, 
-                    this.signers.length > 1 && index % 2 === 1 ? this.signers[index].pkh : signer.pkh
+        // if not yet prepared, try to cover transaction expenses with existing utxos on signers:
+        if (!this._payload.prepared) {
+            await this._payload.consumeUtxos(this.ledger, reloadUtxos)
+            .catch((err: any) => {
+                throw Error(
+                    `${this.constructor.name}: cannot consume UTXOs from ${this.ledger.constructor.name} ${this.ledger.pkh}: ${err}.`
                 )
-                .catch((err: any) => {
-                    throw Error(
-                        `${this.constructor.name}: cannot consume UTXOs from ${signer.pkh}: ${err}.`
-                    )
-                })
+            })  
         }
         
         if (!this._payload.prepared) {
             // throws exeception if not enough utxos were found to cover transaction expenses:
             throw Error(
-                `${this.constructor.name}: insufficient funds on ${this.signers.map(signer => signer.pkh)}.`
+                `${this.constructor.name}: insufficient funds on ${this.ledger.constructor.name} ${this.ledger.pkh}.`
             )
         } 
 
@@ -349,57 +336,49 @@ export abstract class Transmitter<Specs, Payload extends ITransactionPayload<Spe
 export abstract class TransmitterMultiSig<Specs, Payload extends ITransactionPayloadMultiSig<Specs>> 
     extends Transmitter<Specs, Payload> 
 {
-    constructor (protoTypeName: string, payload: Payload, signers: Array<ISigner>) {
-        super(protoTypeName, payload, signers)
+    constructor (protoTypeName: string, payload: Payload, ledger: ILedger, changePkh?: PublicKeyHashString) {
+        super(protoTypeName, payload, ledger, changePkh)
         this._payload = payload;
-        if (signers.length > 1 && signers.length % 2 !== 0) {
-            throw TypeError(`${this.constructor.name}: odd number of signers passed (${signers.length}).`)
-        }
-        for (let ix = 1; ix < signers.length; ix ++) {
-            if (!signers[ix].provider.network) {
-                throw TypeError(`${this.constructor.name}: signer #${ix + 1}'s provider not initialized.`)
-            } else if (signers[ix].provider.network !== this.network) {
-                throw TypeError(`${this.constructor.name}: signers connected to different networks.`)
-            }
-        }
     }
 
     /// Recover formerly consumed UTXOs by a failing transaction back to their respective signer's UTXO pool
     protected _recoverInputUtxos(): any {
         if (this._payload.inputs) {    
-            const signers = Object.fromEntries(this.signers.map(signer => [ signer.pkh, signer ]))
-            this._payload.inputs.forEach(([pkh, utxo]) => {
-                signers[pkh].addUtxos(utxo)
-            })
+            this.ledger.addUtxos(...this._payload.inputs)
         }
     }
 
     /// Recover self-targeted outputs as expendable utxos on their respective signer's memoized cache
     protected _recoverOutputUtxos(): any {
         if (this._payload.hash && this._payload.outputs) {
-            const signers = Object.fromEntries(this.signers.map(signer => [ signer.pkh, signer ]))
+            const utxos: Array<Utxo> = []
             this._payload.outputs.forEach((vto, index) => {    
-                signers[vto.pkh]?.addUtxos({
+                if (this.ledger.getSigner(vto.pkh)) utxos.push({
+                    signer: vto.pkh,
                     output_pointer: `${this._payload.hash}:${index}`,
                     timelock: vto.time_lock,
                     value: vto.value,
                 })
             })
+            this.ledger.addUtxos(...utxos)
         }
     }
 
     protected _signTransactionPayload(): Hash {
         const hash = this._payload.hash
-        // console.log("TransmitterMultiSig._signTransactionPayload:", hash)
         if (!hash) {
             throw Error(
                 `${this.constructor.name}: internal error: unable to hashify payload: ${this._payload.toJSON(true, this.network)}}.`
             )
         } else {
-            const signers = Object.fromEntries(this.signers.map(signer => [ signer.pkh, signer ]))
-            this._payload.inputs.forEach(([pkh, ]) => { 
-                // console.log(`...signer ${pkh} signing hash ${hash}...`)
-                this._signatures.push(signers[pkh].signHash(hash)) 
+            this._payload.inputs.forEach(utxo => { 
+                const signer = this.ledger.getSigner(utxo.signer)
+                if (!signer) throw Error(
+                    `${this.constructor.name}: internal error: cannot find Signer ${utxo.signer} in ${this.ledger.constructor.name} ${this.ledger.pkh}.`    
+                ); else {
+                    // console.log(`...signer ${signer.pkh} signing hash ${hash}...`)
+                    this._signatures.push(signer.signHash(hash)) 
+                }
             })
             return hash
         }

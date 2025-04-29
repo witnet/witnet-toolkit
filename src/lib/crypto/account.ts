@@ -1,10 +1,11 @@
-import { Balance, Network, QueryStakesOrder, StakeEntry } from "../types"
+import { Balance, Nanowits, Network, QueryStakesOrder, StakeEntry } from "../types"
 import { IAccount, IBIP32, IProvider, ISigner } from "./interfaces"
-import { PublicKey, PublicKeyHashString, UtxoSelectionStrategy } from "./types"
+import { PublicKey, PublicKeyHashString, Utxo, UtxoCacheInfo, UtxoSelectionStrategy } from "./types"
+import { selectUtxos } from "./utils"
 
 import { Signer } from "./signer"
 
-export class Account implements IAccount {    
+export class Account implements IAccount {
     
     public readonly index: number
     public readonly internal: ISigner
@@ -15,13 +16,28 @@ export class Account implements IAccount {
 
     constructor(root: IBIP32, provider: IProvider, index: number, strategy?: UtxoSelectionStrategy) {
         this.index = index
-        this.external = new Signer(root.derivePath(`m/3'/4919'/0'/0/${index}`), provider, strategy)
         this.internal = new Signer(root.derivePath(`m/3'/4919'/0'/1/${index}`), provider, strategy)
+        this.external = new Signer(root.derivePath(`m/3'/4919'/0'/0/${index}`), provider, strategy)
+        
         if (!provider.network) {
             throw new Error(`Account: uninitialized provider.`)
         }
         this.provider = provider
         this.strategy = strategy || UtxoSelectionStrategy.SmallFirst
+    }
+
+    public get cacheInfo(): UtxoCacheInfo {
+        const internal = this.internal.cacheInfo
+        const external = this.external.cacheInfo
+        return {
+            expendable: internal.expendable + external.expendable,
+            size: internal.size + external.size,
+            timelock: Math.min(internal.timelock || Number.MAX_SAFE_INTEGER, external.timelock)
+        }
+    }
+
+    public get changePkh(): PublicKeyHashString {
+        return this.internal.pkh
     }
 
     public get pkh(): PublicKeyHashString {
@@ -36,16 +52,17 @@ export class Account implements IAccount {
         return this.provider.network
     }
 
-    public async countUtxos(reload = false): Promise<number> {
-        return Promise.all([
-            this.internal.getUtxos(reload),
-            this.external.getUtxos(reload),
-        ]).then(([internal, external]) => {
-            return (
-                internal.length 
-                    + external.length
-            )
-        })
+    public addUtxos(...utxos: Array<Utxo>): { excluded: Array<Utxo>, included: Array<Utxo> } {
+        const internal = this.internal.addUtxos(...utxos)
+        const external = this.external.addUtxos(...internal.excluded)
+        return { 
+            excluded: external.excluded, 
+            included: [...internal.included, ...external.included ],
+        }
+    }
+
+    public consumeUtxos(...utxos: Array<Utxo>): Array<Utxo> {
+        return this.external.consumeUtxos(this.internal.consumeUtxos(...utxos))
     }
 
     public async getBalance(): Promise<Balance> {
@@ -61,7 +78,7 @@ export class Account implements IAccount {
         })
     }
 
-    public async getDelegates(order?: QueryStakesOrder, leftJoin = true): Promise<Array<StakeEntry>> {
+    public async getDelegatees(order?: QueryStakesOrder, leftJoin = true): Promise<Array<StakeEntry>> {
         return this.provider
             .stakes({
                 filter: { withdrawer: this.pkh },
@@ -80,5 +97,30 @@ export class Account implements IAccount {
                     return records
                 }
             })
+    }
+
+    public getSigner(pkh?: PublicKeyHashString): ISigner | undefined { 
+        if (!pkh) return this.external;
+        else if (pkh === this.external.pkh) return this.external;
+        else if (pkh === this.internal.pkh) return this.internal;
+        else return undefined;
+    }
+
+    public async getUtxos(reload = false): Promise<Array<Utxo>> {
+        return [
+            ...await this.internal.getUtxos(reload),
+            ...await this.external.getUtxos(reload),
+        ]
+    }
+
+    public async selectUtxos(specs?: {
+        value?: Nanowits,
+        consume?: boolean,
+        reload?: boolean,
+        strategy?: UtxoSelectionStrategy
+    }): Promise<Array<Utxo>> {
+        return this
+            .getUtxos(specs?.reload)
+            .then(utxos => selectUtxos({ utxos, value: specs?.value, strategy: specs?.strategy || this.strategy }))
     }
 }

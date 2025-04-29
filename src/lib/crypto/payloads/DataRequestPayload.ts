@@ -6,6 +6,7 @@ import { fromHexString, fromNanowits, toHexString } from "../../../bin/helpers"
 import { RadonRequest, RadonTemplate } from "../../radon"
 import { Hash, HexString, Nanowits } from "../../types"
 
+import { ILedger } from "../interfaces"
 import { TransactionPayloadMultiSig } from "../payloads"
 import { PublicKeyHash, PublicKeyHashString, TransactionParams } from "../types"
 import { sha256 } from "../utils"
@@ -194,6 +195,45 @@ export class DataRequestPayload extends TransactionPayloadMultiSig<DataRequestPa
         }
     }
 
+    public async consumeUtxos(ledger: ILedger, reload?: boolean): Promise<number> {
+        if (!this._target) {
+            throw new Error(`${this.constructor.name}: internal error: no in-flight params.`)
+        
+        } else if ((this._target as any)?.fees instanceof Coins) {
+            this._fees = (this._target as any).fees.pedros;
+            return super.consumeUtxos(ledger, reload)
+        }
+
+        if (!this.covered) {
+            const priority = (this._target as any)?.fees as TransactionPriority || TransactionPriority.Opulent
+            let estimatedFees = await this._estimateNetworkFees(ledger.provider, priority);
+            while (this._fees < estimatedFees) {
+                this._fees = estimatedFees
+                this._outputs = []
+                this._inputs = []
+                this._covered = 0
+                // consume utxos as to cover for estimated value and estimated fees 
+                const value = this._fees2Value(this._fees, this._target.witnesses)
+                const utxos = await ledger.selectUtxos({ 
+                    value: value + this._fees - this._covered, 
+                    reload,
+                })
+                this._covered += utxos.map(utxo => utxo.value).reduce((prev, curr) => prev + curr)
+                this._inputs.push(...utxos)
+                ledger.consumeUtxos(...utxos)
+                this._change = this._covered - (value + this._fees)
+                if (this._change >= 0) {
+                    this.prepareOutputs({ value: this._change })
+                    estimatedFees = await this._estimateNetworkFees(ledger.provider, priority)
+                } else {
+                    // insufficient funds ...
+                    break
+                }
+            }
+        }
+        return this._change
+    }
+
     public intoReceipt(target: DataRequestParams): any {
         return {
             burns: this.burns,
@@ -201,6 +241,16 @@ export class DataRequestPayload extends TransactionPayloadMultiSig<DataRequestPa
             radArgs: this.radArgs,
             radHash: this.radHash,
             witnesses: target.witnesses,
+        }
+    }
+
+    public prepareOutputs(change?: { value: Nanowits }): any {
+        if (change?.value) {
+            this._outputs.push({
+                pkh: this._inputs[0].signer,
+                value: change.value,
+                time_lock: 0,
+            })
         }
     }
 
@@ -235,12 +285,12 @@ export class DataRequestPayload extends TransactionPayloadMultiSig<DataRequestPa
         const droSLA = this.droSLA        
         return {
             inputs: this.inputs
-                .map(([, utxo]) => ({ output_pointer: utxo.output_pointer })),
-            outputs: this.outputs.map(vto => { return { 
+                .map(utxo => ({ output_pointer: utxo.output_pointer })),
+            outputs: this.outputs.map(vto => ({ 
                 pkh: vto.pkh,
                 time_lock: vto.time_lock,
                 value: vto.value,
-            }}),
+            })),
             dr_output: {
                 ...(this._request ? { data_request: this._request.toJSON(humanize) } : {}),
                 commit_and_reveal_fee: droSLA?.commitAndRevealFee,
@@ -256,7 +306,7 @@ export class DataRequestPayload extends TransactionPayloadMultiSig<DataRequestPa
         if (this.prepared && this._target && this._request) {
             return {    
                 inputs: this.inputs
-                    .map(([, utxo]) => { 
+                    .map(utxo => { 
                         const transactionId = utxo.output_pointer.split(':')[0]
                         const outputIndex = parseInt(utxo.output_pointer.split(':')[1])
                         return {

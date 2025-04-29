@@ -5,11 +5,15 @@ import * as ecc from 'tiny-secp256k1';
 const bip32 = BIP32Factory(ecc);
 
 import { Provider } from "../rpc"
-import { Balance, Network, QueryStakesOrder, StakeEntry, StakesOrderBy } from "../types"
+import { Balance, Nanowits, Network, QueryStakesOrder, StakeEntry, StakesOrderBy } from "../types"
 import { Account } from "./account"
 import { Coinbase } from "./coinbase"
 import { IAccount, IBIP32, ICoinbase, IProvider, ISigner, IWallet } from "./interfaces"
-import { PublicKey, PublicKeyHashString, UtxoSelectionStrategy } from "./types"
+import { PublicKey, PublicKeyHashString, Utxo, UtxoCacheInfo, UtxoSelectionStrategy } from "./types"
+
+import { selectUtxos, totalBalance } from "./utils";
+
+const DEFAULT_GAP = 20;
 
 export class Wallet implements IWallet {
     protected root: IBIP32;
@@ -17,57 +21,155 @@ export class Wallet implements IWallet {
     protected _accounts: Array<IAccount> = [];
 
     public readonly coinbase: ICoinbase;
-    public gap: number;
     public readonly provider: IProvider;
     public strategy: UtxoSelectionStrategy;
+
+    /**
+     * Create a Wallet by reading the XPRV master key from the WITNET_SDK_WALLET_MASTER_KEY environment variable.
+     * @param specs Wallet creation parameters.
+     */
+    static async fromEnv(options: {
+        /**
+         * Password to decrypt the XPRV master key read from environment, in case it's encrypted.
+         */
+        passwd?: string,
+        /**
+         * Number of consecutive accounts with no funds before stopping derivation of new Wallet accounts.
+         */
+        gap?: number,
+        /**
+         * Maximum number of accounts to derive. 
+         */
+        limit?: number,
+        /**
+         * Specific Wit/RPC provider to use for interacting with the Witnet network.
+         */
+        provider?: IProvider, 
+        /**
+         * UTXO selection strategy when building transactions out of this wallet (default: UtxoSelectionStrategy.SmallFirst).
+         */
+        strategy?: UtxoSelectionStrategy, 
+        /**
+         * Only derive accounts that hold some unlocked balance of $WIT.
+         */
+        onlyWithFunds?: boolean,
+    }): Promise<Wallet> {
+        const xprv = process.env.WITNET_SDK_WALLET_MASTER_KEY
+        if (!xprv) throw Error(`WITNET_SDK_WALLET_MASTER_KEY must be set on environment.`)
+        if (xprv.length > 117) {
+            if (!options.passwd) throw Error(`Missing password for WITNET_SDK_WALLET_MASTER_KEY.`)
+            return Wallet.fromEncryptedXprv(xprv, options?.passwd, options)
+        } else {
+            return Wallet.fromXprv(xprv, options)
+        }
+    }
     
+    /**
+     * Create a Wallet by using passed XPRV master key.
+     * @param xprv Decrypted XPRV master key string.
+     * @param options Wallet creation parameters.
+     */
     static async fromXprv(
-        xprv: string, 
+        xprv: string,
         options?: {
+            /**
+             * Number of consecutive accounts with no funds before stopping derivation of new Wallet accounts.
+             */
             gap?: number,
+            /**
+             * Maximum number of accounts to derive. 
+             */
             limit?: number,
+            /**
+             * Specific Wit/RPC provider to use for interacting with the Witnet network.
+             */
             provider?: IProvider, 
+            /**
+             * UTXO selection strategy when building transactions out of this wallet (default: UtxoSelectionStrategy.SmallFirst).
+             */
             strategy?: UtxoSelectionStrategy, 
-            unlocked?: boolean,
+            /**
+             * Only derive accounts holding some $WIT funds (either locked, staked or unlocked).
+             */
+            onlyWithFunds?: boolean,
         }
     ): Promise<Wallet> {
         const { chainCode, privateKey } = utils.parseXprv(xprv);
         const root = bip32.fromPrivateKey(Buffer.from(privateKey), Buffer.from(chainCode));
-        const provider = options?.provider || (await Provider.initialized())
+        const provider = options?.provider || (await Provider.fromEnv())
         await provider.constants()
-        const wallet = new Wallet(root, provider, options?.strategy, options?.gap)
-        if (options?.unlocked) {
-            await wallet.exploreAccounts(options?.limit || 1)
+        const wallet = new Wallet(root, provider, options?.strategy)
+        if (options?.onlyWithFunds) {
+            await wallet.exploreAccounts(options?.limit || 0, options?.gap)
         } else {
             wallet.deriveAccounts(options?.limit || 1)
         }
         return wallet
     }
 
+    /**
+     * Create a Wallet by using passed XPRV master key.
+     * @param xprv Encrypted XPRV master key string.
+     * @param passwd Password to decipher the XPRV master key.
+     * @param options Wallet creation parameters.
+     */
     static async fromEncryptedXprv(
-        xprv: string, 
-        passwd: string, 
+        xprv: string,
+        passwd: string,
         options?: {
+            /**
+             * Number of consecutive accounts with no funds before stopping derivation of new Wallet accounts.
+             */
             gap?: number,
+            /**
+             * Maximum number of accounts to derive. 
+             */
             limit?: number,
+            /**
+             * Specific Wit/RPC provider to use for interacting with the Witnet network.
+             */
             provider?: IProvider, 
+            /**
+             * UTXO selection strategy when building transactions out of this wallet (default: UtxoSelectionStrategy.SmallFirst).
+             */
             strategy?: UtxoSelectionStrategy, 
-            onlyUnlocked?: boolean
+            /**
+             * Only derive accounts holding some $WIT funds (either locked, staked or unlocked).
+             */
+            onlyWithFunds?: boolean,
         }
     ): Promise<Wallet> {
         return Wallet.fromXprv(utils.decipherXprv(xprv, passwd), options)
     }
     
-    constructor(root: IBIP32, provider: IProvider, strategy?: UtxoSelectionStrategy, gap?: number) {
-        this.gap = gap || 20
+    constructor(root: IBIP32, provider: IProvider, strategy?: UtxoSelectionStrategy) {
         this.provider = provider
         this.coinbase = new Coinbase(root, provider, strategy)
         this.root = root
         this.strategy = strategy || UtxoSelectionStrategy.SmallFirst
+        this.deriveAccounts(1)
     }
 
-    public get accounts(): Array<IAccount> | undefined {
+    public get accounts(): Array<IAccount> {
         return this._accounts
+    }
+
+    public get cacheInfo(): UtxoCacheInfo {
+        const info: UtxoCacheInfo = { expendable: 0, size: 0, timelock: Number.MAX_SAFE_INTEGER }
+        this.accounts?.forEach(account => {
+            const accountInfo = account.cacheInfo
+            info.expendable += accountInfo.expendable
+            info.size += accountInfo.size
+            if (accountInfo.timelock !== 0 && accountInfo.timelock < info.timelock) {
+                info.timelock = accountInfo.timelock
+            }
+        })
+        if (info.timelock === Number.MAX_SAFE_INTEGER) info.timelock = 0;
+        return info;
+    }
+
+    public get changePkh(): PublicKeyHashString {
+        return this.accounts.length > 0 ? this.accounts[0].changePkh : this.coinbase.pkh
     }
 
     public get network(): Network | undefined {
@@ -75,91 +177,31 @@ export class Wallet implements IWallet {
     }
 
     public get pkh(): PublicKeyHashString {
-        return this.coinbase.pkh
+        return this.accounts.length > 0 ? this.accounts[0].pkh : this.coinbase.pkh
     }
 
     public get publicKey(): PublicKey {
-        return this.coinbase.publicKey
+        return this.accounts.length > 0 ? this.accounts[0].publicKey : this.coinbase.publicKey
     }
 
-    public get signers(): Array<ISigner> {
-        const signers: Array<ISigner> = []
-        if (this.accounts) {
-            this.accounts.reverse().forEach(account => signers.push(account.internal, account.external))
-        } else {
-            signers.push(this.coinbase)
-        }
-        return signers
-    }
-
-    public deriveAccounts(limit: number): Array<IAccount> {
-        if (limit > this._accounts.length) {
-            for (let ix = this._accounts.length; ix < limit; ix ++) {
-                this._accounts[ix] = new Account(
-                    this.root, 
-                    this.provider, 
-                    ix,
-                    this.strategy,
-                )
-            }
-        }
-        return this._accounts
-    }
-
-    public async exploreAccounts(limit: number, gap?: number): Promise<Array<IAccount>> {
-        const extras: Array<IAccount> = []
-        let current_gap = gap || this.gap
-        let index = this._accounts.length
-        // add all accounts with funds in the next `gap`
-        for (; index < this._accounts.length + current_gap; index ++) {
-            const account = new Account(this.root, this.provider, index, this.strategy)
-            if ((await account.getBalance()).unlocked > 0) {
-                extras.push(account)
-                current_gap = extras.length + (gap || this.gap)
-                if (limit && extras.length >= limit) break;
-            }
-        }
-        if (extras.length > 0) {
-            this._accounts.push(...extras)
-        } else if (this._accounts.length === 0) {
-            // if no accounts yet in the wallet, 
-            // and no  accounts with funds were found, 
-            // derive wallet's first account:
-            return this.deriveAccounts(0)
-        }
-        return this._accounts
-    }
-
-    public findAccount(pkh: PublicKeyHashString, gap?: number): IAccount | undefined {
-        let account = this._accounts.find(account => account.internal.pkh === pkh || account.pkh === pkh)
-        if (!account) {
-            for (let index = 0; index < (gap || this.gap); index ++) {
-                account = new Account(this.root, this.provider, index, this.strategy)
-                if (account.pkh === pkh || account.internal.pkh === pkh) {
-                    this._accounts.push(account)
-                    return account
-                }
-            }
-            return undefined
-        } else {
-            return account
+    public addUtxos(...utxos: Array<Utxo>): { excluded: Array<Utxo>, included: Array<Utxo> } {
+        const included: Array<Utxo> = []
+        this.accounts.forEach(account => {
+            const _utxos = account.addUtxos(...utxos)
+            utxos = _utxos.excluded
+            included.push(..._utxos.included)
+        })
+        return {
+            excluded: utxos,
+            included
         }
     }
 
-
-    /// IAccountable ----------------------------------------------------------
-
-    public async countUtxos(reload?: boolean): Promise<number> {
-        if (this._accounts.length > 0) {
-            return Promise
-                .all(this._accounts.map((acc: IAccount) => acc.countUtxos()))
-                .then((counts: Array<number>) => {
-                    return counts.reduce((prev, curr) => prev + curr, 0)
-                })
-        
-            } else {
-            return this.coinbase.countUtxos(reload)
-        }
+    public consumeUtxos(...utxos: Array<Utxo>): Array<Utxo> {
+        this.accounts.forEach(account => {
+            utxos = account.consumeUtxos(...utxos)
+        })
+        return utxos
     }
 
     public async getBalance(): Promise<Balance> {
@@ -175,31 +217,102 @@ export class Wallet implements IWallet {
                         }
                     })
                 })
-        
-            } else {
+        } else {
             return this.coinbase.getBalance()
         }
     }
 
-    public async getDelegates(order?: QueryStakesOrder, leftJoin = true): Promise<Array<StakeEntry>> {
-        // if (this._accounts.length > 0) {
-            const records: Array<StakeEntry> = []
-            records.push(...await this.coinbase.getDelegates(order))
-            await Promise.all(this._accounts.map(account => account.getDelegates(order, leftJoin).then(entries => records.push(...entries))))
-            if (order) {
-                const reverse = order?.reverse ? (+1) : (-1)
-                return records.sort((a, b) => {
-                    switch (order.by) {
-                        case StakesOrderBy.Coins: return (b.value.coins - a.value.coins) * reverse;
-                        case StakesOrderBy.Mining: return (b.value.epochs.mining - a.value.epochs.mining) * reverse;
-                        case StakesOrderBy.Witnessing: return (b.value.epochs.witnessing - a.value.epochs.witnessing) * reverse;
-                        case StakesOrderBy.Nonce: return (b.value.nonce - a.value.nonce) * reverse;
-                    }
-                })
+    public async getDelegatees(order?: QueryStakesOrder, leftJoin = true): Promise<Array<StakeEntry>> {
+        const records: Array<StakeEntry> = []
+        records.push(...await this.coinbase.getDelegatees(order))
+        await Promise.all(this._accounts.map(account => account.getDelegatees(order, leftJoin).then(entries => records.push(...entries))))
+        if (order) {
+            const reverse = order?.reverse ? (+1) : (-1)
+            return records.sort((a, b) => {
+                switch (order.by) {
+                    case StakesOrderBy.Coins: return (b.value.coins - a.value.coins) * reverse;
+                    case StakesOrderBy.Mining: return (b.value.epochs.mining - a.value.epochs.mining) * reverse;
+                    case StakesOrderBy.Witnessing: return (b.value.epochs.witnessing - a.value.epochs.witnessing) * reverse;
+                    case StakesOrderBy.Nonce: return (b.value.nonce - a.value.nonce) * reverse;
+                }
+            })
+        }
+        return records
+    }
+
+    public async getUtxos(reload?: boolean): Promise<Array<Utxo>> {
+        return Promise
+            .all(this.accounts.map(account => account.getUtxos(reload)))
+            .then(async (utxoss: Array<Array<Utxo>>) => {
+                utxoss.push(await this.coinbase.getUtxos(reload))
+                return utxoss.flat()
+            })
+    }
+
+    public async selectUtxos(specs?: {
+        value?: Nanowits,
+        reload?: boolean
+        strategy?: UtxoSelectionStrategy
+    }): Promise<Array<Utxo>> {
+        return this
+            .getUtxos(specs?.reload)
+            .then(utxos => selectUtxos({ utxos, value: specs?.value, strategy: specs?.strategy || this.strategy }))
+    }
+
+    // ================================================================================================================
+    // --- IWallet ----------------------------------------------------------------------------------------------------
+
+    public deriveAccounts(limit: number): Array<IAccount> {
+        if (limit > this._accounts.length) {
+            const startIndex = this._accounts.length > 0 ? this.accounts[this.accounts.length - 1].index + 1 : 0
+            limit = limit - this._accounts.length
+            for (let ix = 0; ix < limit; ix ++) {
+                this._accounts.push(new Account(
+                    this.root,
+                    this.provider,
+                    startIndex + ix,
+                    this.strategy
+                ))
             }
-            return records
-        // } else {
-        //     return this.coinbase.getDelegates(order)
-        // }
+        }
+        return this._accounts
+    }
+
+    public async exploreAccounts(limit = 0, gap = DEFAULT_GAP): Promise<Array<IAccount>> {
+        if (limit === 0 || limit > this.accounts.length) {
+            const lastIndex = (x: Array<IAccount>) => x.length > 0 ? x[x.length - 1].index + 1 : 0
+            const startIndex = lastIndex(this.accounts)
+            limit = limit > 0 ? this.accounts.length - limit : 0
+            for (let index = startIndex; index < lastIndex(this.accounts) + gap; index ++) {
+                const account = new Account(this.root, this.provider, index, this.strategy)
+                if (totalBalance(await account.getBalance()) > 0) {
+                    this.accounts.push(account)
+                    if (limit > 0 && this.accounts.length >= limit) break;
+                }
+            }
+        }
+        return this._accounts
+    }
+
+    public getAccount(pkh: PublicKeyHashString, gap?: number): IAccount | undefined {
+        let account = this._accounts.find(account => account.internal.pkh === pkh || account.pkh === pkh)
+        if (!account) {
+            for (let index = 0; index < (gap || DEFAULT_GAP); index ++) {
+                account = new Account(this.root, this.provider, index, this.strategy)
+                if (account.pkh === pkh || account.internal.pkh === pkh) {
+                    this._accounts.push(account)
+                    return account
+                }
+            }
+            return undefined
+        } else {
+            return account
+        }
+    }
+
+    public getSigner(pkh?: PublicKeyHashString, gap?: number): ISigner | undefined {
+        if (!pkh) return this.accounts[0]?.getSigner() || this.coinbase.getSigner(pkh);
+        const account = this.getAccount(pkh, gap)
+        return account?.getSigner() || this.coinbase.getSigner(pkh)
     }
 }
