@@ -151,7 +151,7 @@ async function balance(flags = {}) {
                 ]
             ),
         ]), {
-            headlines: [ "NODES", ":Validator address", "Locked ($WIT)", "Staked ($WIT)", "Unlocked ($WIT)", "BALANCE ($WIT)" ],
+            headlines: [ "NODES", ":Validator address", "Locked ($WIT)", "Staked ($WIT)", "Available ($WIT)", "BALANCE ($WIT)" ],
             humanizers: [ ,, helpers.commas, helpers.commas, helpers.commas, helpers.commas ],
             maxColumnWidth: 48,
         },

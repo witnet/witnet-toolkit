@@ -202,7 +202,7 @@ async function holders(flags = {}, _args = [], options = {}) {
                 ...(flags?.verbose ? [
                     "Locked ($WIT)", 
                     "Staked ($WIT)", 
-                    "Unlocked ($WIT)", 
+                    "Available ($WIT)", 
                 ] : []),
                 "BALANCE ($WIT)", 
             ],

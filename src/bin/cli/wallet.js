@@ -25,19 +25,30 @@ module.exports = {
             hint: "Number of epochs to await after any involved transaction gets mined (implies --await).",
             param: "NUMBER",
         },
-        dryrun: {
-            hint: "Prepare and sign involved transactions, without any actual transmission taking place."
+        // dryrun: {
+        //     hint: "Prepare and sign involved transactions, without any actual transmission taking place."
+        // },
+        force: {
+            hint: "Broadcast transaction/s without user's final confirmation.",
         },
         gap: {
-            hint: "Max indexing gap when searching for funded accounts (default: 32).",
+            hint: "Max indexing gap when searching for funded accounts (default: 10).",
             param: "GAP",
+        },
+        // limit: {
+        //     hint: `Number of consecutive HD-accounts to derive, even if holding no balance.`,
+        //     param: "LIMIT",
+        // },
+        priority: {
+            hint: "Transaction priority: `stingy`, `low`, `medium`, `high`, `opulent`.",
+            param: "PRIORITY",
         },
         provider: {
             hint: "Public Wit/Oracle JSON-RPC provider, other than default.",
             param: "URL",
         },
         strategy: {
-            hint: "UTXOs selection strategy: `big-first`, `random`, `slim-fit`, `small-first` (default: `small-first`).",
+            hint: "UTXOs selection strategy: `big-first`, `random`, `slim-fit`, `small-first` (default: `slim-fit`).",
             param: "STRATEGY",
         },
         verbose: {
@@ -46,23 +57,20 @@ module.exports = {
     },
     router: {
         accounts: {
-            hint: "List wallet's HD-accounts with unlocked UTXOs, or those derived from the specified flags.",
+            hint: "List wallet's HD-accounts treasuring staked, locked or unlocked Wits.",
+            params: ["[WIT_ADDRESSES ...]"],
             options: {
                 limit: {
-                    hint: `Max number of HD-accounts to derive from the master key.`, 
+                    hint: `Number of consecutive HD-accounts to derive (implies --no-funds).`,
                     param: "LIMIT",
                 },
-                "qrcode": {
-                    hint: "Prints the QR code for the account with the highest index, scannable from myWitWallet."
+                qrcode: {
+                    hint: "Prints QR codes for all accounts, or the one with highest index if using flag `limit`."
                 },
-                unlocked: {
-                    hint: `Only derive HD-accounts that treasure unlocked Wits.`
+                "no-funds": {
+                    hint: "Derive accounts even if they hold no funds."
                 },
             },
-        },
-        authorize: {
-            hint: "Authorize given address to stake into the wallet's coinbase account.",
-            params: "WITHDRAWER_ADDRESS",
         },
         // "create*": {
         //     hint: "Create some random master key.",
@@ -73,47 +81,51 @@ module.exports = {
         //         },
         //     }
         // },
-        decipher: {
-            hint: "Decipher some master key as exported from myWitWallet.",
-        },
-        provider: {
-            hint: "Show the underlying Wit/Oracle RPC provider being used."
-        },
-        operators: {
-            hint: "List validators treasuring delegated stake from the wallet.",
+        coinbase: {
+            hint: "List withdrawers delegating stake into the coinbase address.",
             options: {
-                limit: {
-                    hint: `Max number of HD-accounts to derive from the master key.`, 
-                    param: "LIMIT",
+                authorize: {
+                    hint: "Generate stake authorization code for the specified withdrawer address.",
+                    param: "WITHDRAWER_PKH",
                 },
-                unlocked: {
-                    hint: `Only derive HD-accounts that treasure unlocked Wits.`
+                "node-master-key": {
+                    hint: "Node's master key other than the one set up in environment",
                 },
             },
         },
-        resolve: {
-            hint: "Ask the Wit/Oracle to resolve and forever store the resolution to a Radon request.",
-            params: ["[RADON_ASSET_SUFFIX | RADON_BYTECODE | RAD_HASH]", "[...ARGS]" ],
+        decipher: {
+            hint: "Decipher some master key as exported from myWitWallet.",
+        },
+        delegatees: {
+            hint: "List validators treasuring delegated stake from any of the wallet's accounts.",
+        },
+        notarize: {
+            hint: "Ask the Wit/Oracle to notarize and forever store the resolution to some Radon asset.",
+            params: ["RAD_BYTECODE | RAD_HASH | RADON_ASSET"],
             options: {
                 fees: {
-                    hint: "Total fees to be distributed among operators mining intrinsic transactions on chain (default: 0.5 Wits).",
+                    hint: "Specific unitary reward for every involved validator (supersedes --priority).",
                     param: "WITS",
                 },
                 from: {
-                    hint: "Authorized wallet account that will pay the fees and eventual rewards, other than wallet's default.",
+                    hint: "Authorized wallet account that will pay for the oracle query, other than wallet's default.",
                     param: "WALLET_ADDRESS",
                 },
-                legacy: {
-                    hint: "Inherit legacy Radon assets declared in the imported Witnet package."
+                module: {
+                    hint: 'NPM package where to search for Radon assets.',
+                    param: 'NPM_PACKAGE'
                 },
                 witnesses: { 
-                    hint: "Number of witnesses in the Wit/Oracle network obliged to attend the data request (default: 3).", 
+                    hint: "Number of witnesses in the Witnet network required to attend the oracle query (default: 3).", 
                     param: "WITNESSES"
                 },
             }
         },
+        provider: {
+            hint: "Show the underlying Wit/Oracle RPC provider being used."
+        },
         stake: {
-            hint: "Stake specified amount of Wits by using the given authorization code.",
+            hint: "Stake specified amount of Wits by using some given authorization code.",
             params: "AUTH_CODE",
             options: { 
                 fees: {
@@ -125,7 +137,7 @@ module.exports = {
                     param: "WALLET_ADDRESS",
                 },
                 value: {
-                    hint: "Amount in Wits to stake into the validator that signed the given authorization (min: 10 KWits).",
+                    hint: "Amount in Wits to stake into the validator that signed the authorization (min: 10 KWits).",
                     param: "WITS | `all`",
                 },
             }
@@ -149,10 +161,9 @@ module.exports = {
             },
         },
         utxos: {
-            hint: "List currently unlocked UTXOs on wallet's specified address, or first funded account otherwise.",
+            hint: "List currently available UTXOs on wallet's specified address, or on all funded accounts otherwise.",
             params: "[WALLET_ADDRESS]",
             options: {
-                // "big-first": { hint: "Rather select bigger UTXOs first (default: false).", },
                 fees: {
                     hint: "Settle total fees to pay for involved transactions to get mined (default: 1 μWit).",
                     param: "WITS",
@@ -167,21 +178,21 @@ module.exports = {
                     param: "SPLITS"
                 },
                 value: {
-                    hint: "Specific amount in Wits to be either joined or split.",
+                    hint: "Amount in Wits to be either joined or split apart.",
                     param: "WITS | `all`",
                 }
-            }
+            },
         },
         withdraw: {
-            hint: "Withdraw specified amount of staked Wits from the given operator.",
-            params: "OPERATOR_PKH",
+            hint: "Withdraw specified amount of staked Wits from some given delegatee.",
+            params: "DELEGATEE_PKH",
             options: {
                 fees: {
                     hint: "Settle total fees to pay for the transaction to get mined (default: 1 μWit).",
                     param: "WITS",
                 },
                 into: {
-                    hint: "Wallet address with rights to withdraw stake from the specified validator.",
+                    hint: "Wallet address with rights to withdraw from the delegatee (default: wallet's first account).",
                     param: "WALLET_ADDRESS",
                 },
                 value: {
@@ -192,7 +203,7 @@ module.exports = {
         },
     },
     subcommands: {
-        accounts, authorize, decipher, provider, resolve, stake, transfer, withdraw: unstake, utxos, operators: validators, 
+        accounts, coinbase, decipher, delegatees: validators, notarize: resolve, provider, stake, transfer, withdraw: unstake, utxos,  
     },
 };
 
