@@ -2,7 +2,7 @@ import { fromHexString } from "../../../bin/helpers"
 import { IProvider, Nanowits } from "../../types"
 
 import { TransactionPayloadMultiSig } from "../payloads"
-import { PublicKeyHash, PublicKeyHashString, TransactionParams } from "../types"
+import { Coins, PublicKeyHash, PublicKeyHashString, TransactionParams, TransactionPriority } from "../types"
 
 export type ValueTransferParams = TransactionParams & {
     recipients: Array<[pkh: PublicKeyHashString, value: Coins]>,
@@ -96,8 +96,13 @@ export class ValueTransferPayload extends TransactionPayloadMultiSig<ValueTransf
         if (target && Object.keys(target).length > 0) {
             if (!(
                 target
-                    && target?.fees
-                    && parseInt(target?.fees) > 0
+                    && (
+                        !target?.fees 
+                        || (
+                            target.fees instanceof Coins && (target.fees as Coins).pedros > 0 
+                            || Object.values(TransactionPriority).includes(target.fees)
+                        )
+                    )
                     && target?.recipients
                     && target?.recipients.length > 0
                     && (!target?.timelock || target.timelock >= 0)
@@ -121,5 +126,20 @@ export class ValueTransferPayload extends TransactionPayloadMultiSig<ValueTransf
                 ].includes(key))
             )
         }
+    }
+
+    protected async _estimateNetworkFees(provider: IProvider, priority = TransactionPriority.Medium): Promise<Nanowits> {
+        if (!this._priorities) {
+            this._priorities = await provider.priorities()
+        }
+        return (
+            this._priorities[`vtt_${priority}`].priority * (
+                this.covered ? this.weight : this.weight
+                    // estimate one more input as to cover for network fees
+                    + TX_WEIGHT_INPUT_SIZE 
+                    // estimate as many outputs as recipients plus one, as to cover for eventual change output
+                    + TX_WEIGHT_OUTPUT_SIZE * (this._target?.recipients.length || 1 + 1) * TX_WEIGHT_GAMMA
+            )
+        );
     }
 }

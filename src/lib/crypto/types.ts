@@ -64,8 +64,17 @@ export type TransactionCallback = (receipt: TransactionReceipt, error?: any) => 
 
 export type TransactionParams = {
     deadline?: Epoch,
-    fees: Nanowits,
+    fees?: TransactionPriority | Coins,
 }
+
+export enum TransactionPriority {
+    Stingy = "stinky",
+    Low = "low",
+    Medium = "medium",
+    High = "high",
+    Opulent = "opulent",
+}
+
 export type TransactionReceipt = {
     authorization?: HexString;
     blockEpoch?: Epoch;
