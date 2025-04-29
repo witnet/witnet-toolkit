@@ -8,7 +8,7 @@ import { Hash, HexString, IProvider, Nanowits } from "../../types"
 
 import { ILedger } from "../interfaces"
 import { TransactionPayloadMultiSig } from "../payloads"
-import { PublicKeyHash, PublicKeyHashString, TransactionParams } from "../types"
+import { Coins, PublicKeyHash, TransactionParams, TransactionPriority } from "../types"
 import { sha256 } from "../utils"
 
 export type DataRequestTemplateArgs = any | string | string[] | string[][]
@@ -57,19 +57,6 @@ export class DataRequestPayload extends TransactionPayloadMultiSig<DataRequestPa
         }
     }
 
-    public get burns(): Nanowits | undefined {
-        /* V2.1 */
-        if (this._target && typeof this._target.witnesses === 'number') {
-            const witnesses = this._target.witnesses
-            return witnesses * (
-                this._target.fees
-                    + 2 * witnesses * (Math.floor(this._target.fees / 3 / this._target.witnesses))
-            )
-        } else {
-            return undefined
-        }
-    }
-
     public get droHash(): Hash | undefined {
         const obj = this._toDrOutputProtobuf()
         if (obj) {
@@ -91,15 +78,15 @@ export class DataRequestPayload extends TransactionPayloadMultiSig<DataRequestPa
     }
 
     public get droSLA(): DataRequestOutputSLA | undefined {
-        if (this._target) {
+        if (this._target && this._fees) {
             const minConsensusPercentage = 51
             const witnesses = (
                 typeof this._target.witnesses === 'object'
                     ? Object.keys(this._target.witnesses).length 
                     : this._target.witnesses
             );
-            const commitAndRevealFee = Math.floor(this._target.fees / 3 / witnesses)
-            const witnessReward = witnesses * commitAndRevealFee
+            const commitAndRevealFee = this._fees2UnitaryCommitRevealReward(this._fees, witnesses)
+            const witnessReward = this._fees2UnitaryReward(this._fees) 
             const collateral = witnessReward * DataRequestPayload.COLLATERAL_RATIO 
             return {
                 collateral,
@@ -112,10 +99,6 @@ export class DataRequestPayload extends TransactionPayloadMultiSig<DataRequestPa
         } else {
             return undefined
         }
-    }
-
-    public get fees(): Nanowits {
-        return this._target?.fees || 0
     }
 
     public get hash(): Hash | undefined {
@@ -179,7 +162,7 @@ export class DataRequestPayload extends TransactionPayloadMultiSig<DataRequestPa
                                 + DR_REVEAL_TX_WEIGHT * DR_TX_WEIGHT_BETA  
                                 + TX_WEIGHT_OUTPUT_SIZE // TODO V2.1: typeof this._target.witnesses === 'object' ? TX_WEIGHT_OUTPUT_SIZE : 0
                     )
-                    + Math.max(DR_TALLY_TX_WEIGHT * DR_TX_WEIGHT_BETA, this._target?.maxResultSize || 0)
+                    + Math.max(DR_TALLY_TX_WEIGHT, this._target?.maxResultSize || 0) * DR_TX_WEIGHT_BETA
             );
         } else {
             return 0
@@ -227,7 +210,6 @@ export class DataRequestPayload extends TransactionPayloadMultiSig<DataRequestPa
 
     public intoReceipt(target: DataRequestParams): any {
         return {
-            burns: this.burns,
             droHash: this.droHash,
             radArgs: this.radArgs,
             radHash: this.radHash,
@@ -271,6 +253,7 @@ export class DataRequestPayload extends TransactionPayloadMultiSig<DataRequestPa
                 this._request = this.template.buildRadonRequest(args)
             }
         }
+        delete this._priorities
     }
 
     public toJSON(humanize = false): any {
@@ -323,8 +306,13 @@ export class DataRequestPayload extends TransactionPayloadMultiSig<DataRequestPa
         if (target && Object.keys(target).length > 0) {
             if (!(
                 target
-                    && target?.fees
-                    && parseInt(target?.fees) > 0
+                    && (
+                        !target?.fees 
+                        || (
+                            target.fees instanceof Coins && (target.fees as Coins).pedros > 0 
+                            || Object.values(TransactionPriority).includes(target.fees)
+                        )
+                    )
                     && target?.witnesses
                     && (!this.template || target?.args)
             )) {
@@ -352,6 +340,40 @@ export class DataRequestPayload extends TransactionPayloadMultiSig<DataRequestPa
                 ].includes(key))
             )
         }
+    }
+
+    protected async _estimateNetworkFees(provider: IProvider, priority = TransactionPriority.Medium): Promise<Nanowits> {
+        if (!this._priorities) {
+            this._priorities = await provider.priorities()
+        }
+        return Math.floor(
+            this._priorities[`drt_${priority}`].priority * (
+                this.covered ? this.weight : (
+                    this.weight
+                    // estimate weight of one single output in case there was change to pay back
+                    + TX_WEIGHT_OUTPUT_SIZE 
+                )
+            )
+        );
+    }
+
+    protected _fees2UnitaryCommitRevealReward(fees: Nanowits, witnesses: number): Nanowits {
+        return Math.floor(fees / witnesses) || 1
+    }
+
+    protected _fees2UnitaryReward(fees: Nanowits): Nanowits {
+        return Math.max(
+            fees,
+            Math.ceil(DataRequestPayload.MIN_COLLATERAL / DataRequestPayload.COLLATERAL_RATIO)
+        );
+    }
+    protected _fees2Value(fees: Nanowits, witnesses: number): Nanowits {
+        return (
+            witnesses * (
+                this._fees2UnitaryReward(fees)
+                + 2 * this._fees2UnitaryCommitRevealReward(fees, witnesses)
+            )
+        );
     }
 
     protected _toDrOutputProtobuf(): any {

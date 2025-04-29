@@ -10,6 +10,7 @@ import {
     PublicKeyHashString, 
     RecoverableSignature, 
     TransactionParams, 
+    TransactionPriority,
 } from "../types"
 
 export type StakeDepositParams = TransactionParams & {
@@ -134,6 +135,13 @@ export class StakePayload extends TransactionPayloadMultiSig<StakeDepositParams>
             if (!(
                 target
                     && target?.authorization
+                    && (
+                        !target?.fees 
+                        || (
+                            target.fees instanceof Coins && (target.fees as Coins).pedros > 0 
+                            || Object.values(TransactionPriority).includes(target.fees)
+                        )
+                    )
                     && target?.value && (target.value as Coins).pedros > 0
                     && target?.withdrawer
             )) {
@@ -176,4 +184,21 @@ export class StakePayload extends TransactionPayloadMultiSig<StakeDepositParams>
             )
         }
     }
+
+    protected async _estimateNetworkFees(provider: IProvider, priority = TransactionPriority.Medium): Promise<Nanowits> {
+        if (!this._priorities) {
+            this._priorities = await provider.priorities()
+        }
+        return (
+            // todo: replace `vtt_` for `st_`
+            this._priorities[`vtt_${priority}`].priority * (
+                this.covered ? this.weight : this.weight
+                    // estimate one more input as to cover for network fees
+                    + TX_WEIGHT_INPUT_SIZE 
+                    // estimate weight of one single output in case there was change to pay back
+                    + TX_WEIGHT_OUTPUT_SIZE 
+            )
+        );
+    }
+
 }

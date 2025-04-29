@@ -7,6 +7,7 @@ export {
     Block, 
     BlockTransactionsHashes,
     Network,
+    Priorities as NetworkPriorities,
     QueryStakesOrder,
     StakeEntry,
     StakesOrderBy,

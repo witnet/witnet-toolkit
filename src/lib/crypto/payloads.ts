@@ -1,7 +1,7 @@
 import { Type as ProtoType, Root as ProtoRoot } from "protobufjs"
 const protoRoot = ProtoRoot.fromJSON(require("../../../witnet/witnet.proto.json"))
 
-import { Hash, Nanowits, UtxoMetadata, ValueTransferOutput } from "../types"
+import { Hash, Nanowits, NetworkPriorities, ValueTransferOutput } from "../types"
 import { toHexString } from "../utils"
 
 import { ILedger, IProvider, ITransactionPayload, ITransactionPayloadMultiSig } from "./interfaces"
@@ -13,6 +13,7 @@ export abstract class TransactionPayload<Specs> implements ITransactionPayload<S
     protected _change: Nanowits;
     protected _covered: Nanowits;
     protected _fees: Nanowits;
+    protected _priorities?: NetworkPriorities;
     protected _protoType: ProtoType;
     protected _target?: Specs;
     
@@ -87,6 +88,7 @@ export abstract class TransactionPayload<Specs> implements ITransactionPayload<S
     abstract get weight(): number;
 
     protected abstract _cleanTargetExtras(params?: any): any;
+    protected abstract _estimateNetworkFees(provider: IProvider, priority?: TransactionPriority): Promise<Nanowits>;
 }
 
 export abstract class TransactionPayloadMultiSig<Specs> 
@@ -197,6 +199,7 @@ export abstract class TransactionPayloadMultiSig<Specs>
         this._inputs = []
         this._outputs = []
         this._target = target
+        delete this._priorities
     }
 
     abstract toJSON(humanize: boolean): any;

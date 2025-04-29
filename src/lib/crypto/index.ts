@@ -8,6 +8,7 @@ export {
     TransactionReceipt,
     TransactionStatus,
     TransmissionError,
+    TransactionPriority,
     UtxoSelectionStrategy,
 } from "./types"
 

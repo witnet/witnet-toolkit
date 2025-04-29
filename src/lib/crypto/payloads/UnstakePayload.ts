@@ -2,7 +2,7 @@ import { Epoch, Nanowits, ValueTransferOutput } from "../../types"
 
 import { ILedger, IProvider } from "../interfaces"
 import { TransactionPayload } from "../payloads"
-import { PublicKeyHash, PublicKeyHashString, TransactionParams } from "../types"
+import { Coins, PublicKeyHash, PublicKeyHashString, TransactionParams, TransactionPriority } from "../types"
 
 
 export type StakeWithdrawalParams = TransactionParams & {
@@ -104,7 +104,7 @@ export class UnstakePayload extends TransactionPayload<StakeWithdrawalParams> {
 
     public toJSON(_humanize = false): any {
         return {
-            fee: this._target?.fees,
+            fee: this._fees,
             nonce: this._covered,
             operator: this._target?.validator,
             withdrawal: {
@@ -135,6 +135,13 @@ export class UnstakePayload extends TransactionPayload<StakeWithdrawalParams> {
         if (target && Object.keys(target).length > 0) {
             if (!(
                 target
+                    && (
+                        !target?.fees 
+                        || (
+                            target.fees instanceof Coins && (target.fees as Coins).pedros > 0 
+                            || Object.values(TransactionPriority).includes(target.fees)
+                        )
+                    )
                     && target?.value && (target.value as Coins).pedros > 0
                     && target?.validator
             )) {
@@ -161,5 +168,16 @@ export class UnstakePayload extends TransactionPayload<StakeWithdrawalParams> {
                 ].includes(key))
             )
         }
+    }
+
+    protected async _estimateNetworkFees(provider: IProvider, priority = TransactionPriority.Medium): Promise<Nanowits> {
+        if (!this._priorities) {
+            this._priorities = await provider.priorities()
+        }
+        return (
+            // todo: replace `vtt_` for `ut_`
+            this._priorities[`vtt_${priority}`].priority
+                * this.weight
+        );
     }
 }
