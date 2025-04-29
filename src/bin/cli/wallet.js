@@ -7,7 +7,7 @@ const helpers = require("../helpers");
 const { loadAssets } = require("./radon")
 
 const { whole_wits } = helpers
-const { bblue, bcyan, bgreen, cyan, gray, green, lcyan, lmagenta, lyellow, magenta, mcyan, mgreen, mmagenta, myellow, normal, yellow, white, } = helpers.colors
+const { bblue, bcyan, bgreen, cyan, gray, green, lcyan, lmagenta, lyellow, magenta, mcyan, mgreen, mmagenta, mred, myellow, red, yellow, white, } = helpers.colors
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /// CLI SUBMODULE CONSTANTS ===========================================================================================
@@ -210,97 +210,191 @@ module.exports = {
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /// CLI SUBMODULE COMMANDS ============================================================================================
 
-async function accounts(flags = {}, _args = [], options = {}){
-    const { coinbase, verbose } = flags
-    const { qrcode } = options
-    const wallet = await initializeWallet({ unlocked: options?.unlocked, limit: options?.limit, ...flags })
+async function accounts(flags = {}, args = [], options = {}) {
+    const { verbose } = flags
     
-    if (qrcode) {
-        if (wallet.accounts.length > 0) {
-            const account = wallet.accounts[wallet.accounts.length - 1]
-            qrcodes.generate(account.pkh)
-            console.info(`Wallet account #${wallet.accounts.length}: ${lmagenta(account.pkh)}\n`)
-
-        } else {
-            qrcodes.generate(wallet.coinbase.pkh)
-            console.info(`Wallet coinbase: ${lcyan(wallet.coinbase.pkh)}\n`)
-        }
-        
-    } else {
-        let records = []
-        // if (coinbase) {
-        //     records.push([ wallet.coinbase.pkh, await wallet.coinbase.countUtxos(), await wallet.coinbase.getBalance() ])
-        // } else {
-            records.push(
-                [ wallet.coinbase.pkh, await wallet.coinbase.countUtxos(), await wallet.coinbase.getBalance() ],
-                ...await Promise.all(
-                    wallet.accounts.map(async account => [ 
-                        account.pkh, 
-                        await account.countUtxos(), 
-                        await account.getBalance(),  
-                    ]),
-                )
-            )
-        // }
-        let unlocked = 0
-        helpers.traceTable(
-            records.map(([pkh, count, balance], index) => {
-                unlocked += balance.unlocked
-                return [
-                    index, // ...(coinbase ? [] : [ index + 1 ]),
-                    index === 0 // ...(verbose && !coinbase ? [ magenta(internal) ] : []),
-                        ? (balance.unlocked > 0 ? mcyan(pkh) : cyan(pkh)) 
-                        : (balance.unlocked > 0 ? mmagenta(pkh) : magenta(pkh)),
-                    
-                    count,
-                    ...(verbose
-                        ? [ 
-                            helpers.fromNanowits(balance.locked), 
-                            helpers.fromNanowits(balance.staked), 
-                            helpers.fromNanowits(balance.unlocked), 
-                            helpers.fromNanowits(balance.locked + balance.staked + balance.unlocked),
-                        ] : [
-                            helpers.fromNanowits(balance.unlocked), 
-                        ]
-                    ),
-                ]
-            }), {
-                headlines: [ 
-                    "INDEX", ":WALLET ACCOUNTS", // ...(coinbase ? [ "WALLET COINBASE" ] : ["INDEX", ":WALLET ACCOUNTS"]),
-                    "# UTXOs", 
-                    ...(verbose 
-                        ? [ "Locked ($WIT)", "Staked ($WIT)", "Unlocked ($WIT)", "BALANCE ($WIT)" ]
-                        : [ "Unlocked ($WIT)"]
-                    ),
-                ],
-                humanizers: [ 
-                    helpers.commas,, //...(coinbase ? [,] : [helpers.commas,,]),
-                    helpers.commas, helpers.commas, helpers.commas, helpers.commas, helpers.commas 
-                ],
-                colors: [ 
-                    ,, //...(coinbase ? [,] : [,,]),
-                    ...(verbose 
-                        ? [ white, gray, yellow, myellow, lyellow ]
-                        : [ white, myellow ]
-                    ),
-                ],
-                maxColumnWidth: 48,
+    let wallet
+    if (args.length === 0) wallet = await _loadWallet({ 
+        ...flags, 
+        limit: options?.limit || (options['no-funds'] && 10),
+        'no-funds': options['no-funds']
+    });
+    else {
+        wallet = await _loadWallet({ provider: flags?.provider, limit: 1 })
+        args.forEach(pkh => {
+            if (!wallet.getSigner(pkh)) {
+                throw `Input address ${pkh} doesn't belong to the wallet.`
             }
-        )
-        if (verbose/* && !coinbase && wallet.accounts.length > 1*/) {
-            console.info(`^ Unlocked balance: ${myellow(whole_wits(unlocked, 2))}`)
-        }
+        })
     }
+
+    if (options?.qrcode) {
+        if (args.length > 0) {
+            accounts = wallet.accounts.filter(account => args.includes(account.pkh))
+        } else {
+            accounts = wallet.accounts
+        }
+        accounts.forEach(account =>{
+            qrcodes.generate(account.pkh)
+            console.info(`Wallet account #${account.index + 1}: ${lmagenta(account.pkh)}\n`)
+        })
+        return
+    } 
+    
+    const coinbaseWithdrawers = await wallet.coinbase.getWithdrawers()
+    const coinbaseBalance = await wallet.coinbase.getBalance()
+    const coinbaseColor = utils.totalBalance(coinbaseBalance) > 0 ? mred : (coinbaseWithdrawers.length > 0 ? mcyan : cyan)
+    const coinbase = coinbaseWithdrawers.length > 0 || utils.totalBalance(coinbaseBalance) > 0
+    
+    let records = []
+
+    if (coinbase) {
+        const coinbaseUtxos = await wallet.coinbase.getUtxos()
+        records.push([ 0, coinbaseColor(wallet.coinbase.pkh), coinbaseUtxos.length, coinbaseBalance ])
+    } 
+    records.push(
+        ...await Promise.all(
+            wallet.accounts.map(async account => {
+                const balance = await account.getBalance()
+                const utxos = await account.getUtxos()
+                return [ 
+                    account.index + 1,
+                    balance.unlocked > 0 ? mmagenta(account.pkh) : magenta(account.pkh), 
+                    utxos.length, 
+                    balance,
+                ]
+            }),
+        )
+    )
+
+    let unlocked = 0
+    helpers.traceTable(
+        records.map(([index, pkh, count, balance]) => {
+            unlocked += balance.unlocked
+            return [
+                index,
+                pkh, 
+                count,
+                ...(verbose
+                    ? [ 
+                        helpers.fromNanowits(balance.locked), 
+                        helpers.fromNanowits(balance.staked), 
+                        helpers.fromNanowits(balance.unlocked), 
+                        helpers.fromNanowits(balance.locked + balance.staked + balance.unlocked),
+                    ] : [
+                        helpers.fromNanowits(balance.unlocked), 
+                    ]
+                ),
+            ]
+        }), {
+            headlines: [ 
+                "INDEX", ":WALLET ACCOUNTS", // ...(coinbase ? [ "WALLET COINBASE" ] : ["INDEX", ":WALLET ACCOUNTS"]),
+                "# UTXOs", 
+                ...(verbose 
+                    ? [ "Locked ($WIT)", "Staked ($WIT)", "Available ($WIT)", "BALANCE ($WIT)" ]
+                    : [ "Available ($WIT)"]
+                ),
+            ],
+            humanizers: [ 
+                helpers.commas,, //...(coinbase ? [,] : [helpers.commas,,]),
+                helpers.commas, helpers.commas, helpers.commas, helpers.commas, helpers.commas 
+            ],
+            colors: [ 
+                ,, //...(coinbase ? [,] : [,,]),
+                ...(verbose 
+                    ? [ white, gray, yellow, myellow, lyellow ]
+                    : [ white, myellow ]
+                ),
+            ],
+            maxColumnWidth: 48,
+        }
+    )
+    console.info(`^ Available balance: ${myellow(whole_wits(unlocked, 2))}`)
 }
 
-async function authorize(flags = {}, [withdrawer]) {
-    const wallet = await initializeWallet({ coinbase: true, ...flags })
-    withdrawer = flags?.coinbase ? wallet.coinbase.pkh : withdrawer
-    const authcode = wallet.coinbase.authorizeStake(withdrawer)
-    console.info("Validator address: ", mcyan(wallet.coinbase.pkh))
-    console.info("Withdrawer address:", mmagenta(withdrawer))
-    qrcodes.generate(authcode)
-    console.info(`${white(authcode)}`)
+async function coinbase(flags = {}, _args = [], options = {}) {
+    const masterWallet = await _loadWallet({ ...flags })
+    let wallet
+    if (options['node-master-key']) {
+        utils.parseXprv(options['node-master-key']);
+        wallet = await _loadWallet({ provider: flags?.provider, limit: 1, xprv: options['node-master-key'] })
+    } else {
+        wallet = masterWallet
+    }
+
+    const coinbaseColor = utils.totalBalance(await wallet.coinbase.getBalance()) > 0 ? mred: lcyan
+    console.info(`> ${options['node-master-key'] ? "Coinbase ": "Wallet's coinbase"} address: ${coinbaseColor(wallet.coinbase.pkh)}`)
+    
+    if (options?.authorize) {
+        const withdrawer = options.authorize
+        const authcode = wallet.coinbase.authorizeStake(withdrawer)
+        qrcodes.generate(authcode)
+        console.info(`${white(authcode)}`)
+        console.info("^ Withdrawer address:", mmagenta(withdrawer))
+
+    } else {
+        const records = await wallet.coinbase.getWithdrawers({ by: Witnet.StakesOrderBy.Coins, reverse: true })
+        if (records.length > 0) {
+            const { verbose } = flags
+            let staked = 0
+            helpers.traceTable(
+                records.map((record, index) => {
+                    staked += record.value.coins
+                    const withdrawer = (record.key.withdrawer === wallet.coinbase.pkh || record.key.withdrawer === masterWallet.coinbase.PublicKeyHash
+                            ? (record.value.epochs.witnessing > record.value.nonce || record.value.epochs.mining > record.value.nonce
+                                ? mred(record.key.withdrawer)
+                                : red(record.key.withdrawer)
+                            ) : (record.value.epochs.witnessing > record.value.nonce || record.value.epochs.mining > record.value.nonce
+                                ? (masterWallet.getSigner(record.key.withdrawer) ? mgreen(record.key.withdrawer) : mmagenta(record.key.withdrawer))
+                                : (masterWallet.getSigner(record.key.withdrawer) ? green(record.key.withdrawer) : magenta(record.key.withdrawer))
+                            )
+                    );
+                    const nonce = (record.value.epochs.witnessing > record.value.nonce || record.value.epochs.mining > record.value.nonce
+                        ? record.value.nonce 
+                        : gray(record.value.nonce || "")
+                    );
+                    return [
+                        index + 1,
+                        withdrawer,
+                        nonce, 
+                        ...(verbose
+                            ? [ record.value.epochs.witnessing || "", record.value.epochs.mining || "" ]
+                            : [ ]
+                        ),
+                        yellow(helpers.fromNanowits(record.value.coins)),
+                    ]
+                }), {
+                    headlines: [
+                        "RANK",
+                        "STAKE WITHDRAWERS",
+                        ...(verbose
+                            ? [ "Nonce", "LW_Epoch", "LM_Epoch" ]
+                            : [ "Nonce" ]
+                        ),
+                        "STAKED ($WIT)"
+                    ],
+                    humanizers: [
+                        ,, ...(verbose
+                            ? [ helpers.commas, helpers.commas, helpers.commas ]
+                            : [ helpers.commas ]
+                        ),
+                        helpers.commas,
+                    ],
+                    colors: [ 
+                        ,,, ...(verbose
+                            ? [ magenta, cyan, myellow, ]
+                            : [ myellow, ]
+                        )
+                    ],
+                }
+            );
+            console.info(`^ Total stake: ${myellow(whole_wits(staked, 2))}`)
+            
+        } else {
+            console.info(`> Holds no delegated stake.`)
+            return
+        }
+    }
 }
 
 async function decipher() {
@@ -320,86 +414,87 @@ async function decipher() {
 }
 
 async function provider(flags = {}) {
-    const wallet = await initializeWallet({ unlocked: true, limit: 1, ...flags })
+    const wallet = await _loadWallet({ unlocked: true, limit: 1, ...flags })
     wallet.provider.endpoints.forEach(url => {
         console.info(helpers.colors.magenta(url))
     })
 }
 
-async function resolve(flags = {}, [pattern, ...args], options ={}) {
-    const { dryrun, verbose } = flags
-    const wallet = await initializeWallet({ unlocked: true, limit: 1, ...flags })
+async function resolve(flags = {}, [pattern, ...args], options = {}) {
+    const wallet = await _loadWallet({ ...flags })
     const account = (
         options?.from 
-            ? (options.from === wallet.coinbase.pkh ? wallet.coinbase : wallet.findAccount(options.from))
+            ? (options.from === wallet.coinbase.pkh ? wallet.coinbase : wallet.getAccount(options.from))
             : wallet.accounts[0]
     );
     if (!account) {
         throw "--from address not found in wallet."
     }
-    
-    const request = await loadRadonRequest(args, { legacy: options?.legacy, pattern })
-    
-    const confirmations = flags?.confirmations ? parseInt(flags?.confirmations) : (flags?.await ? 0 : undefined)
-    const fees = utils.fromWits(options?.fees || 0.5) // 0.5 Wits as default fees
-    const witnesses = parseInt(options?.witnesses || 3)
-
+    const request = await _loadRadonRequest(args, { legacy: options?.legacy, pattern })
     await helpers.traceTransaction(
         Witnet.DataRequests.from(account, request), {
-            confirmations, dryrun, headline: `DATA REQUEST TRANSACTION`, verbose, color: bgreen, 
-            fees, witnesses,
+            headline: `DATA REQUEST TRANSACTION`, color: bgreen, 
+            ...await _loadTransactionParams(flags, options),
         }
     )
 }
 
 async function stake(flags = {}, [authorization], options = {}) {
+    
     if (!authorization) {
         throw "No authorization code was provided."
     } else if (!options?.value) {
         throw "No --value was specified."
     }
-    const { dryrun, verbose } = flags
-    const confirmations = flags?.confirmations ? parseInt(flags?.confirmations) : (flags?.await ? 0 : undefined)
-    const wallet = await initializeWallet({ unlocked: true, limit: 1, ...flags })
 
+    const wallet = await _loadWallet({ ...flags, "no-funds": options?.from !== undefined })
     const account = (
         options?.from 
-            ? (options.from === wallet.coinbase.pkh ? wallet.coinbase : wallet.findAccount(options.from))
+            ? (options.from === wallet.coinbase.pkh ? wallet.coinbase : wallet.getAccount(options.from))
             : wallet.accounts[0]
     );
     if (!account) {
         throw "--from address not found in wallet."
     }
 
-    const fees = utils.fromWits(options?.fees || 0.000001) // 1 microWit as default fee
-    const value = options.value.toLowerCase() === 'all' ? (await account.getBalance()).unlocked - fees : utils.fromWits(options.value)
-
+    const { force, verbose } = flags
+    const confirmations = flags?.confirmations ? parseInt(flags?.confirmations) : (flags?.await ? 0 : undefined)
+    const fees = options?.fees ? utils.fromWits(options.fees) : undefined 
+    if (fees === undefined && options.value.toLowerCase() === 'all') {
+        throw "--fees must be specified if value is `all`."
+    }
+    const value = (options.value.toLowerCase() === 'all'
+        ? Witnet.Value.fromPedros((await account.getBalance()).unlocked - fees)
+        : Witnet.Value.fromWits(options.value)
+    )
     await helpers.traceTransaction(
         Witnet.StakeDeposits.from(account), {
-            confirmations, dryrun, headline: `STAKE DEPOSIT TRANSACTION`, verbose, color: bcyan, 
+            confirmations, force, headline: `STAKE DEPOSIT TRANSACTION`, verbose, color: bcyan, 
             authorization, fees, value, withdrawer: account.pkh,
         }
     )
 }
 
 async function transfer(flags, args = [], options = {}) {
+
     if (args.length === 0) {
         throw "No recipient address was specified."
     } else if (!options?.value) {
         throw "No transfer value was specified."
     }
-    const { coinbase, dryrun, verbose } = flags
-    const confirmations = flags?.confirmations ? parseInt(flags?.confirmations) : (flags?.await ? 0 : undefined)
-    const wallet = await initializeWallet({ unlocked: true, limit: 1, ...flags })
     
-    const account = coinbase 
-        ? wallet.coinbase
-        : (options?.from ? wallet.findAccount(options.from) : wallet.accounts[0])
-    
+    const wallet = await _loadWallet({ unlocked: true, limit: 1, ...flags })
+    const account = (
+        options?.from 
+            ? (options.from === wallet.coinbase.pkh ? wallet.coinbase : wallet.getAccount(options.from))
+            : wallet.accounts[0]
+    );
     if (!account) {
         throw "--from address not found in wallet."
     }
 
+    const { dryrun, verbose } = flags
+    const confirmations = flags?.confirmations ? parseInt(flags?.confirmations) : (flags?.await ? 0 : undefined)
     const fees = utils.fromWits(options?.fees || 0.000001) // 1 microWit as default fee
     const value = options.value.toLowerCase() === 'all' ? (await account.getBalance()).unlocked - fees : utils.fromWits(options.value)
     const recipients = [[ Witnet.PublicKeyHash.fromBech32(args[0]).toBech32(wallet.network), value ]]
@@ -413,24 +508,26 @@ async function transfer(flags, args = [], options = {}) {
 }
 
 async function unstake(flags, [validator], options = {}) {
+
     if (!options.value) {
         throw "No --value was specified."
     } else if (!flags?.coinbase && !options?.into) {
         throw "No --into was specified."
     }
+    
     Witnet.PublicKeyHash.fromBech32(validator)
-    const { coinbase, dryrun, verbose } = flags
-    const confirmations = flags?.confirmations ? parseInt(flags?.confirmations) : (flags?.await ? 0 : undefined)
-    const wallet = await initializeWallet({ unlocked: true, limit: 1, ...flags })
-
-    const account = coinbase
-        ? wallet.coinbase
-        : (options?.into ? wallet.findAccount(options.into) : wallet.accounts[0])
-
+    const wallet = await _loadWallet({ ...flags })
+    const account = (
+        options?.from 
+            ? (options.from === wallet.coinbase.pkh ? wallet.coinbase : wallet.getAccount(options.from))
+            : wallet.accounts[0]
+    );
     if (!account) {
         throw "--into address not found in wallet."
     }
 
+    const { dryrun, verbose } = flags
+    const confirmations = flags?.confirmations ? parseInt(flags?.confirmations) : (flags?.await ? 0 : undefined)
     const fees = utils.fromWits(options?.fees || 0.000001) // 1 microWit as default fee
     const value = utils.fromWits(options.value) // options.value.toLowerCase() === 'all' ? (await account.getStakedOn(validator)) - fees : utils.fromWits(options.value)
 
@@ -443,34 +540,49 @@ async function unstake(flags, [validator], options = {}) {
 }
 
 async function utxos(flags, [from, ], options = {}) {
-    const { dryrun, verbose } = flags
-    const wallet = await initializeWallet({ unlocked: true, limit: 1, ...flags })
+    
+    const wallet = await _loadWallet({ ...flags })
+
+    // determine from account
     const account = (
         from
-            ? (from === wallet.coinbase.pkh ? wallet.coinbase : wallet.findAccount(from))
+            ? (from === wallet.coinbase.pkh ? wallet.coinbase : wallet.getAccount(from))
             : ((await wallet.coinbase.getBalance()).unlocked > 0 ? wallet.coinbase : wallet.accounts[0])
     )
     if (!account)  {
-        throw `Address ${from} does not belong to the wallet.`
-    } else {
-        from = account.pkh
-    }
-    const coinbase = account.pkh === wallet.coinbase.pkh
-
-    // query total unlocked
-    let totalUnlocked = 0
-    if (coinbase) {
-        totalUnlocked = (await wallet.coinbase.getBalance()).unlocked
-    } else {
-        totalUnlocked = (await account.getBalance()).unlocked
+        throw `Address ${from} doesn't belong to the wallet.`
     }
 
-    // extract confirmations and fees from CLI 
+    const accountBalance = await account.getBalance()
+    const coinbaseBalance = await wallet.coinbase.getBalance()
+    const walletBalance = await wallet.getBalance()
+
+    // determine into address
+    let into = options?.into
+    if (into) {
+        if (into !== from && !wallet.getAccount(into) && into !== wallet.coinbase.pkh) {
+            const prompt = inquirer.createPromptModule()
+            const user = await prompt([{ 
+                message: `Into-account ${into} doesn't belong to the wallet. Proceed anyway?`, 
+                name: "continue", 
+                type: "input", 
+            }])
+            if (!user.continue.toLowerCase().startsWith("y")) {
+                throw `Into-account ${into} not found in wallet.`
+            }
+        }
+    } else {
+        into = account.pkh
+    }
+
+    // extract CLI flags
+    const { dryrun, verbose } = flags
     const confirmations = flags?.confirmations ? parseInt(flags.confirmations) : (flags?.await ? 0 : (options?.join && options?.split ? 0 : undefined))
     const fees = utils.fromWits(options?.fees || 0.000001) // 1 microWit as default fee
 
     // extract target value, if any, from CLI
     let targetValue = 0
+    let totalUnlocked = from ? accountBalance.unlocked : walletBalance.unlocked + coinbaseBalance.unlocked
     if (options?.value) {
         if (options.value.toLowerCase() === 'all') {
             targetValue = totalUnlocked - fees
@@ -480,38 +592,10 @@ async function utxos(flags, [from, ], options = {}) {
         }
     }
 
-    // select utxos based on selected strategy, and target value (which might be relevant on some strategies)
-    let utxos = []
-    if (coinbase) {
-        // from = wallet.coinbase.pkh
-        utxos = (await wallet.coinbase.selectUtxos({ cover: targetValue })).map(utxo => ({ pkh: mcyan(from), ...utxo }))
-        
-    } else {
-        // from = account.pkh
-        let intPkh = account.internal.pkh
-        utxos = [
-            ...(await account.internal.selectUtxos({ cover: targetValue })).map(utxo => ({ pkh: magenta(intPkh), internal: true, ...utxo })),
-            ...(await account.external.selectUtxos({ cover: targetValue })).map(utxo => ({ pkh: mmagenta(from), ...utxo }))
-        ]
-    }
-
-    // determine into address, other than from, if specified
-    const into = options?.into
-    if (into) {
-        if (into !== from && !wallet.findAccount(into) && into !== wallet.coinbase.pkh) {
-            const prompt = inquirer.createPromptModule()
-            const user = await prompt([{ 
-                message: `Into-account ${into} does not belong to the wallet. Proceed anyway?`, 
-                name: "continue", 
-                type: "input", 
-            }])
-            if (!user.continue.toLowerCase().startsWith("y")) {
-                throw `Into-account ${into} not found in wallet.`
-            }
-        }
-    }
+    // select utxos of either the from account (if specified) or from all funded accounts in the wallet (including the coinbase)
+    const utxos = await helpers.prompter(from ? account.selectUtxos({ value: targetValue }) : wallet.selectUtxos({ value: targetValue }))
     
-    // select actual utxos to operate with:
+    // verify that selected utxos actually cover the target value (if specified):
     let coveredValue = 0
     if (targetValue > 0) {
         let targetIndex = 0
@@ -519,7 +603,7 @@ async function utxos(flags, [from, ], options = {}) {
             coveredValue += utxos[targetIndex].value
         }
         if (coveredValue < targetValue + fees) {
-            throw `Not enough unlocked UTXOs on ${coinbase ? mcyan(from) : mmagenta(from)} (${whole_wits(coveredValue)} < ${myellow(whole_wits(targetValue + fees))}.`
+            throw `Not enough unlocked UTXOs on ${from ? `account ${account.pkh}` : `wallet ${wallet.pkh}`}: ${whole_wits(coveredValue)} < ${whole_wits(targetValue + fees)}.`
         } else {
             utxos.splice(targetIndex)
         }
@@ -533,32 +617,31 @@ async function utxos(flags, [from, ], options = {}) {
             helpers.traceTable(
                 utxos.map((utxo, index) => [
                     index + 1,
+                    utxo.signer === wallet.coinbase.pkh ? mcyan(utxo.signer) : mmagenta(utxo.signer),
                     utxo?.internal ? green(utxo.output_pointer) : mgreen(utxo.output_pointer),
                     utxo.value
                 ]), {
-                    headlines: [ "INDEX", ":Unlocked UTXOs", "Value ($nanoWIT)", ],
-                    humanizers: [ helpers.commas,, helpers.commas ],
-                    colors: [ ,, myellow, ]
+                    headlines: [ "INDEX", "WALLET ADDRESS", ":Unlocked UTXO pointers", "Value ($nanoWIT)", ],
+                    humanizers: [ helpers.commas,,, helpers.commas ],
+                    colors: [ ,,, myellow, ]
                 }
             )
-            if (coinbase) {
-                console.info(`^ Wallet coinbase: ${mcyan(from)}`)
-            } else {
-                console.info(`^ Wallet account: ${mmagenta(from)}`)
-            }
         }
 
-        const valueTransfer = coinbase
-            ? Witnet.ValueTransfers.from(wallet.coinbase) 
-            : Witnet.ValueTransfers.from(wallet.findAccount(from))
+        const valueTransfer = from ? Witnet.ValueTransfers.from(account) : Witnet.ValueTransfers.from(wallet)
         
         if (options?.join) {
             if (!options?.value) {
                 throw `--value must be specified for a JOIN operation.`
             }
-            const recipients = [[ options?.split ? from : (into || from), targetValue ]]
+            const recipients = [[ 
+                // if a split is expected, join utxos into default `account`, so they can then be reused afterwards
+                options?.split ? account.pkh : into, 
+                targetValue 
+            ]]
             await helpers.traceTransaction(valueTransfer, { 
-                confirmations, dryrun, verbose, headline: `JOINING UTXOs: ${utxos.length} -> ${targetValue < coveredValue ? 2 : 1}` ,
+                confirmations, dryrun, verbose, 
+                headline: `JOINING UTXOs: ${utxos.length} -> ${targetValue < coveredValue ? 2 : 1}` ,
                 fees, recipients,
             })
         }
@@ -572,37 +655,39 @@ async function utxos(flags, [from, ], options = {}) {
                 throw "Sorry, not possible to split into more than 50 UTXOs."
             }
             const splitBalance = Math.floor(targetValue / splits)
-            recipients.push(...Array(splits).fill([ into || from, splitBalance ])) 
-            await helpers.traceTransaction(valueTransfer, {
-                confirmations, dryrun, verbose, 
-                headline: `SPLITTING UTXOs: ${utxos.length} -> ${splitBalance * splits < coveredValue ? splits + 1 : splits}`,
-                fees, recipients,
+            recipients.push(...Array(splits).fill([ into, splitBalance ])) 
+            await helpers.traceTransaction(
+                valueTransfer, {
+                    confirmations, dryrun, verbose, 
+                    headline: `SPLITTING UTXOs: ${utxos.length} -> ${splitBalance * splits < coveredValue ? splits + 1 : splits}`,
+                    fees, recipients, 
+                    reload: options?.join,
             })
         }
 
     } else {
-        console.info(`> No unlocked UTXOs on ${coinbase ? mcyan(from) : mmagenta(from)} at the moment.`)
+        console.info(`> No available UTXOs at the moment.`)
     }
 }
 
-async function validators(flags = {}, [], options = {}) {
-    const { coinbase, verbose } = flags
-    const wallet = await initializeWallet({ unlocked: options?.unlocked, limit: options?.limit, ...flags })
+async function validators(flags = {}, []) {
+    
+    const { verbose } = flags
+    const wallet = await _loadWallet({ ...flags })
     const order = { by: Witnet.StakesOrderBy.Coins, reverse: true }
-    let records, staked = 0
-    if (coinbase) {
-        records = await wallet.coinbase.getDelegates(order)
-    } else {
-        records = await wallet.getDelegates(order)
-    }
+
+    const coinbaseBalance = await wallet.coinbase.getBalance()
+    const coinbase = coinbaseBalance.staked > 0
+
+    const records = await wallet.getDelegatees(order, true)
     if (records.length > 0) {
+        let staked = 0
         helpers.traceTable(
-            records.map((record, index) => {
+            records.map(record => {
                 staked += record.value.coins
                 return [
-                    // 1 + index,
                     record.key.withdrawer === wallet.coinbase.pkh
-                        ? (record.key.validator !== "" ? mcyan(record.key.withdrawer) : cyan(record.key.withdrawer))
+                        ? mred(record.key.withdrawer)
                         : (record.key.validator !== "" ? mmagenta(record.key.withdrawer) : magenta(record.key.withdrawer)),
                     ...(record.value.epochs.witnessing > record.value.nonce || record.value.epochs.mining > record.value.nonce
                         ? [ mcyan(record.key.validator), record.value.nonce ]
@@ -618,7 +703,7 @@ async function validators(flags = {}, [], options = {}) {
                 headlines: [
                     // "INDEX",
                     coinbase ? "WALLET COINBASE" : "WALLET ACCOUNTS",
-                    "DELEGATED STAKE OPERATORS",
+                    "STAKE DELEGATEES",
                     ...(verbose
                         ? [ "Nonce", "LW_Epoch", "LM_Epoch" ]
                         : [ "Nonce" ]
@@ -640,11 +725,10 @@ async function validators(flags = {}, [], options = {}) {
                 ],
             }
         )
-        if (verbose) {
-            console.info(`^ Delegated stake: ${myellow(whole_wits(staked, 2))}`)
-        }
+        console.info(`^ Total deposit: ${myellow(whole_wits(staked, 2))}`)
+        
     } else {
-        console.info(`> No validators found.`)
+        console.info(`> No delegatees found.`)
     }
 }
 
@@ -652,7 +736,7 @@ async function validators(flags = {}, [], options = {}) {
 /// ===================================================================================================================
 /// --- Internal functions --------------------------------------------------------------------------------------------
 
-async function loadRadonRequest(args = [], options = {}) {    
+async function _loadRadonRequest(args = [], options = {}) {    
   
     // TODO:
     // if (options?.pattern && typeof options.pattern === 'string' && utils.isHexString(options.pattern)) {
@@ -663,7 +747,7 @@ async function loadRadonRequest(args = [], options = {}) {
     //     } catch {
     //         throw `Invalid RADON_BYTECODE.`
     //     }
-    // }   
+    // }
     
     // load Radon assets from environment
     let assets = utils.searchRadonAssets(
@@ -695,10 +779,9 @@ async function loadRadonRequest(args = [], options = {}) {
         }
 
     } else if (Object.keys(assets).length > 1) {
-        const prompt = inquirer.createPromptModule()
-        const user = await prompt([{ 
+        const user = await inquirer.createPromptModule()([{
             choices: assets.map(([key,]) => key),
-            message: "Please, select one Radon asset:", 
+            message: "Please, select a Radon asset:", 
             name: "key", 
             type: "list", 
             pageSize: 24,
@@ -766,6 +849,46 @@ async function loadRadonRequest(args = [], options = {}) {
     return artifact
 }
 
+async function _loadTransactionParams(flags = {}, options = {}) {
+    const confirmations = flags?.confirmations ? parseInt(flags?.confirmations) : (flags?.await ? 0 : undefined)
+    let fees = options?.fees ? Witnet.Value.fromWits(options.fees) : undefined 
+    if (fees === undefined) {
+        if (options?.value?.toLowerCase() === 'all') {
+            throw "--fees must be specified if value is `all`."
+        }
+        let priority = (flags?.priority 
+            ? Witnet.TransactionPriority[flags.priority.charAt(0).toUpperCase() + flags.priority.slice(1)] 
+            : undefined
+        );
+        if (!priority) {
+            const priorities = {
+                "< 60 seconds": Witnet.TransactionPriority.Opulent,
+                "< 5 minutes": Witnet.TransactionPriority.High,
+                "< 15 minutes": Witnet.TransactionPriority.Medium,
+                "< 1 hour": Witnet.TransactionPriority.Low,
+                "< 6 hours": Witnet.TransactionPriority.Stingy
+            }
+            const user = await inquirer.createPromptModule()([{ 
+                choices: Object.keys(priorities),
+                message: "Please, select time to block expectancy:", 
+                name: "priority", 
+                type: "list", 
+            }]);
+            priority = user.priority
+        }
+        fees = Witnet.TransactionPriority[priority]
+    }
+    const witnesses = flags?.witnesses ? parseInt(flags?.witnesses) : 3
+    return {
+        confirmations,
+        fees,
+        force: flags?.force,
+        verbose: flags?.verbose, 
+        witnesses,
+    }
+}
+
+async function _loadWallet(flags = {}) {
     if (!process.env.WITNET_SDK_WALLET_MASTER_KEY) {
         throw "No WITNET_SDK_WALLET_MASTER_KEY is settled in environment."
     } else {
@@ -779,24 +902,25 @@ async function loadRadonRequest(args = [], options = {}) {
         if (flags?.strategy && !strategies[flags.strategy]) {
             throw `Unrecognised UTXO selection strategy "${flags.strategy}"`
         }
-        const strategy = strategies[flags?.strategy || 'small-first'] || Witnet.UtxoSelectionStrategy.SmallFirst
-        const gap = flags['gap'] || 32
+        const strategy = strategies[flags?.strategy || 'slim-fit'] || Witnet.UtxoSelectionStrategy.SlimFit
+        const gap = flags['gap'] || 10
         let wallet, xprv = flags?.xprv || process.env.WITNET_SDK_WALLET_MASTER_KEY
         if (xprv.length === 293) {
             const prompt = inquirer.createPromptModule()
             const user = await prompt([{ type: "password", mask: "*", message: "Enter password:", name: "passwd"}])
-            wallet = await Witnet.Wallet.fromEncryptedXprv(xprv, user.passwd, { 
+            wallet = Witnet.Wallet.fromEncryptedXprv(xprv, user.passwd, {
                 gap, provider, strategy,
                 limit: flags?.limit,
-                unlocked: flags?.unlocked, 
+                onlyWithFunds: !flags['no-funds'],
             })
         } else {
-            wallet = await Witnet.Wallet.fromXprv(xprv, {
+            wallet = Witnet.Wallet.fromXprv(xprv, {
                 gap, provider, strategy, 
-                limit: flags?.limit || 1,
-                unlocked: flags?.unlocked,
+                limit: flags?.limit,
+                onlyWithFunds: !flags?.limit, 
             })
         }
-        return wallet
+        
+        return flags?.limit ? await wallet : await helpers.prompter(wallet)
     }
 }
