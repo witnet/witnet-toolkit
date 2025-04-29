@@ -87,10 +87,8 @@ module.exports = {
             },
         },
     },
-    gamefi: {
-        WitOracleRequestRandomness: new RadonRequest({
-            sources: retrievals.RNG(),
-            witnessReducer: reducers.ConcatHash(),
-        }),
-    },
+    WitOracleRequestRandomness: new RadonRequest({
+        sources: retrievals.RNG(),
+        witnessReducer: reducers.ConcatHash(),
+    }),
 };
