@@ -12,7 +12,7 @@ const { cyan, gray, green, lyellow, magenta, mcyan, mgreen, mmagenta, myellow, y
 
 module.exports = {
     envars: {
-        WITNET_TOOLKIT_PROVIDER_URL: "=> Wit/Oracle RPC provider(s) to connect to, if no otherwise specified."
+        WITNET_SDK_PROVIDER_URL: "=> Wit/Oracle RPC provider(s) to connect to, if no otherwise specified."
     },
     flags: {
         provider: {

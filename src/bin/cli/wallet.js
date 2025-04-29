@@ -14,8 +14,8 @@ const { bblue, bcyan, bgreen, cyan, gray, green, lcyan, lmagenta, lyellow, magen
 
 module.exports = {
     envars: {
-        WITNET_TOOLKIT_MASTER_KEY: "=> Wallet's master key in XPRV format, as exported from either a node, Sheikah or myWitWallet.",
-        WITNET_TOOLKIT_PROVIDER_URL: "=> Wit/Oracle RPC provider(s) to connect to, if no otherwise specified."
+        WITNET_SDK_PROVIDER_URL: "=> Wit/Oracle RPC provider(s) to connect to, if no otherwise specified.",
+        WITNET_SDK_WALLET_MASTER_KEY: "=> Wallet's master key in XPRV format, as exported from either a node, Sheikah or myWitWallet.",
     },
     flags: {
         await: {
@@ -755,9 +755,8 @@ async function loadRadonRequest(args = [], options = {}) {
     return artifact
 }
 
-async function initializeWallet(flags = {}) {
-    if (!process.env.WITNET_TOOLKIT_MASTER_KEY) {
-        throw "No master key is settled in environment."
+    if (!process.env.WITNET_SDK_WALLET_MASTER_KEY) {
+        throw "No WITNET_SDK_WALLET_MASTER_KEY is settled in environment."
     } else {
         const provider = new Witnet.Provider(flags?.provider)
         const strategies = {
@@ -771,7 +770,7 @@ async function initializeWallet(flags = {}) {
         }
         const strategy = strategies[flags?.strategy || 'small-first'] || Witnet.UtxoSelectionStrategy.SmallFirst
         const gap = flags['gap'] || 32
-        let wallet, xprv = process.env.WITNET_TOOLKIT_MASTER_KEY
+        let wallet, xprv = flags?.xprv || process.env.WITNET_SDK_WALLET_MASTER_KEY
         if (xprv.length === 293) {
             const prompt = inquirer.createPromptModule()
             const user = await prompt([{ type: "password", mask: "*", message: "Enter password:", name: "passwd"}])
