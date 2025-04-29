@@ -310,6 +310,16 @@ export type Priorities = {
     drt_medium: PriorityEstimate;
     drt_high: PriorityEstimate;
     drt_opulent: PriorityEstimate;
+    st_stinky: PriorityEstimate;
+    st_low: PriorityEstimate;
+    st_medium: PriorityEstimate;
+    st_high: PriorityEstimate;
+    st_opulent: PriorityEstimate;
+    ut_stinky: PriorityEstimate;
+    ut_low: PriorityEstimate;
+    ut_medium: PriorityEstimate;
+    ut_high: PriorityEstimate;
+    ut_opulent: PriorityEstimate;
     vtt_stinky: PriorityEstimate;
     vtt_low: PriorityEstimate;
     vtt_medium: PriorityEstimate;
