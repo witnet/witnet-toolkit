@@ -11,6 +11,7 @@ import {
 } from "../types"
 
 import { 
+    Coins,
     KeyedSignature,
     PublicKey, 
     PublicKeyHashString,
@@ -89,14 +90,14 @@ export interface ITransmitter {
 }
 
 export interface ITransactionPayload<Specs> extends IHashable {
-    change?: Nanowits
+    change?: Coins
     covered: boolean
-    fees: Nanowits
+    fees?: Coins
     maxWeight: number
     prepared: boolean
     outputs: Array<ValueTransferOutput>
     target?: Specs
-    value: Nanowits
+    value?: Coins
     weight: number
     consumeUtxos(ledger: ILedger, params?: any): any
     intoReceipt(target: Specs, network?: Network): any

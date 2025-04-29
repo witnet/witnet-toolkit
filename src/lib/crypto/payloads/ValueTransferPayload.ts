@@ -5,7 +5,7 @@ import { TransactionPayloadMultiSig } from "../payloads"
 import { PublicKeyHash, PublicKeyHashString, TransactionParams } from "../types"
 
 export type ValueTransferParams = TransactionParams & {
-    recipients: Array<[pkh: PublicKeyHashString, value: Nanowits]>,
+    recipients: Array<[pkh: PublicKeyHashString, value: Coins]>,
     timelock?: number,
 }
 
@@ -25,8 +25,8 @@ export class ValueTransferPayload extends TransactionPayloadMultiSig<ValueTransf
         return ValueTransferPayload.MAX_WEIGHT
     }
 
-    public get value(): Nanowits {
-        return this._target?.recipients.reduce((prev, [,curr]) => prev + curr, 0) || 0
+    public get value(): Coins {
+        return Coins.fromNanowits(this._target?.recipients.reduce((prev, [,curr]) => prev + curr.pedros, 0) || 0)
     }
 
     public get weight(): number {
@@ -36,11 +36,11 @@ export class ValueTransferPayload extends TransactionPayloadMultiSig<ValueTransf
         );
     }
 
-    public prepareOutputs(change?: { value: Nanowits, sender: PublicKeyHashString }): any {
+    public prepareOutputs(change?: { value: Nanowits, pkh: PublicKeyHashString }): any {
         if (this._target && this._outputs.length === 0) {
             this._outputs.push(...this._target.recipients.map(([pkh, value]) => ({
                 pkh, 
-                value, 
+                value: value.pedros, 
                 time_lock: this._target?.timelock || 0
             })));
             super.prepareOutputs(change)

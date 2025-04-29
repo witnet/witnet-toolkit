@@ -8,7 +8,7 @@ import { PublicKeyHash, PublicKeyHashString, TransactionParams } from "../types"
 export type StakeWithdrawalParams = TransactionParams & {
     nonce?: Epoch,
     validator: PublicKeyHashString,
-    value: Nanowits,
+    value: Coins,
 }
 
 export class UnstakePayload extends TransactionPayload<StakeWithdrawalParams> {
@@ -42,8 +42,8 @@ export class UnstakePayload extends TransactionPayload<StakeWithdrawalParams> {
         )
     }
 
-    public get value(): Nanowits {
-        return this._target?.value || 0
+    public get value(): Coins {
+        return this._target?.value || Coins.zero()
     }
 
     public get weight(): number {
@@ -95,7 +95,9 @@ export class UnstakePayload extends TransactionPayload<StakeWithdrawalParams> {
     public prepareOutputs(): any {}
 
     public resetTarget(target: StakeWithdrawalParams): any {
+        this._change = 0 
         this._covered = 0
+        this._fees = 0
         this._outputs = []
         this._target = target
     }
@@ -116,7 +118,7 @@ export class UnstakePayload extends TransactionPayload<StakeWithdrawalParams> {
     public toProtobuf(): any {
         if (this.prepared && this._target) {
             return {
-                fee: this._target.fees,
+                fee: this._fees,
                 nonce: this._covered,
                 operator: { hash: Array.from(PublicKeyHash.fromBech32(this._target.validator).toBytes20()) },
                 withdrawal: {
@@ -133,10 +135,7 @@ export class UnstakePayload extends TransactionPayload<StakeWithdrawalParams> {
         if (target && Object.keys(target).length > 0) {
             if (!(
                 target
-                    && target?.fees
-                    && parseInt(target.fees) > 0
-                    && target?.value
-                    && parseInt(target.value) > 0
+                    && target?.value && (target.value as Coins).pedros > 0
                     && target?.validator
             )) {
                 throw new TypeError(`${this.constructor.name}: invalid specs were provided: ${JSON.stringify(target)}`)

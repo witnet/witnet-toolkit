@@ -1,9 +1,40 @@
 const secp256k1 = require('secp256k1')
 import { bech32 } from 'bech32'
-import { Epoch, Hash, HexString, Nanowits } from "../types"
+import { Epoch, Hash, HexString, Nanowits, UtxoMetadata } from "../types"
 
-import { fromHexString, isHexString, toHexString } from "../../bin/helpers"
+import { fromHexString, fromWits, isHexString, toHexString, whole_wits } from "../../bin/helpers"
 import { sha256 } from "./utils"
+
+export class Coins {
+    readonly pedros: Nanowits;
+    public static fromNanowits(nanowits: Nanowits): Coins {
+        return new Coins(Math.floor(nanowits))
+    }
+    public static fromPedros(pedros: number): Coins {
+        return new Coins(Math.floor(pedros))
+    }
+    public static fromValue(value: Coins): Coins {
+        return new Coins(value.pedros)
+    }
+    public static fromWits(wits: number): Coins {
+        return new Coins(fromWits(wits))
+    }
+    public static zero(): Coins {
+        return new Coins(0)
+    }
+    constructor (pedros: Nanowits) {
+        this.pedros = pedros
+    }
+    public get nanowits(): Nanowits {
+        return this.pedros
+    }
+    public get wits(): number {
+        return this.pedros / 10 ** 9
+    }
+    public toString(decimals = 2): string {
+        return whole_wits(this.pedros, decimals)
+    }
+}
 
 export type KeyPath = Array<number>
 
