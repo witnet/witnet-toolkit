@@ -26,6 +26,7 @@ export {
   searchRadonAssets,
 } from "./radon/utils"
 
+import { toHexString } from "../bin/helpers"
 import { RadonModal, RadonRequest, RadonTemplate } from "./radon"
 import { flattenRadonAssets, requireRadonAsset } from "./radon/utils"
 
@@ -51,4 +52,18 @@ export function requireRadonTemplate(artifact: string, assets?: any): RadonTempl
 
 export function requireRadonModal(artifact: string, assets?: any): RadonModal | undefined {
   return requireRadonAsset({ artifact, assets, type: RadonModal })
+}
+
+export function txJsonReplacer(key: string, value: string) {
+  switch (key) {
+      case 'bytes':
+      case 'der':
+          return toHexString(value, true)
+      case 'tx':
+          return JSON.stringify(value, txJsonReplacer)
+      case 'data_request':
+          return RadonRequest.fromProtobuf(value)
+      default:
+          return value
+  }
 }

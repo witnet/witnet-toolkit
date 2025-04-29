@@ -107,7 +107,7 @@ async function balance(flags = {}, args) {
         helpers.fromNanowits(balance.locked + balance.staked + balance.unlocked)
     ])
     helpers.traceTable(records, {
-        headlines: [ "Locked ($WIT)", "Staked ($WIT)", "Unlocked ($WIT)", "BALANCE ($WIT)" ],
+        headlines: [ "Locked ($WIT)", "Staked ($WIT)", "Available ($WIT)", "BALANCE ($WIT)" ],
         humanizers: [ helpers.commas, helpers.commas, helpers.commas, helpers.commas ],
         colors: [ gray, yellow, myellow, lyellow ],
     })
@@ -189,15 +189,9 @@ async function transaction(flags = {}, args) {
     }
     const provider = new Witnet.Provider(flags?.provider)
     const transaction = await provider.getTransaction(txHash)
-    console.info(JSON.stringify(transaction, (key, value) => {
-        switch (key) {
-            case 'bytes': 
-            case 'der':
-                return helpers.toHexString(value, true)
-            default:
-                return value
-        }
-    }, 2))
+    console.info(
+        `${yellow(JSON.stringify(transaction, utils.txJsonReplacer, 2))}`
+    )
 }
 
 async function utxos(flags = {}, args = [], options = {}) {
@@ -206,9 +200,8 @@ async function utxos(flags = {}, args = [], options = {}) {
     }
     const now = Math.floor(Date.now() / 1000)
     const provider = new Witnet.Provider(flags?.provider)
-    let utxos = await provider.getUtxoInfo(args[0], options["small-first"] || false)
+    let utxos = await provider.getUtxos(args[0], options["small-first"] || false)
     let totalBalance = 0
-    console.log(now)
     if (!flags?.verbose) {
         utxos = utxos
             .filter(utxo => utxo.timelock <= now)
