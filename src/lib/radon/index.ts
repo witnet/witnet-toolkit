@@ -91,7 +91,16 @@ export class RadonRequest extends RadonArtifact {
       throw new TypeError(`RadonRequest: unsupported bytecode format: ${bytecode}`)
     }
     const obj: any = RADRequest.decode(buffer)
-    const sources = obj.sources.map((retrieval: any) => {
+    return RadonRequest.fromProtobuf(obj)
+  }
+
+  /**
+   * Decodes a RadonRequest artifact out from a Protobuf object.
+   * @param obj Protobuf object.
+   * @returns RadonRequest object.
+   */
+  public static fromProtobuf(obj: any) {
+    const sources = obj.retrieve.map((retrieval: any) => {
       const specs: any = {}
       if (retrieval?.url) { specs.url = retrieval.url }
       if (retrieval?.headers) {
@@ -104,16 +113,17 @@ export class RadonRequest extends RadonArtifact {
         specs.body = utf8ArrayToStr(Object.values(retrieval.body))
       }
       if (retrieval?.script) specs.script = parseRadonScript(toHexString(retrieval.script))
-      return new RadonRetrieval(retrieval.kind, specs)
+      specs.method = retrieval.kind
+      return new RadonRetrieval(specs)
     })
     const decodeFilter = (f: any) => {
-      if (f?.args && f.args.length > 0) return new RadonFilter(f.op, cborDecode(f.args))
+      if (f?.args && f.args.length > 0) return new RadonFilter(f.op, cborDecode(Uint8Array.from(f.args)))
       else return new RadonFilter(f.op);
     }
     return new RadonRequest({
       sources,
-      sourcesReducer: new RadonReducer(obj.sourcesReducer.reducer, obj.sourcesReducer.filters?.map(decodeFilter)),
-      witnessReducer: new RadonReducer(obj.witnessReducer.reducer, obj.witnessReducer.filters?.map(decodeFilter))
+      sourcesReducer: new RadonReducer(obj.aggregate.reducer, obj.aggregate.filters?.map(decodeFilter)),
+      witnessReducer: new RadonReducer(obj.tally.reducer, obj.tally.filters?.map(decodeFilter))
     })
   }
 
@@ -205,8 +215,8 @@ export function RadonRequestFromAssets(specs: {
   return new RadonRequest({ sources, sourcesReducer: specs?.sourcesReducer, witnessReducer: specs?.witnessReducer })
 };
 
-export function RadonScript<InputType extends RadonAny = RadonString>(inputType?: { new(ops?: RadonOperator): InputType; }): InputType {
-  if (!inputType) throw TypeError("Some specific Radon data type must be specified when declaring a new Radon script.")
+export function RadonScript<InputType extends RadonAny = RadonString>(inputType: { new(ops?: RadonOperator): InputType; }): InputType {
+  if (!inputType) throw TypeError("Input Radon data type must be specified when declaring a new Radon script.")
   return new inputType();
 }
 
