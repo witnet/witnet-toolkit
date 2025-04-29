@@ -6,12 +6,13 @@ import { toHexString } from "../utils"
 
 import { ILedger, IProvider, ITransactionPayload, ITransactionPayloadMultiSig } from "./interfaces"
 import { sha256 } from "./utils"
-import { PublicKeyHashString } from "./types";
+import { Coins, PublicKeyHashString, TransactionPriority, Utxo } from "./types";
 
 export abstract class TransactionPayload<Specs> implements ITransactionPayload<Specs> {
  
     protected _change: Nanowits;
     protected _covered: Nanowits;
+    protected _fees: Nanowits;
     protected _protoType: ProtoType;
     protected _target?: Specs;
     
@@ -20,6 +21,7 @@ export abstract class TransactionPayload<Specs> implements ITransactionPayload<S
         this._target = this.validateTarget(initialTarget)
         this._change = 0
         this._covered = 0
+        this._fees = 0
     }
 
     public get bytecode(): Uint8Array | undefined {
@@ -41,19 +43,19 @@ export abstract class TransactionPayload<Specs> implements ITransactionPayload<S
         }
     }
 
-    public get change(): Nanowits | undefined {
-        return this._change > 0 ? this._change : undefined
+    public get change(): Coins | undefined {
+        return this._change > 0 ? Coins.fromPedros(this._change) : undefined
     }
 
     public get covered(): boolean {
         return (
             !!this.fees
-                && this._covered >= this.value + this.fees
+                && this._covered >= this.value.pedros + this.fees.pedros
         )
     }
 
-    public get fees(): Nanowits {
-        return (this._target as any)?.fees || 0
+    public get fees(): Coins | undefined {
+        return this._fees > 0 ? Coins.fromPedros(this._fees) : undefined
     }
 
     public get hash(): Hash | undefined {
@@ -81,7 +83,7 @@ export abstract class TransactionPayload<Specs> implements ITransactionPayload<S
     abstract get outputs(): Array<ValueTransferOutput>;
     abstract get maxWeight(): number;
     abstract get prepared(): boolean;
-    abstract get value(): Nanowits;
+    abstract get value(): Coins;
     abstract get weight(): number;
 
     protected abstract _cleanTargetExtras(params?: any): any;
@@ -191,6 +193,7 @@ export abstract class TransactionPayloadMultiSig<Specs>
     public resetTarget(target: Specs): any {
         this._change = 0
         this._covered = 0
+        this._fees = 0
         this._inputs = []
         this._outputs = []
         this._target = target
@@ -201,7 +204,7 @@ export abstract class TransactionPayloadMultiSig<Specs>
     abstract validateTarget(target?: any): Specs | undefined;
 
     abstract get maxWeight(): number;
-    abstract get value(): Nanowits;
+    abstract get value(): Coins;
     abstract get weight(): number;
     
     protected abstract _cleanTargetExtras(params?: any): any;

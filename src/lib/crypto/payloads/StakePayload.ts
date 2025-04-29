@@ -1,13 +1,20 @@
 import { fromHexString, fromNanowits } from "../../../bin/helpers"
 
-import { HexString, Nanowits, Network } from "../../types"
+import { HexString, IProvider, Nanowits, Network } from "../../types"
 
 import { TransactionPayloadMultiSig } from "../payloads"
-import { PublicKey, PublicKeyHash, PublicKeyHashString, RecoverableSignature, TransactionParams } from "../types"
+import { 
+    Coins,
+    PublicKey, 
+    PublicKeyHash, 
+    PublicKeyHashString, 
+    RecoverableSignature, 
+    TransactionParams, 
+} from "../types"
 
 export type StakeDepositParams = TransactionParams & {
     authorization: HexString,
-    value: Nanowits,
+    value: Coins,
     withdrawer: PublicKeyHashString,
 }
 
@@ -31,16 +38,16 @@ export class StakePayload extends TransactionPayloadMultiSig<StakeDepositParams>
     public get prepared(): boolean {
         return (
             !!this._target
-                && this._covered >= this._target.value 
+                && this._covered >= this._target.value.pedros 
                 && this._inputs.length > 0
         )
     }
 
-    public get value(): Nanowits {
-        return this._target?.value || 0
+    public get value(): Coins {
+        return this._target?.value || Coins.zero()
     }
 
-    public get weight(): Nanowits {
+    public get weight(): number {
         return (
             TX_WEIGHT_BASE
                 + this._inputs.length * TX_WEIGHT_INPUT_SIZE 
@@ -127,17 +134,15 @@ export class StakePayload extends TransactionPayloadMultiSig<StakeDepositParams>
             if (!(
                 target
                     && target?.authorization
-                    && target?.fees
-                    && parseInt(target.fees) > 0
-                    && target?.value
+                    && target?.value && (target.value as Coins).pedros > 0
                     && target?.withdrawer
             )) {
                 throw new TypeError(`${this.constructor.name}: invalid specs were provided: ${JSON.stringify(target)}`)
             } else {
-                if (parseInt(target.value) < StakePayload.MIN_VALUE) {
+                if ((target.value as Coins).pedros < StakePayload.MIN_VALUE) {
                     throw new TypeError(
                         `${this.constructor.name}: value below minimum stake: ${
-                            fromNanowits(target.value)
+                            (target.value as Coins).wits
                         } < ${
                             fromNanowits(StakePayload.MIN_VALUE)
                         } $WIT`

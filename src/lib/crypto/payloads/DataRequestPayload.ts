@@ -4,7 +4,7 @@ const protoRoot = ProtoRoot.fromJSON(require("../../../../witnet/witnet.proto.js
 import { fromHexString, fromNanowits, toHexString } from "../../../bin/helpers"
 
 import { RadonRequest, RadonTemplate } from "../../radon"
-import { Hash, HexString, Nanowits } from "../../types"
+import { Hash, HexString, IProvider, Nanowits } from "../../types"
 
 import { ILedger } from "../interfaces"
 import { TransactionPayloadMultiSig } from "../payloads"
@@ -16,15 +16,15 @@ export type DataRequestTemplateArgs = any | string | string[] | string[][]
 export type DataRequestParams = TransactionParams & {
     args?: DataRequestTemplateArgs,
     maxResultSize?: number,
-    witnesses: number | Record<PublicKeyHashString, Nanowits>,
+    witnesses: number,
 }
 
 type DataRequestOutputSLA = {
-    collateral: number,
+    collateral: Nanowits,
     commitAndRevealFee: number,
     minConsensusPercentage: number,
     witnesses: number,
-    witnessReward: number,
+    witnessReward?: Nanowits,
 }
 
 const DR_COMMIT_TX_WEIGHT = 400
@@ -159,21 +159,12 @@ export class DataRequestPayload extends TransactionPayloadMultiSig<DataRequestPa
         return this._request
     }
 
-    public get value(): Nanowits {
-        if (this._target) {
-            if (typeof this._target.witnesses === 'object') {
-                /* V2.1 */
-                return Object.values(this._target.witnesses).reduce((prev, curr) => prev + curr, 0)
-            
-            } else if (typeof this._target.witnesses === 'number') {
-                /* V2.0 */
-                const witnesses = this._target.witnesses
-                return witnesses * witnesses * (Math.floor(this._target.fees / 3 / this._target.witnesses))
-                // /* V2.1 */
-                // // return 0
-            }
+    public get value(): Coins {
+        if (this._target && this._fees) {
+            return Coins.fromPedros(this._fees2Value(this._fees, this._target.witnesses))
+        } else {
+            return Coins.zero()
         }
-        return 0
     }
 
     public get weight(): Nanowits {
@@ -257,12 +248,13 @@ export class DataRequestPayload extends TransactionPayloadMultiSig<DataRequestPa
     public resetTarget(target: DataRequestParams): any {
         this._change = 0
         this._covered = 0
+        this._fees = 0
         this._inputs = []
         this._outputs = []
         this._target = target
         if (this.droSLA?.collateral && this.droSLA.collateral < DataRequestPayload.MIN_COLLATERAL) {
             throw new TypeError(
-                `${this.constructor.name}: implicit witnessing collateral too low: ${
+                `${this.constructor.name}: witnessing collateral below minimum: ${
                     fromNanowits(this.droSLA.collateral)
                 } < ${
                     fromNanowits(DataRequestPayload.MIN_COLLATERAL)
@@ -340,7 +332,8 @@ export class DataRequestPayload extends TransactionPayloadMultiSig<DataRequestPa
             } else {
                 if (typeof target.witnesses === 'object') {
                     throw new TypeError(`${this.constructor.name}: explicit witnessing committees not yet supported: ${target.witnesses}`)
-                }
+                } 
+                target.witnesses = parseInt(target.witnesses as string)
                 return target as DataRequestParams
             }
         } else {
