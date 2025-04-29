@@ -16,13 +16,13 @@ const isModuleInitialized = fs.existsSync('./witnet/assets/index.js')
 module.exports = {
     flags: {
         module: {
-            hint: 'Package where to fetch Radon artifacts from.',
+            hint: 'Package where to fetch Radon assets from.',
             param: 'NPM_PACKAGE'
         },
     },
     router: isModuleInitialized ? {
         assets: {
-            hint: "List available Witnet Radon artifacts.",
+            hint: "List available Witnet Radon assets.",
             params: "[ASSET_SUBSTRS ...]",
             options: {
                 filter: {
@@ -36,8 +36,8 @@ module.exports = {
             options: {},
         },
         decode: {
-            hint: "Break down details of a Radon Request.",
-            params: ["RAD_BYTECODE | RAD_HASH | ASSET_SUBSTR"],
+            hint: "Break down specs of one or more Radon assets.",
+            params: ["RAD_BYTECODE | RAD_HASH | RADON_ASSET"],
             options: {
                 json: {
                     hint: 'Outputs data in JSON format.',
@@ -53,8 +53,8 @@ module.exports = {
             },
         },
         "dry-run": {
-            hint: "Simulate resolution of a Radon asset as if solved by the Wit/Oracle.",
-            params: ["RAD_BYTECODE | RAD_HASH | ASSET_SUBSTR"],
+            hint: "Simulate resolution of one or more Radon assets, as if solved by the Wit/Oracle.",
+            params: ["RAD_BYTECODE | RAD_HASH | RADON_ASSET"],
             options: {
                 default: {
                     hint: 'Use default sample parameters on parametrized Radon assets.',
@@ -77,7 +77,7 @@ module.exports = {
         },
     } : {
         assets: {
-            hint: "List available Witnet Radon artifacts.",
+            hint: "List available Witnet Radon assets.",
             params: "[ASSET_SUBSTRS ...]",
             options: {
                 filter: {
@@ -86,8 +86,8 @@ module.exports = {
             },
         },
         decode: {
-            hint: "Break down details of a Radon Request.",
-            params: ["RAD_BYTECODE | RAD_HASH | ASSET_SUBSTR"],
+            hint: "Break down specs of one or more Radon assets.",
+            params: ["RAD_BYTECODE | RAD_HASH | RADON_ASSET"],
             options: {
                 json: {
                     hint: 'Outputs data in JSON format.',
@@ -103,8 +103,8 @@ module.exports = {
             },
         },
         "dry-run": {
-            hint: "Simulate resolution of a Radon asset as if solved by the Wit/Oracle.",
-            params: ["RAD_BYTECODE | RAD_HASH | ASSET_SUBSTR"],
+            hint: "Simulate resolution of one or more Radon assets, as if solved by the Wit/Oracle.",
+            params: ["RAD_BYTECODE | RAD_HASH | RADON_ASSET"],
             options: {
                 json: {
                     hint: 'Outputs data in JSON format.',
