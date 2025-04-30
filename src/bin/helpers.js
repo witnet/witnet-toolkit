@@ -1,5 +1,6 @@
 const cbor = require("cbor")
 const { exec } = require("child_process");
+const moment = require("moment")
 const net = require("net")
 const os = require("os")
 const readline = require('readline')
@@ -30,8 +31,8 @@ function toFixedTrunc(x, n) {
 
 const whole_wits = (number, digits) => {
     const lookup = [
-        { value: 1, symbol: " nWits" },
-        { value: 1e3, symbol: " μWits" },
+        { value: 1, symbol: " pedros" },
+        // { value: 1e3, symbol: " μWits" },
         { value: 1e6, symbol: " mWits" },
         { value: 1e9, symbol: "  Wits" },
         { value: 1e12, symbol: " KWits" },
@@ -39,7 +40,7 @@ const whole_wits = (number, digits) => {
     ];
     const regexp = /\.0+$|(?<=\.[0-9])0+$/;
     const item = lookup.findLast(item => number >= item.value);
-    return item ? toFixedTrunc(commas(number / item.value), digits)./*replace(regexp, "")*/concat(item.symbol) : "(no Wits)";
+    return item ? toFixedTrunc(commas(number / item.value), item.value === 1 ? 0 : digits)./*replace(regexp, "")*/concat(item.symbol) : "(no coins)";
 };
 
 const bblue = (str) => `\x1b[1;98;44m${str}\x1b[0;0;0m`
@@ -638,9 +639,31 @@ function txJsonReplacer(key, value) {
     switch (key) {
         case 'bytes':
         case 'der':
-            return toHexString(value, true)
+            return toHexString(value, true);
         case 'tx':
-            return JSON.stringify(value, txJsonReplacer)
+            return JSON.stringify(value, txJsonReplacer);
+        case 'change':
+        case 'fees':
+        case 'value':
+            return parseInt(value) / 10 ** 9
+        default:
+            return value
+    }
+}
+
+function txReceiptJsonReplacer(key, value) {
+    switch (key) {
+        case 'bytes':
+        case 'der':
+            return toHexString(value, true);
+        case 'tx':
+            return JSON.stringify(value, txJsonReplacer);
+        case 'change':
+        case 'fees':
+        case 'value':
+            return parseInt(value?.pedros) / 10 ** 9
+        case 'timestamp':
+            return moment.unix(Math.floor(value / 1000)).format('MMMM Do YYYY, h:mm:ss a')
         default:
             return value
     }
@@ -694,9 +717,9 @@ function traceTransactionReceipt(receipt) {
             mmagenta(receipt.recipients.filter((pkh, index, array) => index === array.indexOf(pkh)))
         }`)
     }
-    console.info(` > Fees:        ${yellow(receipt.fees.toString(2))}`)
-    console.info(` > Value:       ${myellow(receipt.value.toString(2))}`)
-    console.info(` > Weight:      ${mgreen(commas(receipt.weight))}`) 
+    if (receipt?.fees) console.info(` > Fees:        ${yellow(receipt.fees.toString(2))}`)
+    if (receipt?.value) console.info(` > Value:       ${myellow(receipt.value.toString(2))}`)
+    if (receipt?.weight) console.info(` > Weight:      ${mgreen(commas(receipt.weight))}`) 
     if (receipt?.witnesses) {
         console.info(` > Witnesses:   ${receipt.witnesses}`) 
     }
@@ -717,29 +740,34 @@ async function traceTransaction(transmitter, options) {
     if (!options?.force) {
         // prompt user confirmation 
         console.info()
-        const answer = await prompt(" ^^^ Send transaction? [y/N] ^^^")
-        if (!answer.toLowerCase().startsWith("y")) {
+        const answer = await require("inquirer").createPromptModule()([{
+            message: `Send transaction?`,
+            type: "confirm",
+            name: "continue",
+            default: false,
+        }])
+        if (!answer.continue) {
             return receipt
         }
     }
     try {
-        if (options?.confirmations !== undefined) {
+        console.info()
+        if (options?.await || options?.confirmations !== undefined) {
             receipt = await transmitter.waitTransaction({ 
-                confirmations: options?.confirmations,
+                confirmations: options?.confirmations || 0,
                 onCheckpoint: traceTransactionOnCheckpoint,
                 onStatusChange: traceTransactionOnStatusChange,
             })
         } else {
-            receipt = await transmitter.sendTransaction(options, options?.strategy)
+            receipt = await transmitter.sendTransaction()
+            const data = { status: receipt?.status, timestamp: receipt?.timestamp }
+            console.info(`${yellow(JSON.stringify(data, txReceiptJsonReplacer, 2))}`)
         }
     } catch (err) {
         if (err?.inFlight && err.inFlight) {
-            console.info(`\n${gray(JSON.stringify(err.inFligt?.message, txJsonReplacer))}`)
+            console.info(`\n${gray(JSON.stringify(err.inFligt?.message, txReceiptJsonReplacer))}`)
         }
         throw err
-    }
-    if (options?.verbose) {
-        console.info(`\n${yellow(JSON.stringify(receipt, txJsonReplacer))}`)
     }
     return receipt
 }
