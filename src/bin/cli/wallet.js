@@ -432,61 +432,105 @@ async function resolve(options = {}, [pattern, ...args]) {
 async function stake(options = {}, [authorization]) {
     if (!authorization) {
         throw "No authorization code was provided."
+    
     } else if (!options?.value) {
         throw "No --value was specified."
+    
+    } else if (!options?.withdrawer) {
+        throw "No --withdrawer was specified."
     }
 
-    const wallet = await _loadWallet({ ...flags, "no-funds": options?.from !== undefined })
-    const account = (
-        options?.from 
-            ? (options.from === wallet.coinbase.pkh ? wallet.coinbase : wallet.getAccount(options.from))
-            : wallet.accounts[0]
-    );
-    if (!account) {
-        throw "--from address not found in wallet."
+    const wallet = await _loadWallet({ ...options })
+    
+    // determine ledger and available funds
+    let available = 0
+    if (options?.from) {
+        ledger = options.from === wallet.coinbase.pkh ? wallet.coinbase : wallet.getAccount(options.from)
+        if (ledger) available = (await ledger.getBalance()).unlocked
+    } else {
+        ledger = wallet
+        available = (await wallet.getBalance()).unlocked + (await wallet.coinbase.getBalance()).unlocked
+    }
+    if (!ledger)  {
+        throw `--from address ${options?.from} doesn't belong to the wallet.`
     }
 
-    const { force, verbose } = flags
-    const confirmations = flags?.confirmations ? parseInt(flags?.confirmations) : (flags?.await ? 0 : undefined)
-    const fees = options?.fees ? utils.fromWits(options.fees) : undefined 
-    if (fees === undefined && options.value.toLowerCase() === 'all') {
-        throw "--fees must be specified if value is `all`."
+    // validate withdrawer address
+    const withdrawer = Witnet.PublicKeyHash.fromBech32(options?.withdrawer).toBech32(wallet.network)
+    if (!wallet.getAccount(withdrawer) && withdrawer !== wallet.coinbase.pkh && !options?.force) {
+        const user = await prompt([{ 
+            message: `Withdrawer ${withdrawer} doesn't belong to the wallet. Proceed anyway?`, 
+            name: "continue", 
+            type: "confirm",
+            default: false,
+        }])
+        if (!user.continue) {
+            throw `--withdrawer address ${withdrawer} not found in wallet.`
+        }
     }
-    const value = (options.value.toLowerCase() === 'all'
-        ? Witnet.Value.fromPedros((await account.getBalance()).unlocked - fees)
-        : Witnet.Value.fromWits(options.value)
-    )
+
+    // determine stake value
+    const params = await _loadTransactionParams({ ...options })
+    const coins = params?.value === 'all' ? Witnet.Coins.fromPedros(available - params.fees.pedros) : Witnet.Coins.fromWits(params?.value)
+    if (available < coins.pedros) {
+        throw `Insufficient funds ${options?.from ? `on address ${options.from}.` : "on wallet."}`
+    } else if (params?.fees && coins.pedros <= params.fees.pedros) {
+        throw `Fees equal or greater than value: ${params.fees.pedros} >= ${coins.pedros}`
+    }
+
+    // todo: validate withdrawer matches delegatee's withdrawer 
+
+    // deposit stake
     await helpers.traceTransaction(
-        Witnet.StakeDeposits.from(account), {
-            confirmations, force, headline: `STAKE DEPOSIT TRANSACTION`, verbose, color: bcyan, 
-            authorization, fees, value, withdrawer: account.pkh,
+        Witnet.StakeDeposits.from(ledger), {
+            headline: `STAKE DEPOSIT TRANSACTION`, color: bcyan, 
+            ...options,
+            authorization, value: coins, withdrawer
         }
     )
 }
 
 async function transfer(options = {}) {    
-    }
-    
-    const wallet = await _loadWallet({ unlocked: true, limit: 1, ...flags })
-    const account = (
-        options?.from 
-            ? (options.from === wallet.coinbase.pkh ? wallet.coinbase : wallet.getAccount(options.from))
-            : wallet.accounts[0]
-    );
-    if (!account) {
-        throw "--from address not found in wallet."
+    if (!options?.value) {
+        throw "No --value was specified."
     }
 
-    const { dryrun, verbose } = flags
-    const confirmations = flags?.confirmations ? parseInt(flags?.confirmations) : (flags?.await ? 0 : undefined)
-    const fees = utils.fromWits(options?.fees || 0.000001) // 1 microWit as default fee
-    const value = options.value.toLowerCase() === 'all' ? (await account.getBalance()).unlocked - fees : utils.fromWits(options.value)
-    const recipients = [[ Witnet.PublicKeyHash.fromBech32(args[0]).toBech32(wallet.network), value ]]
-    
+    const wallet = await _loadWallet({ ...options })
+
+    // determine ledger and available funds
+    let available = 0
+    if (options?.from) {
+        ledger = options.from === wallet.coinbase.pkh ? wallet.coinbase : wallet.getAccount(options.from)
+        if (ledger) available = (await ledger.getBalance()).unlocked
+    } else {
+        ledger = wallet
+        available = (await wallet.getBalance()).unlocked + (await wallet.coinbase.getBalance()).unlocked
+    }
+    if (!ledger)  {
+        throw `--from address ${options?.from} doesn't belong to the wallet.`
+    }
+
+    // validate recipient address
+    if (!options?.into) {
+        throw `--into address must be specified.`
+    }
+    const into = Witnet.PublicKeyHash.fromBech32(options?.into).toBech32(wallet.network)
+
+    // determine transfer params
+    const params = await _loadTransactionParams({ ...options })
+    const coins = params?.value === 'all' ? Witnet.Coins.fromPedros(available - params.fees.pedros) : Witnet.Coins.fromWits(params?.value)
+    if (available < coins.pedros) {
+        throw `Insufficient funds ${options?.from ? `on address ${options.from}.` : "on wallet."}`
+    } else if (params?.fees && coins.pedros <= params.fees.pedros) {
+        throw `Fees equal or greater than value: ${params.fees.pedros} >= ${coins.pedros}`
+    }
+
+    // transfer value
     await helpers.traceTransaction(
-        Witnet.ValueTransfers.from(account), { 
-            confirmations, dryrun, headline: `VALUE TRANSFER TRANSACTION`, verbose, color: bblue,
-            fees, recipients,
+        Witnet.ValueTransfers.from(ledger), { 
+            headline: `VALUE TRANSFER TRANSACTION`, color: bblue,
+            ...params,
+            recipients: [[ into, coins ]]
         }
     )
 }
@@ -495,107 +539,117 @@ async function unstake(options = {}) {
 
     if (!options.value) {
         throw "No --value was specified."
-    } else if (!flags?.coinbase && !options?.into) {
+    
+    } else if (!options?.from) {
+        throw "No --from was specified."
+
+    } else if (!options?.into) {
         throw "No --into was specified."
     }
+
+    const wallet = await _loadWallet({ ...options })
     
-    Witnet.PublicKeyHash.fromBech32(validator)
-    const wallet = await _loadWallet({ ...flags })
-    const account = (
-        options?.from 
-            ? (options.from === wallet.coinbase.pkh ? wallet.coinbase : wallet.getAccount(options.from))
-            : wallet.accounts[0]
-    );
-    if (!account) {
-        throw "--into address not found in wallet."
+    // validate withdrawer address:
+    const withdrawer = Witnet.PublicKeyHash.fromBech32(options?.into).toBech32(wallet.network)
+    const ledger = await wallet.getSigner(withdrawer)
+    if (!ledger) {
+        throw `--into address ${options?.into} doesn't belong to the wallet.`   
     }
 
-    const { dryrun, verbose } = flags
-    const confirmations = flags?.confirmations ? parseInt(flags?.confirmations) : (flags?.await ? 0 : undefined)
-    const fees = utils.fromWits(options?.fees || 0.000001) // 1 microWit as default fee
-    const value = utils.fromWits(options.value) // options.value.toLowerCase() === 'all' ? (await account.getStakedOn(validator)) - fees : utils.fromWits(options.value)
+    // determine validator address:
+    const validator = Witnet.PublicKeyHash.fromBech32(options?.from).toBech32(wallet.network)
 
+    // valite delegatee address:
+    const delegatee = (await ledger.getDelegatees()).find(stake => stake.key.validator === validator)
+    if (!delegatee) {
+        throw `Nothing to withdraw from ${validator} into ${withdrawer}.`
+    }
+    const available = delegatee.value.coins
+
+    // determine withdrawal value:
+    const params = await _loadTransactionParams({ ...options })
+    const coins = params?.value === 'all' 
+        ? Witnet.Coins.fromPedros((BigInt(available) - BigInt(params.fees.pedros)).toString()) 
+        : Witnet.Coins.fromWits(params?.value)
+
+    // validate withdrawal amount:
+    if (available < coins.pedros + params?.fees.pedros ) {
+        throw `Cannot withdraw that much: ${coins.pedros} > ${available}`
+
+    } else if (params?.fees && coins.pedros <= params.fees.pedros) {
+        throw `Fees equal or greater than value: ${params.fees.pedros} >= ${coins.pedros}`
+    }
+    
+    // withdraw deposit from validator into withdrawer:
     await helpers.traceTransaction(
-        Witnet.StakeWithdrawals.from(account), {
-            confirmations, dryrun, headline: `STAKE WITHDRAWAL TRANSACTION`, verbose, 
-            fees, value, validator,
+        Witnet.StakeWithdrawals.from(ledger), {
+            headline: `STAKE WITHDRAWAL TRANSACTION`, 
+            ...params,
+            validator, value: coins,
         }
     )
 }
 
 async function utxos(options = {}) {
+    const wallet = await _loadWallet({ ...options })
 
-    // determine from account
-    const account = (
-        from
-            ? (from === wallet.coinbase.pkh ? wallet.coinbase : wallet.getAccount(from))
-            : ((await wallet.coinbase.getBalance()).unlocked > 0 ? wallet.coinbase : wallet.accounts[0])
-    )
-    if (!account)  {
-        throw `Address ${from} doesn't belong to the wallet.`
+    // determine ledger and available funds
+    let available = 0
+    if (options?.from) {
+        ledger = options.from === wallet.coinbase.pkh ? wallet.coinbase : wallet.getAccount(options.from)
+        if (ledger) available = (await ledger.getBalance()).unlocked
+    } else {
+        ledger = wallet
+        available = (await wallet.getBalance()).unlocked + (await wallet.coinbase.getBalance()).unlocked
     }
-
-    const accountBalance = await account.getBalance()
-    const coinbaseBalance = await wallet.coinbase.getBalance()
-    const walletBalance = await wallet.getBalance()
-
+    if (!ledger)  {
+        throw `Address ${options?.from} doesn't belong to the wallet.`
+    }
+    
     // determine into address
     let into = options?.into
     if (into) {
-        if (into !== from && !wallet.getAccount(into) && into !== wallet.coinbase.pkh) {
-            const prompt = inquirer.createPromptModule()
+        if (into !== options?.from && !wallet.getAccount(into) && into !== wallet.coinbase.pkh && !options?.force) {
             const user = await prompt([{ 
-                message: `Into-account ${into} doesn't belong to the wallet. Proceed anyway?`, 
+                message: `Recipient address ${into} doesn't belong to the wallet. Proceed anyway?`, 
                 name: "continue", 
                 type: "input", 
             }])
             if (!user.continue.toLowerCase().startsWith("y")) {
-                throw `Into-account ${into} not found in wallet.`
+                throw `--into address ${into} not found in wallet.`
             }
         }
     } else {
-        into = account.pkh
+        into = wallet.pkh
     }
 
-    // extract CLI flags
-    const { dryrun, verbose } = flags
-    const confirmations = flags?.confirmations ? parseInt(flags.confirmations) : (flags?.await ? 0 : (options?.join && options?.split ? 0 : undefined))
-    const fees = utils.fromWits(options?.fees || 0.000001) // 1 microWit as default fee
-
-    // extract target value, if any, from CLI
-    let targetValue = 0
-    let totalUnlocked = from ? accountBalance.unlocked : walletBalance.unlocked + coinbaseBalance.unlocked
-    if (options?.value) {
-        if (options.value.toLowerCase() === 'all') {
-            targetValue = totalUnlocked - fees
-        
-        } else {
-            targetValue = helpers.fromWits(parseFloat(options.value))
-        }
+    // determine if --value is required
+    if ((options?.join || options?.split) && !options?.value) {
+        throw `--value must be specified on JOIN and SPLITS operations.`
     }
 
-    // select utxos of either the from account (if specified) or from all funded accounts in the wallet (including the coinbase)
-    const utxos = await helpers.prompter(from ? account.selectUtxos({ value: targetValue }) : wallet.selectUtxos({ value: targetValue }))
+    // extract transaction params
+    const params = await _loadTransactionParams({ 
+        ...options, 
+        force: options?.force || (!options?.join && !options?.splits),
+    })
     
-    // verify that selected utxos actually cover the target value (if specified):
-    let coveredValue = 0
-    if (targetValue > 0) {
-        let targetIndex = 0
-        for (; targetIndex < utxos.length && coveredValue < targetValue + fees; targetIndex ++) {
-            coveredValue += utxos[targetIndex].value
-        }
-        if (coveredValue < targetValue + fees) {
-            throw `Not enough unlocked UTXOs on ${from ? `account ${account.pkh}` : `wallet ${wallet.pkh}`}: ${whole_wits(coveredValue)} < ${whole_wits(targetValue + fees)}.`
-        } else {
-            utxos.splice(targetIndex)
-        }
-    } else {
-        utxos.forEach(utxo => coveredValue += utxo.value)
+    // select utxos of either the from account (if specified) or from all funded accounts in the wallet (including the coinbase)
+    let coins = params?.value === 'all' ? Witnet.Coins.fromPedros(available - params.fees.pedros) : Witnet.Coins.fromWits(params?.value)
+    if (available < coins.pedros) {
+        throw `Insufficient funds ${options?.from ? `on address ${options.from}.` : "on wallet."}`
+    } else if (params?.fees && coins.pedros <= params.fees.pedros) {
+        throw `Fees equal or greater than value: ${params.fees.pedros} >= ${coins.pedros}`
+    }
+    const utxos = await ledger.selectUtxos({ value: coins })
+    const covered = utxos.map(utxo => utxo.value)?.reduce((prev, curr) => prev + curr) || 0
+    if (coins && covered < coins.pedros) {
+        throw `Insufficient unlocked UTXOs in ${options?.from ? `wallet account ${ledger.pkh}` : `wallet`}.`
     }
     
     // only if at least one utxo is selected, proceed with report and other operations, if any
     if (utxos.length > 0) {
-        if (verbose || (!options?.join && !options?.split)) {
+         if (options?.verbose || (!options?.join && !options?.splits)) {
             helpers.traceTable(
                 utxos.map((utxo, index) => [
                     index + 1,
@@ -603,46 +657,42 @@ async function utxos(options = {}) {
                     utxo?.internal ? green(utxo.output_pointer) : mgreen(utxo.output_pointer),
                     utxo.value
                 ]), {
-                    headlines: [ "INDEX", "WALLET ADDRESS", ":Unlocked UTXO pointers", "Value ($nanoWIT)", ],
+                    headlines: [ "INDEX", "WALLET ADDRESS", ":Unlocked UTXO pointers", "UTXO value ($pedros)", ],
                     humanizers: [ helpers.commas,,, helpers.commas ],
                     colors: [ ,,, myellow, ]
                 }
             )
+            console.info(`^ Available balance: ${lyellow(whole_wits(covered, 2))}`)
         }
 
-        const valueTransfer = from ? Witnet.ValueTransfers.from(account) : Witnet.ValueTransfers.from(wallet)
+        const valueTransfer = Witnet.ValueTransfers.from(ledger)
         
         if (options?.join) {
-            if (!options?.value) {
-                throw `--value must be specified for a JOIN operation.`
-            }
             const recipients = [[ 
-                // if a split is expected, join utxos into default `account`, so they can then be reused afterwards
-                options?.split ? account.pkh : into, 
-                targetValue 
+                // if a split is expected, join utxos into selected account or wallet
+                options?.splits ? ledger.pkh : into, 
+                coins
             ]]
             await helpers.traceTransaction(valueTransfer, { 
-                confirmations, dryrun, verbose, 
-                headline: `JOINING UTXOs: ${utxos.length} -> ${targetValue < coveredValue ? 2 : 1}` ,
-                fees, recipients,
+                headline: `JOINING UTXOs: ${utxos.length} -> ${coins.pedros < covered ? 2 : 1}` ,
+                ...params, 
+                await: params?.await || options?.splits !== undefined,
+                recipients,
             })
         }
-        if (options?.split) {
-            if (!options?.value) {
-                throw `--value must be specified for a SPLIT operation.`
-            }
+        if (options?.splits) {
             const recipients = []
-            const splits = parseInt(options.split)
+            const splits = parseInt(options.splits)
             if (splits > 50) {
                 throw "Sorry, not possible to split into more than 50 UTXOs."
             }
-            const splitBalance = Math.floor(targetValue / splits)
-            recipients.push(...Array(splits).fill([ into, splitBalance ])) 
+            coins = Witnet.Coins.fromPedros(Math.floor(coins.pedros / splits))
+            recipients.push(...Array(splits).fill([ into, coins ])) 
             await helpers.traceTransaction(
                 valueTransfer, {
-                    confirmations, dryrun, verbose, 
-                    headline: `SPLITTING UTXOs: ${utxos.length} -> ${splitBalance * splits < coveredValue ? splits + 1 : splits}`,
-                    fees, recipients, 
+                    headline: `SPLITTING UTXOs: ${utxos.length} -> ${coins.pedros * splits < covered ? splits + 1 : splits}`,
+                    ...params, 
+                    recipients, 
                     reload: options?.join,
             })
         }
@@ -707,7 +757,7 @@ async function validators(options = {}) {
                 ],
             }
         )
-        console.info(`^ Total deposit: ${myellow(whole_wits(staked, 2))}`)
+        console.info(`^ Total deposit: ${lyellow(whole_wits(staked, 2))}`)
         
     } else {
         console.info(`> No delegatees found.`)
@@ -831,41 +881,44 @@ async function _loadRadonRequest(options = {}) {
     return artifact
 }
 
-async function _loadTransactionParams(flags = {}, options = {}) {
-    const confirmations = flags?.confirmations ? parseInt(flags?.confirmations) : (flags?.await ? 0 : undefined)
-    let fees = options?.fees ? Witnet.Value.fromWits(options.fees) : undefined 
+async function _loadTransactionParams(options = {}) {
+    const confirmations = options?.confirmations ? parseInt(options?.confirmations) : (options?.await ? 0 : undefined)
+    let fees = options?.fees ? Witnet.Coins.fromWits(options.fees) : undefined 
+    let value = options?.value ? (options?.value.toLowerCase() === 'all' ? 'all' : options.value) : undefined
     if (fees === undefined) {
-        if (options?.value?.toLowerCase() === 'all') {
-            throw "--fees must be specified if value is `all`."
+        if (value === 'all') {
+            throw "--fees must be specified if --value is set to `all`."
         }
-        let priority = (flags?.priority 
-            ? Witnet.TransactionPriority[flags.priority.charAt(0).toUpperCase() + flags.priority.slice(1)] 
-            : undefined
-        );
+        let priority = (!options?.priority && options?.force) ? Witnet.TransactionPriority.Medium : options?.priority
         if (!priority) {
             const priorities = {
                 "< 60 seconds": Witnet.TransactionPriority.Opulent,
                 "< 5 minutes": Witnet.TransactionPriority.High,
                 "< 15 minutes": Witnet.TransactionPriority.Medium,
                 "< 1 hour": Witnet.TransactionPriority.Low,
-                "< 6 hours": Witnet.TransactionPriority.Stingy
+                "< 6 hours": Witnet.TransactionPriority.Stinky,
             }
-            const user = await inquirer.createPromptModule()([{ 
+            const user = await prompt([{ 
                 choices: Object.keys(priorities),
                 message: "Please, select time to block expectancy:", 
                 name: "priority", 
                 type: "list", 
             }]);
-            priority = user.priority
+            priority = priorities[user.priority]
+        } else if (!Object.values(Witnet.TransactionPriority).includes[priority]) {
+            throw new `Invalid priority "${priority}".`
         }
-        fees = Witnet.TransactionPriority[priority]
+        fees = Witnet.TransactionPriority[priority.charAt(0).toUpperCase() + priority.slice(1)]
     }
-    const witnesses = flags?.witnesses ? parseInt(flags?.witnesses) : 3
+    const witnesses = options?.witnesses ? parseInt(options?.witnesses) : 3
     return {
+        await: options?.await,
         confirmations,
         fees,
-        force: flags?.force,
-        verbose: flags?.verbose, 
+        from: options?.from,
+        force: options?.force,
+        value,
+        verbose: options?.verbose, 
         witnesses,
     }
 }
