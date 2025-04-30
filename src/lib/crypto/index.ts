@@ -1,11 +1,11 @@
 export {
-    PublicKey,
-    PublicKeyHash,
-    TransactionCallback,
-    TransactionReceipt,
-    TransactionStatus,
-    TransmissionError,
-    UtxoSelectionStrategy,
+  PublicKey,
+  PublicKeyHash,
+  TransactionCallback,
+  TransactionReceipt,
+  TransactionStatus,
+  TransmissionError,
+  UtxoSelectionStrategy,
 } from "./types"
 
 export * from "./transmitters/DataRequests"
