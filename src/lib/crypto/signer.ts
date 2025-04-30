@@ -136,7 +136,7 @@ export class Signer implements ISigner {
             .stakes({ filter: {
                 validator,
                 withdrawer: this.pkh
-            }}).then(([entry, ]) => entry.value.nonce)
+            }}).then(([entry]) => entry.value.nonce)
     }
 
     public signHash(hash: any): KeyedSignature {

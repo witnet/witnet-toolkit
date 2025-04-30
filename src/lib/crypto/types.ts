@@ -68,7 +68,7 @@ export type TransactionParams = {
 }
 
 export enum TransactionPriority {
-    Stingy = "stinky",
+    Stinky = "stinky",
     Low = "low",
     Medium = "medium",
     High = "high",
