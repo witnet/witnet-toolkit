@@ -26,7 +26,7 @@ export class ValueTransferPayload extends TransactionPayloadMultiSig<ValueTransf
     }
 
     public get value(): Coins {
-        return Coins.fromNanowits(this._target?.recipients.reduce((prev, [,curr]) => prev + curr.pedros, 0) || 0)
+        return Coins.fromPedros(this._target?.recipients.reduce((prev, [,curr]) => prev + curr.pedros, 0) || 0)
     }
 
     public get weight(): number {

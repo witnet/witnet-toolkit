@@ -4,7 +4,6 @@ import {
     Hash, 
     HexString, 
     QueryStakesOrder,
-    Nanowits, 
     Network, 
     StakeEntry, 
     ValueTransferOutput, 
@@ -41,7 +40,7 @@ export interface ILedger {
     addUtxos(...utxos: Array<Utxo>): { excluded: Array<Utxo>, included: Array<Utxo> }
     consumeUtxos(...utxos: Array<Utxo>): any
     selectUtxos(specs?: { 
-        value?: Nanowits, 
+        value?: Coins, 
         reload?: boolean, 
         strategy?: UtxoSelectionStrategy,
     }): Promise<Array<Utxo>>

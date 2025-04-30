@@ -1,6 +1,6 @@
-import { Balance, Nanowits, Network, QueryStakesOrder, StakeEntry } from "../types"
+import { Balance, Network, QueryStakesOrder, StakeEntry } from "../types"
 import { IAccount, IBIP32, IProvider, ISigner } from "./interfaces"
-import { PublicKey, PublicKeyHashString, Utxo, UtxoCacheInfo, UtxoSelectionStrategy } from "./types"
+import { Coins, PublicKey, PublicKeyHashString, Utxo, UtxoCacheInfo, UtxoSelectionStrategy } from "./types"
 import { selectUtxos } from "./utils"
 
 import { Signer } from "./signer"
@@ -114,7 +114,7 @@ export class Account implements IAccount {
     }
 
     public async selectUtxos(specs?: {
-        value?: Nanowits,
+        value?: Coins,
         consume?: boolean,
         reload?: boolean,
         strategy?: UtxoSelectionStrategy

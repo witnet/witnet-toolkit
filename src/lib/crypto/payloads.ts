@@ -128,7 +128,7 @@ export abstract class TransactionPayloadMultiSig<Specs>
             
             // consume utxos as to cover this.value, at least
             const utxos = await ledger.selectUtxos({ 
-                value: this.value.pedros - this._covered, 
+                value: Coins.fromPedros(this.value.pedros - this._covered), 
                 reload,
             })
             this._covered += utxos.map(utxo => utxo.value).reduce((prev, curr) => prev + curr)
@@ -141,7 +141,7 @@ export abstract class TransactionPayloadMultiSig<Specs>
                     this._fees = (this._target as any).fees.pedros;
                     if (this._covered < this.value.pedros + this._fees) {
                         const extras = await ledger.selectUtxos({ 
-                            value: this.value.pedros + this._fees  - this._covered,
+                            value: Coins.fromPedros(this.value.pedros + this._fees  - this._covered),
                         })
                         ledger.consumeUtxos(...extras)
                         this._inputs.push(...extras)
@@ -156,7 +156,7 @@ export abstract class TransactionPayloadMultiSig<Specs>
                         // add more utxos only if the ones selected for covering the value and the estimate fees don't suffice:
                         if (this._covered < this.value.pedros + this._fees) {
                             const extras = await ledger.selectUtxos({ 
-                                value: this.value.pedros + this._fees - this._covered 
+                                value: Coins.fromPedros(this.value.pedros + this._fees - this._covered)
                             })
                             ledger.consumeUtxos(...extras)
                             this._covered += extras.map(utxo => utxo.value).reduce((prev, curr) => prev + curr)

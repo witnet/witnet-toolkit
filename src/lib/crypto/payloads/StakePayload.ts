@@ -80,7 +80,7 @@ export class StakePayload extends TransactionPayloadMultiSig<StakeDepositParams>
                         validator: PublicKeyHash.fromHexString(this._target.authorization.substring(0, 40)).toBech32(network),
                         withdrawer: this._target.withdrawer,
                     },
-                    value: this._target.value,
+                    value: this._target.value.pedros,
                 }} : {}
             ),
             ...(
@@ -116,7 +116,7 @@ export class StakePayload extends TransactionPayloadMultiSig<StakeDepositParams>
                         validator: { hash: Array.from(PublicKeyHash.fromHexString(this._target.authorization.substring(0, 40)).toBytes20()) },
                         withdrawer: { hash: Array.from(PublicKeyHash.fromBech32(this._target.withdrawer).toBytes20()) },
                     },
-                    value: this._target.value,
+                    value: this._target.value.pedros,
                 },
                 ...(
                     this._outputs.length > 0 ? { change : {
