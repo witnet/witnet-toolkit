@@ -5,11 +5,11 @@ import * as ecc from 'tiny-secp256k1';
 const bip32 = BIP32Factory(ecc);
 
 import { Provider } from "../rpc"
-import { Balance, Nanowits, Network, QueryStakesOrder, StakeEntry, StakesOrderBy } from "../types"
+import { Balance, Network, QueryStakesOrder, StakeEntry, StakesOrderBy } from "../types"
 import { Account } from "./account"
 import { Coinbase } from "./coinbase"
 import { IAccount, IBIP32, ICoinbase, IProvider, ISigner, IWallet } from "./interfaces"
-import { PublicKey, PublicKeyHashString, Utxo, UtxoCacheInfo, UtxoSelectionStrategy } from "./types"
+import { Coins, PublicKey, PublicKeyHashString, Utxo, UtxoCacheInfo, UtxoSelectionStrategy } from "./types"
 
 import { selectUtxos, totalBalance } from "./utils";
 
@@ -250,7 +250,7 @@ export class Wallet implements IWallet {
     }
 
     public async selectUtxos(specs?: {
-        value?: Nanowits,
+        value?: Coins,
         reload?: boolean
         strategy?: UtxoSelectionStrategy
     }): Promise<Array<Utxo>> {

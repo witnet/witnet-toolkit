@@ -189,7 +189,7 @@ export class DataRequestPayload extends TransactionPayloadMultiSig<DataRequestPa
                 // consume utxos as to cover for estimated value and estimated fees 
                 const value = this._fees2Value(this._fees, this._target.witnesses)
                 const utxos = await ledger.selectUtxos({ 
-                    value: value + this._fees - this._covered, 
+                    value: Coins.fromPedros(value + this._fees - this._covered), 
                     reload,
                 })
                 this._covered += utxos.map(utxo => utxo.value).reduce((prev, curr) => prev + curr)
@@ -316,7 +316,7 @@ export class DataRequestPayload extends TransactionPayloadMultiSig<DataRequestPa
                     && target?.witnesses
                     && (!this.template || target?.args)
             )) {
-                throw new TypeError(`${this.constructor.name}: invalid specs were provided: ${JSON.stringify(target)}`)
+                throw new TypeError(`${this.constructor.name}: invalid options: ${JSON.stringify(target)}`)
             } else {
                 if (typeof target.witnesses === 'object') {
                     throw new TypeError(`${this.constructor.name}: explicit witnessing committees not yet supported: ${target.witnesses}`)

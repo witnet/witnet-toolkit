@@ -2,8 +2,8 @@ const secp256k1 = require("secp256k1")
 
 import { bech32 } from 'bech32'
 import { createDecipheriv, createHash, pbkdf2Sync } from 'crypto'
-import { Balance, Nanowits } from '../types'
-import { Utxo, UtxoSelectionStrategy } from './types'
+import { Balance } from '../types'
+import { Coins, Utxo, UtxoSelectionStrategy } from './types'
 
 export { bech32 } from 'bech32'
 
@@ -108,7 +108,7 @@ export const parseXprv = (slip32: string): {
 
 export function selectUtxos(specs: { 
     utxos: Array<Utxo>, 
-    value?: Nanowits, 
+    value?: Coins, 
     strategy?: UtxoSelectionStrategy, 
 }): Array<Utxo> {
     const strategy = specs.strategy || UtxoSelectionStrategy.SlimFit

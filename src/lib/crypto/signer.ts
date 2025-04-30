@@ -3,7 +3,7 @@ import * as utils from "../utils"
 
 import { Balance, Nanowits, Network, QueryStakesOrder, StakeEntry } from "../types"
 import { IBIP32, IProvider, ISigner } from "./interfaces"
-import { KeyedSignature, PublicKey, PublicKeyHashString, Utxo, UtxoCacheInfo, UtxoSelectionStrategy } from "./types"
+import { Coins, KeyedSignature, PublicKey, PublicKeyHashString, Utxo, UtxoCacheInfo, UtxoSelectionStrategy } from "./types"
 import { selectUtxos } from "./utils"
 
 export class Signer implements ISigner {
@@ -119,7 +119,7 @@ export class Signer implements ISigner {
     }
 
     public async selectUtxos(specs?: {
-        value?: Nanowits,
+        value?: Coins,
         reload?: boolean,
         strategy?: UtxoSelectionStrategy
     }): Promise<Array<Utxo>> {
