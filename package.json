@@ -1,6 +1,6 @@
 {
   "name": "witnet-toolkit",
-  "version": "2.1.1-beta.0",
+  "version": "2.1.2-beta.0",
   "description": "Typescript library and CLI tooling for Web3 buidlers willing to interact with the Wit/Oracle blockchain.",
   "author": "Witnet Foundation",
   "license": "MIT",
