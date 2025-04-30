@@ -162,6 +162,6 @@ export function sha256(buffer: any) {
     return hash.digest()
 }
 
-export function totalBalance(balance: Balance) {
-    return Object.values(balance).reduce((sum, value) => sum + value, 0)
+export function totalCoins(balance: Balance): Coins {
+    return Coins.fromPedros(Object.values(balance).reduce((sum, value) => sum + value, 0))
 }

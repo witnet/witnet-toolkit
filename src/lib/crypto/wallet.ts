@@ -11,8 +11,6 @@ import { Coinbase } from "./coinbase"
 import { IAccount, IBIP32, ICoinbase, IProvider, ISigner, IWallet } from "./interfaces"
 import { Coins, PublicKey, PublicKeyHashString, Utxo, UtxoCacheInfo, UtxoSelectionStrategy } from "./types"
 
-import { selectUtxos, totalBalance } from "./utils";
-
 const DEFAULT_GAP = 20;
 
 export class Wallet implements IWallet {
@@ -256,7 +254,7 @@ export class Wallet implements IWallet {
     }): Promise<Array<Utxo>> {
         return this
             .getUtxos(specs?.reload)
-            .then(utxos => selectUtxos({ utxos, value: specs?.value, strategy: specs?.strategy || this.strategy }))
+            .then(utxos => utils.selectUtxos({ utxos, value: specs?.value, strategy: specs?.strategy || this.strategy }))
     }
 
     // ================================================================================================================
@@ -284,7 +282,7 @@ export class Wallet implements IWallet {
             const startIndex = lastIndex(this.accounts)
             for (let index = startIndex; index < lastIndex(this.accounts) + gap; index ++) {
                 const account = new Account(this.root, this.provider, index, this.strategy)
-                if (totalBalance(await account.getBalance()) > 0) {
+                if (utils.totalCoins(await account.getBalance()).pedros > 0) {
                     this.accounts.push(account)
                     if (limit && this.accounts.length >= limit) break;
                 }

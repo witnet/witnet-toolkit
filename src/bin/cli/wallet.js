@@ -176,7 +176,9 @@ module.exports = {
     withdraw: {
       hint: "Withdraw specified amount of staked Wits from some given delegatee.",
       options: {
-        ...options,
+        await: options.await,
+        confirmations: options.confirmations, 
+        force: options.force,
         from: {
           hint: "Validator address from whom to withdraw the specified amount.",
           param: "DELEGATEE_PKH",
@@ -235,8 +237,8 @@ async function accounts (options = {}, args = []) {
 
   const coinbaseWithdrawers = await wallet.coinbase.getWithdrawers()
   const coinbaseBalance = await wallet.coinbase.getBalance()
-  const coinbaseColor = utils.totalBalance(coinbaseBalance) > 0 ? colors.mred : (coinbaseWithdrawers.length > 0 ? colors.mcyan : colors.cyan)
-  const coinbase = coinbaseWithdrawers.length > 0 || utils.totalBalance(coinbaseBalance) > 0
+  const coinbaseColor = utils.totalCoins(coinbaseBalance).pedros > 0 ? colors.mred : (coinbaseWithdrawers.length > 0 ? colors.mcyan : colors.cyan)
+  const coinbase = coinbaseWithdrawers.length > 0 || utils.totalCoins(coinbaseBalance).pedros > 0
 
   const records = []
 
@@ -315,7 +317,7 @@ async function coinbase (options = {}) {
     wallet = masterWallet
   }
 
-  const coinbaseColor = utils.totalBalance(await wallet.coinbase.getBalance()) > 0 ? colors.mred : colors.lcyan
+  const coinbaseColor = utils.totalCoins(await wallet.coinbase.getBalance()) > 0 ? colors.mred : colors.lcyan
   console.info(`> ${options["node-master-key"] ? "Coinbase " : "Wallet's coinbase"} address: ${coinbaseColor(wallet.coinbase.pkh)}`)
 
   if (options?.authorize) {
@@ -567,9 +569,9 @@ async function unstake (options = {}) {
   const available = delegatee.value.coins
 
   // determine withdrawal value:
-  const params = await _loadTransactionParams({ ...options })
+  const params = await _loadTransactionParams({ ...options, fees: 0 })
   const coins = params?.value === "all"
-    ? Witnet.Coins.fromPedros((BigInt(available) - BigInt(params.fees.pedros)).toString())
+    ? Witnet.Coins.fromPedros(available - params.fees.pedros)
     : Witnet.Coins.fromWits(params?.value)
 
   // validate withdrawal amount:
@@ -872,7 +874,7 @@ async function _loadRadonRequest (options = {}) {
 
 async function _loadTransactionParams (options = {}) {
   const confirmations = options?.confirmations ? parseInt(options?.confirmations) : (options?.await ? 0 : undefined)
-  let fees = options?.fees ? Witnet.Coins.fromWits(options.fees) : undefined
+  let fees = options?.fees ? Witnet.Coins.fromWits(options.fees) : (options?.fees === 0 ? Witnet.Coins.zero() : undefined)
   const value = options?.value ? (options?.value.toLowerCase() === "all" ? "all" : options.value) : undefined
   if (fees === undefined) {
     if (value === "all") {
@@ -894,7 +896,7 @@ async function _loadTransactionParams (options = {}) {
         type: "list",
       }])
       priority = priorities[user.priority]
-    } else if (!Object.values(Witnet.TransactionPriority).includes[priority]) {
+    } else if (!Object.values(Witnet.TransactionPriority).includes(priority)) {
       throw Error(`Invalid priority "${priority}"`)
     }
     fees = Witnet.TransactionPriority[priority.charAt(0).toUpperCase() + priority.slice(1)]
