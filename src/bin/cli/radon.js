@@ -232,9 +232,7 @@ async function decode(flags, args, options) {
         if (crafts.length === 0) {
             throw `No matched found for pattern "${asset}"`
         }
-        for (const index in crafts) {
-            const craft = crafts[index]
-            let artifact = craft.artifact
+        for (const { artifact, key } in crafts) {
             let prefix = ""
             if (artifact instanceof Witnet.Radon.RadonRequest) {
                 prefix = "RadonRequest::"
@@ -250,33 +248,28 @@ async function decode(flags, args, options) {
                 prefix = "RadonModal::"
 
             } else if (artifact instanceof Witnet.Radon.RadonTemplate) {
-                const templateArgs = new Array(artifact.sources.length)
-                artifact.sources.forEach((retrieval, index) => {
-                    templateArgs[index] = []
-                    while (templateArgs[index].length < retrieval.argsCount) {
-                        templateArgs[index].push(`{:${templateArgs[index].length}}`)
-                    }
-                })
+                const templateArgs = artifact.sources.map(({ argsCount }) =>
+                    Array.from({ length: argsCount }, (_, i) => `{:${i}}`)
+                  )
                 artifact = artifact.buildRadonRequest(templateArgs)
                 prefix = "RadonTemplate::"
 
             } else if (artifact instanceof Witnet.Radon.RadonRetrieval) {
                 if (artifact.argsCount > 0) {
-                    const retrievalArgs = []
-                    let argIndex = 0
-                    while (retrievalArgs.length < artifact.argsCount) {
-                        retrievalArgs.push(`{:${++ argIndex}}`)
-                    }
+                    const retrievalArgs = Array.from(
+                        { length: artifact.argsCount },
+                        (_, i) => `{:${i + 1}}`
+                    )
                     artifact = artifact.foldArgs(retrievalArgs)
                 }
                 artifact = new Witnet.Radon.RadonRequest({ sources: artifact })
                 prefix = "RadonRetrieval::"
             }
             if (!headline) {
-                options.headline = `${prefix}${craft.key}`
+                options.headline = `${prefix}${key}`
             }
             traceWitnetRadonRequest(artifact, options)
-            if (options?.verbose && index < crafts.length - 1) {
+            if (options?.verbose && key !== crafts[crafts.length - 1].key) {
                 console.info(`${options?.indent || ""}${"─".repeat(150)}`)
             }
             console.info()
@@ -308,15 +301,14 @@ async function dryrun(flags, args, options, settings) {
         if (crafts.length === 0) {
             throw `No matched found for pattern "${asset}"`
         }
-        for (const index in crafts) {
-            let artifact = crafts[index].artifact
+        for (const { artifact, key } in crafts) {
             let prefix = ""
             if (artifact instanceof Witnet.Radon.RadonRequest) {
                 prefix = "RadonRequest::"
 
             } else {
                 if (!artifact?.samples) {
-                    console.error(`${artifact.constructor.name}::${crafts[index].key}: cannot dry-run if no sample parameters are declared.\n`)
+                    console.error(`${artifact.constructor.name}::${key}: cannot dry-run if no sample parameters are declared.\n`)
                     continue;
                 }
                 let artifactArgs = []
@@ -326,14 +318,14 @@ async function dryrun(flags, args, options, settings) {
                     const prompt = inquirer.createPromptModule()
                     const sample = await prompt([{
                         choices: Object.keys(artifact.samples),
-                        message: `${artifact.constructor.name}::${crafts[index].key} args:`,
+                        message: `${artifact.constructor.name}::${key} args:`,
                         name: "key",
                         type: "list",
                     }])
                     artifactArgs = artifact.samples[sample.key] 
                 }   
                 if (artifact instanceof Witnet.Radon.RadonModal) {
-                    artifact.providers = artifactArgs.splice(0, 1)[0].split(';')
+                    artifact.providers = artifactArgs.shift().split(';')
                     artifact = artifact.buildRadonRequest(artifactArgs)
                     prefix = "RadonModal::"
 
@@ -347,10 +339,10 @@ async function dryrun(flags, args, options, settings) {
                 }
             }
             if (!headline) {
-                options.headline = `${prefix}${crafts[index].key}`
+                options.headline = `${prefix}${key}`
             }
             await traceWitnetRadonRequestDryRun(artifact, options, settings)
-            if (options?.verbose && index < crafts.length - 1) {
+            if (options?.verbose && key !== crafts[crafts.length - 1].key) {
                 console.info(`${options?.indent || ""}${"─".repeat(150)}`)
             }
             console.info()
