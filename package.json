@@ -34,8 +34,8 @@
   "types": "./dist",
   "scripts": {
     "build": "pbjs --target json witnet/witnet.proto -o witnet/witnet.proto.json && tsc -p tsconfig.json",
-    "fmt": "eslint --ext .js,.ts,.cjs . --ignore-path .gitignore",
-    "fmt!": "eslint --ext .js,.ts,.cjs . --fix --ignore-path .gitignore",
+    "fmt": "eslint --ext .js,.cjs . --ignore-path .gitignore --ignore-pattern _*",
+    "fmt!": "eslint --ext .js,.cjs . --fix --ignore-path .gitignore --ignore-pattern _*",
     "postinstall": "npx witnet --update --version",
     "prepare": "pnpm run build",
     "test": "cross-env-shell WITNET_SDK_RADON_ASSETS_PATH='../../../witnet/assets' node ./src/bin/toolkit.js"
@@ -59,7 +59,7 @@
   "devDependencies": {
     "@types/node": "^22.10.2",
     "cross-env": "7.0.3",
-    "eslint": "^9.16.0",
+    "eslint": "8.56.0",
     "eslint-config-standard": "^17.1.0",
     "eslint-plugin-import": "^2.27.5",
     "eslint-plugin-n": "^17.15.0",

@@ -3,22 +3,22 @@
 /// IMPORTS ===========================================================================================================
 
 const axios = require("axios")
-require('dotenv').config() 
-const fs = require('fs')
-const os = require('os')
-const path = require('path')
+require("dotenv").config()
+const fs = require("fs")
+const os = require("os")
+const path = require("path")
 
 const {
-    colors, 
-    deleteExtraFlags, extractFromArgs, 
-    showUsage, showUsageError, showUsageSubcommand, showVersion,
-    toolkitRun, 
+  colors,
+  deleteExtraFlags, extractFromArgs,
+  showUsage, showUsageError, showUsageSubcommand, showVersion,
+  toolkitRun,
+  prompt,
 } = require("./helpers")
 
-  
-/// CONSTANTS =======================================================================================================  
-  
-const version = '2.0.8'
+/// CONSTANTS =======================================================================================================
+
+const version = "2.0.8"
 const toolkitDownloadUrlBase = `https://github.com/witnet/witnet-rust/releases/download/${version}/`
 const toolkitDownloadNames = {
   win32: (arch) => `witnet_toolkit-${arch}-pc-windows-msvc.exe`,
@@ -30,30 +30,30 @@ const toolkitFileNames = {
   win32: (arch) => `witnet_toolkit-${version}-${arch}-pc-windows-msvc.exe`,
   // TODO: detect armv7
   linux: (arch) => `witnet_toolkit-${version}-${arch}-unknown-linux-gnu${arch === "arm" ? "eabihf" : ""}`,
-  darwin: (arch) => 
-    arch === "arm64" 
+  darwin: (arch) =>
+    arch === "arm64"
       // m1 mac
-      ? `witnet_toolkit-${version}-${arch}-unknown-linux-gnu` 
+      ? `witnet_toolkit-${version}-${arch}-unknown-linux-gnu`
       // intel mac
-      : `witnet_toolkit-${version}-${arch}-apple-darwin`
+      : `witnet_toolkit-${version}-${arch}-apple-darwin`,
 }
 const archsMap = {
-  arm64: 'aarch64',
-  x64: 'x86_64'
+  arm64: "aarch64",
+  x64: "x86_64",
 }
 
 /// ENVIRONMENT ACQUISITION =========================================================================================
 
-let args = process.argv
+const args = process.argv
 const binDir = __dirname
 
-const toolkitDirPath = path.resolve(binDir, '../../witnet/')
+const toolkitDirPath = path.resolve(binDir, "../../witnet/")
 const platform = guessPlatform()
 const arch = guessArch()
 const toolkitDownloadName = guessToolkitDownloadName(platform, arch)
 const toolkitFileName = guessToolkitFileName(platform, arch)
 const toolkitBinPath = guessToolkitBinPath(toolkitDirPath, platform, arch)
-const toolkitIsDownloaded = checkToolkitIsDownloaded(toolkitBinPath);
+const toolkitIsDownloaded = checkToolkitIsDownloaded(toolkitBinPath)
 
 function guessPlatform () {
   return os.platform()
@@ -62,14 +62,14 @@ function guessArch () {
   const rawArch = os.arch()
   return archsMap[rawArch] || rawArch
 }
-function guessDownloadUrl(toolkitFileName) {
+function guessDownloadUrl (toolkitFileName) {
   return `${toolkitDownloadUrlBase}${toolkitFileName}`
 }
 function guessToolkitDownloadName (platform, arch) {
-  return (toolkitDownloadNames[platform] || toolkitDownloadNames['linux'])(arch)
+  return (toolkitDownloadNames[platform] || toolkitDownloadNames.linux)(arch)
 }
 function guessToolkitFileName (platform, arch) {
-  return (toolkitFileNames[platform] || toolkitFileNames['linux'])(arch)
+  return (toolkitFileNames[platform] || toolkitFileNames.linux)(arch)
 }
 function guessToolkitBinPath (toolkitDirPath, platform, arch) {
   const fileName = guessToolkitFileName(platform, arch)
@@ -80,24 +80,23 @@ function checkToolkitIsDownloaded (toolkitBinPath) {
   return fs.existsSync(toolkitBinPath)
 }
 
-
 /// HELPER FUNCTIONS ================================================================================================
 
 async function downloadToolkit (toolkitDownloadName, toolkitFileName, toolkitBinPath, platform, arch) {
   const downloadUrl = guessDownloadUrl(toolkitDownloadName)
-  console.info('Downloading', downloadUrl, 'into', toolkitBinPath)
+  console.info("Downloading", downloadUrl, "into", toolkitBinPath)
 
   const file = fs.createWriteStream(toolkitBinPath)
-  const req = axios({
+  axios({
     method: "get",
     url: downloadUrl,
-    responseType: "stream"
+    responseType: "stream",
   }).then(function (response) {
     response.data.pipe(file)
-  });
-        
+  })
+
   return new Promise((resolve, reject) => {
-    file.on('finish', () => {
+    file.on("finish", () => {
       file.close(() => {
         if (file.bytesWritten > 1000000) {
           fs.chmodSync(toolkitBinPath, 0o755)
@@ -114,10 +113,9 @@ https://discord.gg/2rTFYXHmPm `)
         reject(err)
       })
     }
-    file.on('error', errorHandler)
+    file.on("error", errorHandler)
   })
 }
-
 
 /// COMMAND HANDLERS ================================================================================================
 
@@ -126,11 +124,10 @@ async function installCommand (settings) {
     // Skip confirmation if install is forced
     if (!settings.force) {
       console.info(`The witnet_toolkit ${version} native binary hasn't been downloaded yet (this is a requirement).`)
-      const will = await helpers.prompt("Do you want to download it now? (Y/n)")
-
+      const will = await prompt("Do you want to download it now? (Y/n)")
       // Abort if not confirmed
-      if (!['', 'y'].includes(will.toLowerCase())) {
-        console.error('Aborted download of witnet_toolkit native binary.')
+      if (!["", "y"].includes(will.toLowerCase())) {
+        console.error("Aborted download of witnet_toolkit native binary.")
         return
       }
     }
@@ -140,8 +137,8 @@ async function installCommand (settings) {
 }
 
 async function forcedInstallCommand (settings) {
-  if (!fs.existsSync('.env_witnet')) {
-   fs.cpSync("node_modules/witnet-toolkit/.env_witnet", ".env_witnet") 
+  if (!fs.existsSync(".env_witnet")) {
+    fs.cpSync("node_modules/witnet-toolkit/.env_witnet", ".env_witnet")
   }
   return downloadToolkit(
     settings.paths.toolkitDownloadName,
@@ -151,18 +148,18 @@ async function forcedInstallCommand (settings) {
     settings.system.arch
   )
     .catch((err) => {
-      console.error(`Error updating witnet_toolkit binary:`, err)
+      console.error("Error updating witnet_toolkit binary:", err)
     })
 }
 
 async function versionCommand (settings) {
-  return fallbackBinaryCommand(settings, ['--version'])
+  return fallbackBinaryCommand(settings, ["--version"])
 }
 
 async function fallbackBinaryCommand (settings, args) {
   const toolkitOutput = await toolkitRun(settings, args.slice(1))
     .catch((err) => {
-      let errorMessage = err.message.split('\n').slice(1).join('\n').trim()
+      let errorMessage = err.message.split("\n").slice(1).join("\n").trim()
       const errorRegex = /.*^error: (?<message>.*)$.*/gm
       const matched = errorRegex.exec(err.message)
       if (matched) {
@@ -172,7 +169,6 @@ async function fallbackBinaryCommand (settings, args) {
     })
   if (toolkitOutput) console.info(toolkitOutput)
 }
-
 
 /// PROCESS SETTINGS ===============================================================================================
 
@@ -192,39 +188,38 @@ const settings = {
   },
 }
 
-if (args.includes('--debug')) {
+if (args.includes("--debug")) {
   settings.debug = true
-  args.splice(args.indexOf('--debug'), 1)
+  args.splice(args.indexOf("--debug"), 1)
 }
 
-if (args.includes('--force')) {
+if (args.includes("--force")) {
   settings.force = true
-  args.splice(args.indexOf('--force'), 1)
+  args.splice(args.indexOf("--force"), 1)
 }
 
-if (args.includes('--help')) {
+if (args.includes("--help")) {
   settings.help = true
-  args.splice(args.indexOf('--help'), 1)
+  args.splice(args.indexOf("--help"), 1)
 }
 
-if (args.includes('--version')) {
+if (args.includes("--version")) {
   settings.showVersion = true
-  args.splice(args.indexOf('--version'), 1)
+  args.splice(args.indexOf("--version"), 1)
 }
 
-if (args.includes('--update')) {
+if (args.includes("--update")) {
   settings.update = true
-  args.splice(args.indexOf('--update'), 1)
+  args.splice(args.indexOf("--update"), 1)
 }
-
 
 /// MAIN LOGIC ======================================================================================================
 
 const mainRouter = {
-  '--': fallbackBinaryCommand,
-  'update':  forcedInstallCommand,
-  'install': installCommand,
-  'version': versionCommand,
+  "--": fallbackBinaryCommand,
+  update: forcedInstallCommand,
+  install: installCommand,
+  version: versionCommand,
 }
 
 async function main () {
@@ -236,34 +231,35 @@ async function main () {
   if (settings.update) {
     await forcedInstallCommand(settings)
   }
-  var args = process.argv.slice(2)
+  let args = process.argv.slice(2)
+  let flags
+  let options
   if (args[0] && mainRouter[args[0]]) {
     await mainRouter[args[0]](settings, args.slice(1))
     process.exit(0)
-
-  } else if (args[0] && !args[0].startsWith('--')) try {
-    var cmd = args[0]
-    const module = require(`./cli/${cmd}`)
-    var [args, flags] = extractFromArgs(args.slice(1), module?.flags)
-    if (args && args[0] && module.subcommands && module?.router[args[0]]) {
-      var subcmd = args[0]
-      if (settings?.help) {
-        showUsageSubcommand(cmd, subcmd, module)
-      
-      } else {
-        var [args, options ] = extractFromArgs(args.slice(1), { ...module.router[subcmd]?.options })
-        args = deleteExtraFlags(args)
-        await module.subcommands[subcmd]({ ...settings, ...flags, ...options }, args).catch(err => {
+  } else if (args[0] && !args[0].startsWith("--")) {
+    try {
+      const cmd = args[0]
+      const module = require(`./cli/${cmd}`);
+      [args, flags] = extractFromArgs(args.slice(1), module?.flags)
+      if (args && args[0] && module.subcommands && module?.router[args[0]]) {
+        const subcmd = args[0]
+        if (settings?.help) {
+          showUsageSubcommand(cmd, subcmd, module)
+        } else {
+          [args, options] = extractFromArgs(args.slice(1), { ...module.router[subcmd]?.options })
+          args = deleteExtraFlags(args)
+          await module.subcommands[subcmd]({ ...settings, ...flags, ...options }, args).catch(err => {
             showUsageError(cmd, subcmd, module, err, settings)
-        });
+          })
+        }
+      } else {
+        showUsage(cmd, module)
       }
-    } else {
-      showUsage(cmd, module)
+      process.exit(0)
+    } catch (e) {
+      console.error(`EXCEPTION:\n${e}\n`)
     }
-    process.exit(0)
-  
-  } catch (e) {
-    console.error(`EXCEPTION:\n${e}\n`)
   }
   console.info("USAGE:")
   console.info(`    ${colors.white("npx witnet")} [FLAGS] <COMMAND>`)

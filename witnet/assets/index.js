@@ -1,4 +1,4 @@
-module.exports = { 
-    modals: require("./modals"),
-    requests: require("./requests")
+module.exports = {
+  modals: require("./modals"),
+  requests: require("./requests"),
 }
