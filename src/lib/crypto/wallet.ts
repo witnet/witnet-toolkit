@@ -282,12 +282,11 @@ export class Wallet implements IWallet {
         if (limit === 0 || limit > this.accounts.length) {
             const lastIndex = (x: Array<IAccount>) => x.length > 0 ? x[x.length - 1].index + 1 : 0
             const startIndex = lastIndex(this.accounts)
-            limit = limit > 0 ? this.accounts.length - limit : 0
             for (let index = startIndex; index < lastIndex(this.accounts) + gap; index ++) {
                 const account = new Account(this.root, this.provider, index, this.strategy)
                 if (totalBalance(await account.getBalance()) > 0) {
                     this.accounts.push(account)
-                    if (limit > 0 && this.accounts.length >= limit) break;
+                    if (limit && this.accounts.length >= limit) break;
                 }
             }
         }
