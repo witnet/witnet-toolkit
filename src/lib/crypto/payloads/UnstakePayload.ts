@@ -174,7 +174,7 @@ export class UnstakePayload extends TransactionPayload<StakeWithdrawalParams> {
         if (!this._priorities) {
             this._priorities = await provider.priorities()
         }
-        return (
+        return Math.floor(
             // todo: replace `vtt_` for `ut_`
             this._priorities[`vtt_${priority}`].priority
                 * this.weight

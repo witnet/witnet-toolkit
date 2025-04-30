@@ -189,7 +189,7 @@ export class StakePayload extends TransactionPayloadMultiSig<StakeDepositParams>
         if (!this._priorities) {
             this._priorities = await provider.priorities()
         }
-        return (
+        return Math.floor(
             // todo: replace `vtt_` for `st_`
             this._priorities[`vtt_${priority}`].priority * (
                 this.covered ? this.weight : this.weight
