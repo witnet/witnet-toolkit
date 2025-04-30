@@ -1,5 +1,5 @@
 const qrcodes = require('qrcode-terminal')
-const inquirer = require('inquirer')
+const prompt = require('inquirer').createPromptModule()
 
 const { utils, Witnet } = require("../../../dist/src");
 
@@ -8,6 +8,35 @@ const { loadAssets } = require("./radon")
 
 const { whole_wits } = helpers
 const { bblue, bcyan, bgreen, cyan, gray, green, lcyan, lmagenta, lyellow, magenta, mcyan, mgreen, mmagenta, mred, myellow, red, yellow, white, } = helpers.colors
+
+const options = {
+    await: {
+        hint: "Await any involved transaction to get eventually mined (default: false).",
+    },
+    confirmations: {
+        hint: "Number of epochs to await after any involved transaction gets mined (implies --await).",
+        param: "NUMBER",
+    },
+    fees: {
+        hint: "Specific transaction fees (supersedes --priority).",
+        param: "WITS",
+    },
+    force: {
+        hint: "Broadcast transaction/s without user's final confirmation.",
+    },
+    from: {
+        hint: "Specific wallet's address that will pay for the transaction, other than default.",
+        param: "WALLET_ADDRESS",
+    },
+    priority: {
+        hint: "Transaction priority: `stinky`, `low`, `medium`, `high`, `opulent`.",
+        param: "PRIORITY",
+    },
+    strategy: {
+        hint: "UTXOs selection strategy: `big-first`, `random`, `slim-fit`, `small-first` (default: `slim-fit`).",
+        param: "STRATEGY",
+    },
+}
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /// CLI SUBMODULE CONSTANTS ===========================================================================================
@@ -18,38 +47,13 @@ module.exports = {
         WITNET_SDK_WALLET_MASTER_KEY: "=> Wallet's master key in XPRV format, as exported from either a node, Sheikah or myWitWallet.",
     },
     flags: {
-        await: {
-            hint: "Await any involved transaction to get eventually mined (default: false).",
-        },
-        confirmations: {
-            hint: "Number of epochs to await after any involved transaction gets mined (implies --await).",
-            param: "NUMBER",
-        },
-        // dryrun: {
-        //     hint: "Prepare and sign involved transactions, without any actual transmission taking place."
-        // },
-        force: {
-            hint: "Broadcast transaction/s without user's final confirmation.",
-        },
         gap: {
-            hint: "Max indexing gap when searching for funded accounts (default: 10).",
-            param: "GAP",
-        },
-        // limit: {
-        //     hint: `Number of consecutive HD-accounts to derive, even if holding no balance.`,
-        //     param: "LIMIT",
-        // },
-        priority: {
-            hint: "Transaction priority: `stingy`, `low`, `medium`, `high`, `opulent`.",
-            param: "PRIORITY",
-        },
+            hint: "Max indexing gap when searching for wallet accounts (default: 10).",
+            param: "NUMBER",
+        },  
         provider: {
             hint: "Public Wit/Oracle JSON-RPC provider, other than default.",
             param: "URL",
-        },
-        strategy: {
-            hint: "UTXOs selection strategy: `big-first`, `random`, `slim-fit`, `small-first` (default: `slim-fit`).",
-            param: "STRATEGY",
         },
         verbose: {
             hint: "Outputs detailed information."
@@ -61,14 +65,14 @@ module.exports = {
             params: ["[WIT_ADDRESSES ...]"],
             options: {
                 limit: {
-                    hint: `Number of consecutive HD-accounts to derive (implies --no-funds).`,
+                    hint: `Max number of HD-accounts to derive.`,
                     param: "LIMIT",
-                },
-                qrcode: {
-                    hint: "Prints QR codes for all accounts, or the one with highest index if using flag `limit`."
                 },
                 "no-funds": {
                     hint: "Derive accounts even if they hold no funds."
+                },
+                qrcode: {
+                    hint: "Prints QR codes for all selected accounts."
                 },
             },
         },
@@ -86,10 +90,11 @@ module.exports = {
             options: {
                 authorize: {
                     hint: "Generate stake authorization code for the specified withdrawer address.",
-                    param: "WITHDRAWER_PKH",
+                    param: "WIT_ADDRESS",
                 },
                 "node-master-key": {
-                    hint: "Node's master key other than the one set up in environment",
+                    hint: "Node's master key other than the one set up in environment.",
+                    param: "XPRV"
                 },
             },
         },
@@ -101,15 +106,12 @@ module.exports = {
         },
         notarize: {
             hint: "Ask the Wit/Oracle to notarize and forever store the resolution to some Radon asset.",
-            params: ["RAD_BYTECODE | RAD_HASH | RADON_ASSET"],
+            params: ["RAD_BYTECODE | RAD_HASH | RADON_ASSET", "[RADON_ARGS]"],
             options: {
+                ...options,
                 fees: {
                     hint: "Specific unitary reward for every involved validator (supersedes --priority).",
                     param: "WITS",
-                },
-                from: {
-                    hint: "Authorized wallet account that will pay for the oracle query, other than wallet's default.",
-                    param: "WALLET_ADDRESS",
                 },
                 module: {
                     hint: 'NPM package where to search for Radon assets.',
@@ -117,7 +119,7 @@ module.exports = {
                 },
                 witnesses: { 
                     hint: "Number of witnesses in the Witnet network required to attend the oracle query (default: 3).", 
-                    param: "WITNESSES"
+                    param: "NUMBER"
                 },
             }
         },
@@ -127,32 +129,25 @@ module.exports = {
         stake: {
             hint: "Stake specified amount of Wits by using some given authorization code.",
             params: "AUTH_CODE",
-            options: { 
-                fees: {
-                    hint: "Settle total fees to pay for the transaction to get mined (default: 1 μWit).",
-                    param: "WITS",
-                },
-                from: {
-                    hint: "Authorized wallet account with rights to eventual withdraw the stake deposit, and yield.",
-                    param: "WALLET_ADDRESS",
-                },
+            options: {
+                ...options,
                 value: {
                     hint: "Amount in Wits to stake into the validator that signed the authorization (min: 10 KWits).",
                     param: "WITS | `all`",
+                },
+                withdrawer: {
+                    hint: "Wallet's address with rights to eventually withdraw the staked deposit, plus benefits.",
+                    param: "WALLET_ADDRESS",
                 },
             }
         },
         transfer: {
             hint: "Transfer specified amount of Wits to given address.",
-            params: "WIT_ADDRESS",
             options: {
-                fees: {
-                    hint: "Settle total fees to pay for the transaction to get mined (default: 1 μWit).",
-                    param: "WITS",
-                },
-                from: {
-                    hint: "Wallet address to transfer value from.",
-                    param: "WALLET_ADDRESS",
+                ...options,
+                into: {
+                    hint: "Recipient address.",
+                    param: "WIT_ADDRESS"
                 },
                 value: {
                     hint: "Amount in Wits to be transfered (e.g. `0.5` Wits).",
@@ -162,20 +157,16 @@ module.exports = {
         },
         utxos: {
             hint: "List currently available UTXOs on wallet's specified address, or on all funded accounts otherwise.",
-            params: "[WALLET_ADDRESS]",
             options: {
-                fees: {
-                    hint: "Settle total fees to pay for involved transactions to get mined (default: 1 μWit).",
-                    param: "WITS",
-                },
+                ...options,
                 into: {
-                    hint: "Alternative wallet address where to JOIN or SPLIT the selected UTXOs.",
+                    hint: "Alternative wallet address where to JOIN or SPLIT the selected UTXOs, other than default.",
                     param: "WALLET_ADDRESS"
                 },
-                join: { hint: "Join selected UTXOs together into a single UTXO.", },
-                split: { 
-                    hint: "Number of UTXOs to split the target balance into (max: 50).", 
-                    param: "SPLITS"
+                join: { hint: "Join selected UTXOs together into a single UTXO (requires --value).", },
+                splits: { 
+                    hint: "Number of UTXOs to split the target balance into (max: 50; requires --value).", 
+                    param: "NUMBER"
                 },
                 value: {
                     hint: "Amount in Wits to be either joined or split apart.",
@@ -185,11 +176,11 @@ module.exports = {
         },
         withdraw: {
             hint: "Withdraw specified amount of staked Wits from some given delegatee.",
-            params: "DELEGATEE_PKH",
             options: {
-                fees: {
-                    hint: "Settle total fees to pay for the transaction to get mined (default: 1 μWit).",
-                    param: "WITS",
+                ...options,
+                from: {
+                    hint: "Validator address from whom to withdraw the specified amount.",
+                    param: "DELEGATEE_PKH",
                 },
                 into: {
                     hint: "Wallet address with rights to withdraw from the delegatee (default: wallet's first account).",
@@ -210,17 +201,17 @@ module.exports = {
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /// CLI SUBMODULE COMMANDS ============================================================================================
 
-async function accounts(flags = {}, args = [], options = {}) {
-    const { verbose } = flags
+async function accounts(options = {}, args = []) {
+    const { verbose } = options
     
     let wallet
     if (args.length === 0) wallet = await _loadWallet({ 
-        ...flags, 
+        ...options, 
         limit: options?.limit || (options['no-funds'] && 10),
         'no-funds': options['no-funds']
     });
     else {
-        wallet = await _loadWallet({ provider: flags?.provider, limit: 1 })
+        wallet = await _loadWallet({ provider: options?.provider, limit: 1 })
         args.forEach(pkh => {
             if (!wallet.getSigner(pkh)) {
                 throw `Input address ${pkh} doesn't belong to the wallet.`
@@ -309,15 +300,15 @@ async function accounts(flags = {}, args = [], options = {}) {
             maxColumnWidth: 48,
         }
     )
-    console.info(`^ Available balance: ${myellow(whole_wits(unlocked, 2))}`)
+    console.info(`^ Available balance: ${lyellow(whole_wits(unlocked, 2))}`)
 }
 
-async function coinbase(flags = {}, _args = [], options = {}) {
-    const masterWallet = await _loadWallet({ ...flags })
+async function coinbase(options = {}) {
+    const masterWallet = await _loadWallet({ ...options })
     let wallet
     if (options['node-master-key']) {
         utils.parseXprv(options['node-master-key']);
-        wallet = await _loadWallet({ provider: flags?.provider, limit: 1, xprv: options['node-master-key'] })
+        wallet = await _loadWallet({ provider: options?.provider, limit: 1, xprv: options['node-master-key'] })
     } else {
         wallet = masterWallet
     }
@@ -335,7 +326,7 @@ async function coinbase(flags = {}, _args = [], options = {}) {
     } else {
         const records = await wallet.coinbase.getWithdrawers({ by: Witnet.StakesOrderBy.Coins, reverse: true })
         if (records.length > 0) {
-            const { verbose } = flags
+            const { verbose } = options
             let staked = 0
             helpers.traceTable(
                 records.map((record, index) => {
@@ -388,7 +379,7 @@ async function coinbase(flags = {}, _args = [], options = {}) {
                     ],
                 }
             );
-            console.info(`^ Total stake: ${myellow(whole_wits(staked, 2))}`)
+            console.info(`^ Total stake: ${lyellow(whole_wits(staked, 2))}`)
             
         } else {
             console.info(`> Holds no delegated stake.`)
@@ -398,7 +389,6 @@ async function coinbase(flags = {}, _args = [], options = {}) {
 }
 
 async function decipher() {
-    const prompt = inquirer.createPromptModule()
     const user = await prompt([
         {
             message: "Enter XPRV:",
@@ -413,34 +403,33 @@ async function decipher() {
     console.info(utils.decipherXprv(user.xprv, user.passwd))
 }
 
-async function provider(flags = {}) {
-    const wallet = await _loadWallet({ unlocked: true, limit: 1, ...flags })
+async function provider(options = {}) {
+    const wallet = await _loadWallet({ unlocked: true, limit: 1, ...options })
     wallet.provider.endpoints.forEach(url => {
         console.info(helpers.colors.magenta(url))
     })
 }
 
-async function resolve(flags = {}, [pattern, ...args], options = {}) {
-    const wallet = await _loadWallet({ ...flags })
-    const account = (
+async function resolve(options = {}, [pattern, ...args]) {
+    const wallet = await _loadWallet({ ...options })
+    const ledger = (
         options?.from 
             ? (options.from === wallet.coinbase.pkh ? wallet.coinbase : wallet.getAccount(options.from))
-            : wallet.accounts[0]
+            : wallet
     );
-    if (!account) {
+    if (!ledger) {
         throw "--from address not found in wallet."
     }
-    const request = await _loadRadonRequest(args, { legacy: options?.legacy, pattern })
+    const request = await _loadRadonRequest({ ...options, pattern, args })
     await helpers.traceTransaction(
-        Witnet.DataRequests.from(account, request), {
+        Witnet.DataRequests.from(ledger, request), {
             headline: `DATA REQUEST TRANSACTION`, color: bgreen, 
-            ...await _loadTransactionParams(flags, options),
+            ...await _loadTransactionParams({ ...options }),
         }
     )
 }
 
-async function stake(flags = {}, [authorization], options = {}) {
-    
+async function stake(options = {}, [authorization]) {
     if (!authorization) {
         throw "No authorization code was provided."
     } else if (!options?.value) {
@@ -475,12 +464,7 @@ async function stake(flags = {}, [authorization], options = {}) {
     )
 }
 
-async function transfer(flags, args = [], options = {}) {
-
-    if (args.length === 0) {
-        throw "No recipient address was specified."
-    } else if (!options?.value) {
-        throw "No transfer value was specified."
+async function transfer(options = {}) {    
     }
     
     const wallet = await _loadWallet({ unlocked: true, limit: 1, ...flags })
@@ -507,7 +491,7 @@ async function transfer(flags, args = [], options = {}) {
     )
 }
 
-async function unstake(flags, [validator], options = {}) {
+async function unstake(options = {}) {
 
     if (!options.value) {
         throw "No --value was specified."
@@ -539,9 +523,7 @@ async function unstake(flags, [validator], options = {}) {
     )
 }
 
-async function utxos(flags, [from, ], options = {}) {
-    
-    const wallet = await _loadWallet({ ...flags })
+async function utxos(options = {}) {
 
     // determine from account
     const account = (
@@ -670,10 +652,10 @@ async function utxos(flags, [from, ], options = {}) {
     }
 }
 
-async function validators(flags = {}, []) {
+async function validators(options = {}) {
     
-    const { verbose } = flags
-    const wallet = await _loadWallet({ ...flags })
+    const { verbose } = options
+    const wallet = await _loadWallet({ ...options })
     const order = { by: Witnet.StakesOrderBy.Coins, reverse: true }
 
     const coinbaseBalance = await wallet.coinbase.getBalance()
@@ -736,8 +718,9 @@ async function validators(flags = {}, []) {
 /// ===================================================================================================================
 /// --- Internal functions --------------------------------------------------------------------------------------------
 
-async function _loadRadonRequest(args = [], options = {}) {    
+async function _loadRadonRequest(options = {}) {    
   
+    const args = options?.args || []
     // TODO:
     // if (options?.pattern && typeof options.pattern === 'string' && utils.isHexString(options.pattern)) {
     //     if (utils.isHexStringOfLength(options.pattern, 32)) {
@@ -779,7 +762,7 @@ async function _loadRadonRequest(args = [], options = {}) {
         }
 
     } else if (Object.keys(assets).length > 1) {
-        const user = await inquirer.createPromptModule()([{
+        const user = await prompt([{
             choices: assets.map(([key,]) => key),
             message: "Please, select a Radon asset:", 
             name: "key", 
@@ -795,7 +778,6 @@ async function _loadRadonRequest(args = [], options = {}) {
     if (!(artifact instanceof Witnet.Radon.RadonRequest)) {
         let templateArgs = []
         if (args.length === 0 && artifact?.samples) {
-            const prompt = inquirer.createPromptModule()
             const sample = await prompt([{
                 choices: Object.keys(artifact.samples),
                 message: "Select pre-settled Radon args: ",
@@ -888,39 +870,38 @@ async function _loadTransactionParams(flags = {}, options = {}) {
     }
 }
 
-async function _loadWallet(flags = {}) {
+async function _loadWallet(options = {}) {
     if (!process.env.WITNET_SDK_WALLET_MASTER_KEY) {
         throw "No WITNET_SDK_WALLET_MASTER_KEY is settled in environment."
     } else {
-        const provider = new Witnet.Provider(flags?.provider)
+        const provider = new Witnet.Provider(options?.provider)
         const strategies = {
             'small-first': Witnet.UtxoSelectionStrategy.SmallFirst,
             'slim-fit': Witnet.UtxoSelectionStrategy.SlimFit,
             'big-first': Witnet.UtxoSelectionStrategy.BigFirst,
             'random': Witnet.UtxoSelectionStrategy.Random,
         }
-        if (flags?.strategy && !strategies[flags.strategy]) {
-            throw `Unrecognised UTXO selection strategy "${flags.strategy}"`
+        if (options?.strategy && !strategies[options.strategy]) {
+            throw `Unrecognised UTXO selection strategy "${options.strategy}"`
         }
-        const strategy = strategies[flags?.strategy || 'slim-fit'] || Witnet.UtxoSelectionStrategy.SlimFit
-        const gap = flags['gap'] || 10
-        let wallet, xprv = flags?.xprv || process.env.WITNET_SDK_WALLET_MASTER_KEY
+        const strategy = strategies[options?.strategy || 'slim-fit'] || Witnet.UtxoSelectionStrategy.SlimFit
+        const gap = options?.gap || 10
+        let wallet, xprv = options?.xprv || process.env.WITNET_SDK_WALLET_MASTER_KEY
         if (xprv.length === 293) {
-            const prompt = inquirer.createPromptModule()
             const user = await prompt([{ type: "password", mask: "*", message: "Enter password:", name: "passwd"}])
             wallet = Witnet.Wallet.fromEncryptedXprv(xprv, user.passwd, {
                 gap, provider, strategy,
-                limit: flags?.limit,
-                onlyWithFunds: !flags['no-funds'],
+                limit: options?.limit,
+                onlyWithFunds: !options['no-funds'],
             })
         } else {
             wallet = Witnet.Wallet.fromXprv(xprv, {
                 gap, provider, strategy, 
-                limit: flags?.limit,
-                onlyWithFunds: !flags?.limit, 
+                limit: options?.limit,
+                onlyWithFunds: !options['no-funds']
             })
         }
         
-        return flags?.limit ? await wallet : await helpers.prompter(wallet)
+        return options['no-funds'] ? await wallet : await helpers.prompter(wallet)
     }
 }

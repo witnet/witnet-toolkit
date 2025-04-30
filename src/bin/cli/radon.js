@@ -158,12 +158,12 @@ function init() {
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /// CLI SUBMODULE COMMANDS ============================================================================================
 
-async function assets(flags = {}, [...patterns], options =  {}) {
+async function assets(options = {}, [...patterns]) {
     helpers.traceHeader(
-        `${flags?.module ? flags.module.toUpperCase() : path.basename(process.cwd()).toUpperCase()} RADON ASSETS`, 
+        `${options?.module ? options.module.toUpperCase() : path.basename(process.cwd()).toUpperCase()} RADON ASSETS`, 
         helpers.colors.white
     )
-    const assets = clearEmptyBranches(loadAssets(flags), patterns, options?.filter)
+    const assets = clearEmptyBranches(loadAssets(options), patterns, options?.filter)
     if (assets && Object.keys(assets).length > 0) {
         traceWitnetArtifacts(assets, patterns, "  ", options?.filter)
     } else {
@@ -173,9 +173,9 @@ async function assets(flags = {}, [...patterns], options =  {}) {
 }
 /// -------------------------------------------------------------------------------------------------------------------
 
-async function check(flags) {
+async function check(options = {}) {
     try {
-        const assets = loadAssets({ ...flags, legacy: true })
+        const assets = loadAssets({ ...options, legacy: true })
         const [
             modals,
             requests,
@@ -207,7 +207,7 @@ async function check(flags) {
 }
 /// -------------------------------------------------------------------------------------------------------------------
 
-async function decode(flags, args, options) {
+async function decode(options = {}, args = []) {
     if (args.length === 0) {
         throw "No Radon asset was specified."
     }
@@ -226,7 +226,7 @@ async function decode(flags, args, options) {
     } else {
         args = args.slice(1)
 
-        const assets = loadAssets(flags)
+        const assets = loadAssets(options)
         const headline = options?.headline
         const crafts = flattenRadonArtifacts(assets).filter(craft => craft.key.toLowerCase().indexOf(asset.toLowerCase()) >= 0)
         if (crafts.length === 0) {
@@ -285,7 +285,7 @@ async function decode(flags, args, options) {
 }
 /// -------------------------------------------------------------------------------------------------------------------
 
-async function dryrun(flags, args, options, settings) {
+async function dryrun(options = {}, args = []) {
     if (args.length === 0) {
         throw "No Radon asset was specified."
     }
@@ -293,7 +293,7 @@ async function dryrun(flags, args, options, settings) {
     if (helpers.isHexString(asset)) {
         try {
             const request = Witnet.Radon.RadonRequest.fromBytecode(asset)
-            await traceWitnetRadonRequestDryRun(request, options, settings)
+            await traceWitnetRadonRequestDryRun(request, options)
 
         } catch {
             if ((asset.startsWith('0x') && asset.length === 66) || (!asset.startsWith('0x') && asset.length === 64)) {
@@ -302,7 +302,7 @@ async function dryrun(flags, args, options, settings) {
         }
     } else {
         args = args.slice(1)
-        const assets = loadAssets(flags)
+        const assets = loadAssets(options)
         const headline = options?.headline
         const crafts = flattenRadonArtifacts(assets).filter(craft => craft.key.toLowerCase().indexOf(asset.toLowerCase()) >=0)
         if (crafts.length === 0) {
@@ -349,7 +349,7 @@ async function dryrun(flags, args, options, settings) {
             if (!headline) {
                 options.headline = `${prefix}${crafts[index].key}`
             }
-            await traceWitnetRadonRequestDryRun(artifact, options, settings)
+            await traceWitnetRadonRequestDryRun(artifact, options)
             if (options?.verbose && index < crafts.length - 1) {
                 console.info(`${options?.indent || ""}${"─".repeat(150)}`)
             }
@@ -375,8 +375,8 @@ const stringifyReducer = (x, c) => {
     return color(`${Witnet.Radon.reducers.Opcodes[x.opcode]}()`) 
 }
 
-function loadAssets(flags) {
-    const { assets } = flags?.module ? require(flags.module) : (flags?.legacy ? {} : require('witnet-toolkit'))
+function loadAssets(options) {
+    const { assets } = options?.module ? require(options.module) : (options?.legacy ? {} : require('witnet-toolkit'))
     return isModuleInitialized ? merge(assets, require(`${WITNET_ASSETS_PATH}`)) : assets
 }
 
@@ -607,10 +607,10 @@ function traceWitnetRadonRequest(request, options) {
     }
 }
 
-async function traceWitnetRadonRequestDryRun(request, options, settings) {
+async function traceWitnetRadonRequestDryRun(request, options) {
     const bytecode = request.toBytecode()
     var report = await helpers
-        .toolkitRun(settings, ['try-data-request', '--hex', bytecode.startsWith('0x') ? bytecode.slice(2) : bytecode])
+        .toolkitRun(options, ['try-data-request', '--hex', bytecode.startsWith('0x') ? bytecode.slice(2) : bytecode])
         .catch((err) => {
             let errorMessage = err.message.split('\n').slice(1).join('\n').trim()
             const errorRegex = /.*^error: (?<message>.*)$.*/gm
