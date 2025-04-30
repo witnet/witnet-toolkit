@@ -1,15 +1,15 @@
 export { ICoinbase } from "./interfaces"
 
 export {
-    Coins,
-    PublicKey,
-    PublicKeyHash,
-    TransactionCallback,
-    TransactionReceipt,
-    TransactionStatus,
-    TransmissionError,
-    TransactionPriority,
-    UtxoSelectionStrategy,
+  Coins,
+  PublicKey,
+  PublicKeyHash,
+  TransactionCallback,
+  TransactionReceipt,
+  TransactionStatus,
+  TransmissionError,
+  TransactionPriority,
+  UtxoSelectionStrategy,
 } from "./types"
 
 export * from "./transmitters/DataRequests"
