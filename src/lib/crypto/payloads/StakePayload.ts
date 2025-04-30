@@ -145,7 +145,7 @@ export class StakePayload extends TransactionPayloadMultiSig<StakeDepositParams>
                     && target?.value && (target.value as Coins).pedros > 0
                     && target?.withdrawer
             )) {
-                throw new TypeError(`${this.constructor.name}: invalid specs were provided: ${JSON.stringify(target)}`)
+                throw new TypeError(`${this.constructor.name}: invalid options: ${JSON.stringify(target)}`)
             } else {
                 if ((target.value as Coins).pedros < StakePayload.MIN_VALUE) {
                     throw new TypeError(
