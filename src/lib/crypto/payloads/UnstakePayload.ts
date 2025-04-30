@@ -145,7 +145,7 @@ export class UnstakePayload extends TransactionPayload<StakeWithdrawalParams> {
                     && target?.value && (target.value as Coins).pedros > 0
                     && target?.validator
             )) {
-                throw new TypeError(`${this.constructor.name}: invalid specs were provided: ${JSON.stringify(target)}`)
+                throw new TypeError(`${this.constructor.name}: invalid options: ${JSON.stringify(target)}`)
             } else {
                 if (target?.nonce || parseInt(target.nonce) <= 0) {
                     throw new TypeError(`${this.constructor.name}: nonce must be positive if provided.`)

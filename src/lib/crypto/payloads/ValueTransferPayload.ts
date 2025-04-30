@@ -94,20 +94,33 @@ export class ValueTransferPayload extends TransactionPayloadMultiSig<ValueTransf
     public validateTarget(target?: any): ValueTransferParams | undefined {
         target = this._cleanTargetExtras(target)
         if (target && Object.keys(target).length > 0) {
-            if (!(
-                target
-                    && (
-                        !target?.fees 
-                        || (
-                            target.fees instanceof Coins && (target.fees as Coins).pedros > 0 
-                            || Object.values(TransactionPriority).includes(target.fees)
-                        )
-                    )
-                    && target?.recipients
-                    && target?.recipients.length > 0
-                    && (!target?.timelock || target.timelock >= 0)
+            if (!target) {
+                throw new TypeError(`${this.constructor.name}: no options passed.`)
+            
+            } else if (!(
+                !target?.fees 
+                || (
+                    (target.fees instanceof Coins && (target.fees as Coins).pedros > 0)
+                    || Object.values(TransactionPriority).includes(target.fees)
+                )
             )) {
-                throw new TypeError(`${this.constructor.name}: invalid specs were provided: ${JSON.stringify(target)}`)
+                throw new TypeError(`${this.constructor.name}: invalid fees: ${target.fees}`)
+            
+            } else if (!target?.recipients) {
+                throw new TypeError(`${this.constructor.name}: no recipients.`)
+            
+            } else if (!(
+                Array.isArray(target.recipients)
+                && target.recipients.length > 0
+                && (target.recipients as [[PublicKeyHashString, Coins]]).filter(([, value]) => value instanceof Coins)
+            )) {
+                throw new TypeError(`${this.constructor.name}: invalid recipients: ${target.recipients}`)
+            
+            } else if(!(
+                !target?.timelock || target.timelock >= 0
+            )) {
+                throw new TypeError(`${this.constructor.name}: invalid timelock: ${target.timelock}`)
+            
             } else {
                 return target as ValueTransferParams
             }
