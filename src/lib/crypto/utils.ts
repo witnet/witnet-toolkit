@@ -132,17 +132,28 @@ export function selectUtxos(specs: {
             specs.utxos = specs.utxos.sort((a, b) => a.value - b.value)
             break
     }
-    if (strategy === UtxoSelectionStrategy.SlimFit && specs.value !== undefined) {
-        const slimFitIndex = specs.utxos.findIndex(utxo => utxo.value <= (specs.value || 0))
-        if (slimFitIndex >= 2) {
-            specs.utxos = specs.utxos.slice(slimFitIndex - 1)
-        } else {
-            specs.utxos = specs.utxos.slice(-1)
-        }
-    }
-    // remove locked UTXOs from final selection:
+    // filter locked UTXOs:
     const now = Math.floor(Date.now() / 1000)
-    return specs.utxos.filter(utxo => utxo.timelock <= now)
+    specs.utxos = specs.utxos.filter(utxo => utxo.timelock <= now)
+
+    // if target value is specified, filter spare UTXOs
+    const pedros = specs?.value ? specs.value.pedros : undefined
+    if (pedros) {
+        if (strategy === UtxoSelectionStrategy.SlimFit) {
+            const slimFitIndex = specs.utxos.findIndex(utxo => utxo.value <= pedros)
+            if (slimFitIndex >= 1) {
+                return specs.utxos.slice(slimFitIndex - 1, slimFitIndex)
+            }
+        }
+        let covered = 0
+        return specs.utxos.filter(utxo => {
+            const filter = covered < pedros
+            covered += utxo.value
+            return filter
+        })
+    } else {
+        return specs.utxos
+    }
 }
 
 export function sha256(buffer: any) {
