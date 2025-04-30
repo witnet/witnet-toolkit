@@ -313,6 +313,6 @@ export class Wallet implements IWallet {
     public getSigner(pkh?: PublicKeyHashString, gap?: number): ISigner | undefined {
         if (!pkh) return this.accounts[0]?.getSigner() || this.coinbase.getSigner(pkh);
         const account = this.getAccount(pkh, gap)
-        return account?.getSigner() || this.coinbase.getSigner(pkh)
+        return account?.getSigner(pkh) || this.coinbase.getSigner(pkh)
     }
 }
