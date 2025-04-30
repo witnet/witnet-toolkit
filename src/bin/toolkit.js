@@ -30,7 +30,12 @@ const toolkitFileNames = {
   win32: (arch) => `witnet_toolkit-${version}-${arch}-pc-windows-msvc.exe`,
   // TODO: detect armv7
   linux: (arch) => `witnet_toolkit-${version}-${arch}-unknown-linux-gnu${arch === "arm" ? "eabihf" : ""}`,
-  darwin: (arch) => `witnet_toolkit-${version}-${arch}-apple-darwin`,
+  darwin: (arch) => 
+    arch === "arm64" 
+      // m1 mac
+      ? `witnet_toolkit-${version}-${arch}-unknown-linux-gnu` 
+      // intel mac
+      : `witnet_toolkit-${version}-${arch}-apple-darwin`
 }
 const archsMap = {
   arm64: 'aarch64',
