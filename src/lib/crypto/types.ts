@@ -1,20 +1,20 @@
 const secp256k1 = require('secp256k1')
 import { bech32 } from 'bech32'
-import { Epoch, Hash, HexString, Nanowits, UtxoMetadata } from "../types"
+import { Balance, Epoch, Hash, HexString, Nanowits, UtxoMetadata } from "../types"
 
 import { fromHexString, fromWits, isHexString, toHexString, whole_wits } from "../../bin/helpers"
 import { sha256 } from "./utils"
 
 export class Coins {
     readonly pedros: Nanowits;
+    public static fromBalance(balance: Balance): Coins {
+        return Coins.fromPedros(Object.values(balance).reduce((prev, curr) => prev + curr))
+    }
     public static fromNanowits(nanowits: Nanowits): Coins {
         return new Coins(Math.floor(nanowits))
     }
     public static fromPedros(pedros: number): Coins {
         return new Coins(Math.floor(pedros))
-    }
-    public static fromValue(value: Coins): Coins {
-        return new Coins(value.pedros)
     }
     public static fromWits(wits: number): Coins {
         return new Coins(fromWits(wits))

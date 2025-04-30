@@ -118,7 +118,7 @@ export class UnstakePayload extends TransactionPayload<StakeWithdrawalParams> {
     public toProtobuf(): any {
         if (this.prepared && this._target) {
             return {
-                fee: this._fees,
+                ...(this._fees > 0 ? { fee: this._fees } : {}),
                 nonce: this._covered,
                 operator: { hash: Array.from(PublicKeyHash.fromBech32(this._target.validator).toBytes20()) },
                 withdrawal: {
@@ -138,7 +138,7 @@ export class UnstakePayload extends TransactionPayload<StakeWithdrawalParams> {
                     && (
                         !target?.fees 
                         || (
-                            target.fees instanceof Coins && (target.fees as Coins).pedros > 0 
+                            target.fees instanceof Coins && (target.fees as Coins).pedros >= 0 
                             || Object.values(TransactionPriority).includes(target.fees)
                         )
                     )
@@ -149,6 +149,10 @@ export class UnstakePayload extends TransactionPayload<StakeWithdrawalParams> {
             } else {
                 if (target?.nonce || parseInt(target.nonce) <= 0) {
                     throw new TypeError(`${this.constructor.name}: nonce must be positive if provided.`)
+                }
+                // asume zero fees if not given in target params
+                if (!target?.fees) {
+                    target.fees = Coins.zero()
                 }
                 return target as StakeWithdrawalParams
             }
