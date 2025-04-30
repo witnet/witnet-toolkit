@@ -231,9 +231,10 @@ function parseURL(url) {
 
 function showUsage(cmd, module) {
     showUsageHeadline(cmd)
-    if (module?.flags) showUsageFlags(module.flags)
-    if (module?.router) showUsageRouter(module.router)
-    if (module?.envars) showUsageEnvars(module.envars)
+    showUsageOptions({ ...module?.flags })
+    showUsageFlags({ ...module?.flags })
+    showUsageRouter({ ...module.router })
+    showUsageEnvars({ ...module.envars })
 }
 
 function showUsageRouter(router) {
@@ -247,7 +248,7 @@ function showUsageRouter(router) {
     }
 }
 
-function showUsageError(cmd, subcmd, module, flags = {}, error) {
+function showUsageError(cmd, subcmd, module, error, flags) {
     showUsageSubcommand(cmd, subcmd, module, error)
     if (error) {
         console.info(`\nERROR:`)
@@ -275,7 +276,11 @@ function showUsageEnvars(envars) {
 }
 
 function showUsageFlags(flags) {
-    flags = Object.entries(flags)
+    flags = Object.entries(flags).filter(([, flag]) => !flag?.param).sort(([a,], [b,]) => {
+        if (a < b) return -1;
+        else if (a > b) return 1;
+        else return 0;
+    })
     if (flags.length > 0) {
         console.info(`\nFLAGS:`)
         const maxLength = Math.max(...flags.filter(([,{hint}]) => hint).map(([key, { param }]) => param ? key.length + param.length + 3 : key.length))
@@ -303,18 +308,22 @@ function showUsageHeadline(cmd, subcmd, module) {
                 params = optionalize(params)
             }
         }
-        console.info(`   ${white(`npx witnet ${cmd}`)} [FLAGS] ${white(subcmd)} ${params ? green(params) + " " : ""}${options && Object.keys(options).length > 0 ? "[OPTIONS]" : ""}`)
+        console.info(`   ${white(`npx witnet ${cmd}`)} ${white(subcmd)} ${params ? green(params) + " " : ""}[OPTIONS] [FLAGS]`)
         if (module?.router[subcmd]?.hint) {
             console.info(`\nDESCRIPTION:`)
             console.info(`   ${module.router[subcmd].hint}`)
         }
     } else {
-        console.info(`   ${white(`npx witnet ${cmd}`)} [FLAGS] <SUBCOMMAND> ... [OPTIONS]`)
+        console.info(`   ${white(`npx witnet ${cmd}`)} <SUBCOMMAND> ... [OPTIONS] [FLAGS]`)
     }
 }
 
 function showUsageOptions(options) {
-    options = Object.entries(options)
+    options = Object.entries(options).filter(([, option]) => option?.param).sort(([a,], [b,]) => { 
+        if (a < b) return -1;
+        else if (a > b) return 1;
+        else return 0;
+    })
     if (options.length > 0) {
         console.info(`\nOPTIONS:`)
         const maxLength = options
@@ -331,12 +340,9 @@ function showUsageOptions(options) {
 
 function showUsageSubcommand(cmd, subcmd, module) {
     showUsageHeadline(cmd, subcmd, module)
-    showUsageFlags({ ...module?.flags, ...module.router[subcmd]?.flags })
-    showUsageOptions({ ...module?.options, ...module.router[subcmd]?.options })
-    showUsageEnvars({ ...module.router[subcmd]?.envars, ...module?.envars })
-    // if (module?.flags) showUsageFlags(module?.flags)
-    // if (module?.router[subcmd]?.options) showUsageOptions(module.router[subcmd]?.options)
-    // if (module?.envars) showUsageEnvars(module?.envars)
+    showUsageOptions({ ...module?.flags, ...module.router[subcmd]?.options })
+    showUsageFlags({ ...module?.flags, ...module.router[subcmd]?.options })
+    showUsageEnvars(module.router[subcmd]?.envars || module?.envars)
 }
 
 function showVersion() {

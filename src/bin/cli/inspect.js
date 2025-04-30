@@ -27,17 +27,14 @@ module.exports = {
         balance: {
             hint: "Show available Wits on given address.",
             params: "WIT_ADDRESS",
-            options: {},
         },
         block: {
             hint: "Get block data given its block hash.",
             params: "BLOCK_HASH",
-            options: {},
         },
         dataRequest: {
             hint: "Report resolution workflow for the specified data request transaction.",
             params: "DR_TX_HASH",
-            options: {},
         },
         "dataRequests*": {
             hint: "Search for in-flight or recently solved data request transactions.",
@@ -92,12 +89,12 @@ module.exports = {
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /// CLI SUBMODULE COMMANDS ============================================================================================
 
-async function balance(flags = {}, args) {
+async function balance(options = {}, args = []) {
     if (args.length === 0) {
         throw "No WIT_ADDRESS was specified."
     }
     const pkh = args[0]
-    const provider = new Witnet.Provider(flags?.provider)
+    const provider = new Witnet.Provider(options?.provider)
     const balance = await provider.getBalance(pkh)
     const records = []
     records.push([ 
@@ -113,7 +110,7 @@ async function balance(flags = {}, args) {
     })
 }
 
-async function block(flags = {}, args) {
+async function block(options = {}, args = []) {
     if (args.length === 0) {
         throw "No BLOCK_HASH was specified."
     }
@@ -121,7 +118,7 @@ async function block(flags = {}, args) {
     if (!helpers.isHexString(blockHash)) {
         throw "Invalid BLOCK_HASH was provided."
     }
-    const provider = new Witnet.Provider(flags?.provider)
+    const provider = new Witnet.Provider(options?.provider)
     const block = await provider.getBlock(blockHash)
     console.info(gray(JSON.stringify(block, (key, value) => {
         switch (key) {
@@ -136,7 +133,7 @@ async function block(flags = {}, args) {
     }, 2)))
 }
 
-async function dataRequest(flags = {}, args) {
+async function dataRequest(options = {}, args = []) {
     if (args.length === 0) {
         throw "No DR_TX_HASH was specified."
     }
@@ -144,7 +141,7 @@ async function dataRequest(flags = {}, args) {
     if (!helpers.isHexString(drTxHash)) {
         throw "Invalid DR_TX_HASH was provided."
     }
-    const provider = new Witnet.Provider(flags?.provider)
+    const provider = new Witnet.Provider(options?.provider)
     
     const drTxJsonReplacer = (key, value) => {
         switch (key) {
@@ -170,16 +167,16 @@ async function dataRequest(flags = {}, args) {
     console.info(JSON.stringify(report, drTxJsonReplacer, 4))
 }
 
-async function superblock(flags = {}, args) {
+async function superblock(options = {}, args = []) {
     if (args.length === 0) {
         throw "No EPOCH was specified."
     }
-    const provider = new Witnet.Provider(flags?.provider)
+    const provider = new Witnet.Provider(options?.provider)
     const superblock = await provider.getSuperblock(args[0])
     console.info(superblock)
 }
 
-async function transaction(flags = {}, args) {
+async function transaction(options = {}, args = []) {
     if (args.length === 0) {
         throw "No TX_HASH was specified."
     }
@@ -187,22 +184,22 @@ async function transaction(flags = {}, args) {
     if (!helpers.isHexString(txHash)) {
         throw "Invalid TX_HASH was provided."
     }
-    const provider = new Witnet.Provider(flags?.provider)
+    const provider = new Witnet.Provider(options?.provider)
     const transaction = await provider.getTransaction(txHash)
     console.info(
         `${yellow(JSON.stringify(transaction, utils.txJsonReplacer, 2))}`
     )
 }
 
-async function utxos(flags = {}, args = [], options = {}) {
+async function utxos(options = {}, args = []) {
     if (args.length < 1) {
         throw "No WIT_ADDRESS was specified."
     }
     const now = Math.floor(Date.now() / 1000)
-    const provider = new Witnet.Provider(flags?.provider)
+    const provider = new Witnet.Provider(options?.provider)
     let utxos = await provider.getUtxos(args[0], options["small-first"] || false)
     let totalBalance = 0
-    if (!flags?.verbose) {
+    if (!options?.verbose) {
         utxos = utxos
             .filter(utxo => utxo.timelock <= now)
             .map(utxo => { 
@@ -234,11 +231,11 @@ async function utxos(flags = {}, args = [], options = {}) {
     console.info(`^ Showing ${utxos.length} UTXOs: ${lyellow(helpers.whole_wits(totalBalance, 2))}.`)
 }
 
-async function validators(flags = {}, args = []) {
+async function validators(options = {}, args = []) {
     if (args.length === 0) {
         throw "No WIT_ADDRESS was specified."
     }
-    const provider = new Witnet.Provider(flags?.provider)
+    const provider = new Witnet.Provider(options?.provider)
     const query = {
         filter: { withdrawer: args[0] },
     }
@@ -252,7 +249,7 @@ async function validators(flags = {}, args = []) {
                     1 + index,
                     record.key.validator,
                     ...(
-                        flags?.verbose
+                        options?.verbose
                             ? [ record.value.nonce, record.value.epochs.witnessing, record.value.epochs. mining ]
                             : []
                     ),
@@ -263,7 +260,7 @@ async function validators(flags = {}, args = []) {
                     "RANK",
                     "VALIDATORS",
                     ...(
-                        flags?.verbose
+                        options?.verbose
                             ? [ "Nonce", "LW_Epoch", "LM_Epoch", ]
                             : []
                     ),
@@ -271,14 +268,14 @@ async function validators(flags = {}, args = []) {
                 ],
                 humanizers: [
                     ,, ...(
-                        flags?.verbose
+                        options?.verbose
                             ? [ helpers.commas, helpers.commas, helpers.commas ]
                             : []
                     ),
                     helpers.commas,
                 ],
                 colors: [ , green, ...(
-                    flags?.verbose
+                    options?.verbose
                         ? [ , magenta, cyan, myellow, ]
                         : [ myellow, ]
                 )],
@@ -296,11 +293,11 @@ async function validators(flags = {}, args = []) {
     }
 }
 
-async function withdrawers(flags = {}, args) {
+async function withdrawers(options = {}, args = []) {
     if (args.length === 0) {
         throw "No WIT_ADDRESS was specified."
     }
-    const provider = new Witnet.Provider(flags?.provider)
+    const provider = new Witnet.Provider(options?.provider)
     const query = {
         filter: { validator: args[0] },
     }
@@ -314,7 +311,7 @@ async function withdrawers(flags = {}, args) {
                     1 + index,
                     record.key.withdrawer,
                     ...(
-                        flags?.verbose
+                        options?.verbose
                             ? [ record.value.nonce, record.value.epochs.witnessing, record.value.epochs. mining ]
                             : []
                     ),
@@ -325,7 +322,7 @@ async function withdrawers(flags = {}, args) {
                     "RANK",
                     "WITHDRAWERS",
                     ...(
-                        flags?.verbose
+                        options?.verbose
                             ? [ "Nonce", "LW_Epoch", "LM_Epoch", ]
                             : []
                     ),
@@ -333,14 +330,14 @@ async function withdrawers(flags = {}, args) {
                 ],
                 humanizers: [
                     ,, ...(
-                        flags?.verbose
+                        options?.verbose
                             ? [ helpers.commas, helpers.commas, helpers.commas ]
                             : []
                     ),
                     helpers.commas,
                 ],
                 colors: [ , green, ...(
-                    flags?.verbose
+                    options?.verbose
                         ? [ , magenta, cyan, myellow, ]
                         : [ myellow, ]
                 )],

@@ -80,12 +80,12 @@ module.exports = {
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /// CLI SUBMODULE COMMANDS ============================================================================================
 
-async function _initializeFarm(flags = {}) {
-    return new Witnet.NodeFarm(flags?.nodes)
+async function _initializeFarm(options = {}) {
+    return new Witnet.NodeFarm(options?.nodes)
 }
 
-async function addresses(flags = {}) {
-    const farm = await _initializeFarm(flags)
+async function addresses(options = {}) {
+    const farm = await _initializeFarm(options)
     const addresses = Object.entries(await farm.addresses())
     if (addresses.length === 1 && !(addresses[0][1] instanceof Error)) {
         console.info(lcyan(addresses[0][1]))
@@ -102,12 +102,12 @@ async function addresses(flags = {}) {
     }
 }
 
-async function authorize(flags = {}, args, options = {}) {
+async function authorize(options = {}, args = []) {
     if (args.length === 0) {
         throw "Withdrawer address must be specified."
     } else {
         Witnet.PublicKeyHash.fromBech32(args[0])
-        const farm = await _initializeFarm(flags)
+        const farm = await _initializeFarm(options)
         const authcodes = await farm.authorizeStakes(args[0].toLowerCase())
         Object.entries(authcodes).forEach(([url, [validator, authcode]]) => {
             if (url instanceof Error) {
@@ -134,8 +134,8 @@ async function authorize(flags = {}, args, options = {}) {
     }
 }
 
-async function balance(flags = {}) {
-    const farm = await _initializeFarm(flags)
+async function balance(options = {}) {
+    const farm = await _initializeFarm(options)
     const balances = await farm.balances()
     helpers.traceTable(
         Object.entries(balances).map(([ url, [pkh, balance]]) => [
@@ -158,8 +158,8 @@ async function balance(flags = {}) {
     )
 }
 
-async function masterKeys(flags = {}) {
-    const farm = await _initializeFarm(flags)
+async function masterKeys(options = {}) {
+    const farm = await _initializeFarm(options)
     const masterKeys = await farm.masterKeys()
     helpers.traceTable(
         Object.entries(masterKeys).map(([, [pkh, masterKey]]) => [
@@ -173,8 +173,8 @@ async function masterKeys(flags = {}) {
     )
 } 
 
-async function peers(flags = {}, _args = [], options = {}) {
-    const farm = await _initializeFarm(flags)
+async function peers(options = {}) {
+    const farm = await _initializeFarm(options)
     const checklists = {}
     if (options['reset']) {
         checklists["Reset peers"] = await farm.initializePeers()
@@ -192,8 +192,8 @@ async function peers(flags = {}, _args = [], options = {}) {
     }
 }
 
-async function publicKeys(flags = {}) {
-    const farm = await _initializeFarm(flags)
+async function publicKeys(options = {}) {
+    const farm = await _initializeFarm(options)
     const publicKeys = await farm.publicKeys()
     helpers.traceTable(
         Object.entries(publicKeys).map(([, [pkh, publicKey]]) => [
@@ -206,8 +206,8 @@ async function publicKeys(flags = {}) {
     )
 } 
 
-async function rankings(flags = {}, _args = [], options = {}) {
-    const farm = await _initializeFarm(flags)
+async function rankings(options = {}) {
+    const farm = await _initializeFarm(options)
     const addresses = Object.entries(await farm.addresses())
     const validators = []
     let provider
@@ -259,11 +259,11 @@ async function rankings(flags = {}, _args = [], options = {}) {
     }
 }
 
-async function rewind(flags = {}, args) {
+async function rewind(options = {}, args = []) {
     if (!args || args.length === 0) {
         throw "No rewind epoch was provided."
     }
-    if (!flags?.force) {
+    if (!options?.force) {
         const will = await helpers.prompt("Rewinding will reset some stats. Do you want to proceed anyways? (y/N)")
         // Abort if not confirmed
         if (!['y'].includes(will.toLowerCase())) {
@@ -271,16 +271,16 @@ async function rewind(flags = {}, args) {
             return
         }
     }
-    const farm = await _initializeFarm(flags)
+    const farm = await _initializeFarm(options)
     const epoch = parseInt(args[0])
     helpers.traceChecklists({
         "Rewind chain": await farm.rewind(epoch),
     })
-    syncStatus(flags)
+    syncStatus(options)
 } 
 
-async function stats(flags = {}) {
-    const farm = await _initializeFarm(flags)
+async function stats(options = {}) {
+    const farm = await _initializeFarm(options)
     const stats = await farm.stats()
     helpers.traceTable(
         Object.entries(stats).map(([ url, stats ]) => [
@@ -311,8 +311,8 @@ async function stats(flags = {}) {
     )
 }
 
-async function syncStatus(flags) {
-    const farm = await _initializeFarm(flags)
+async function syncStatus(options) {
+    const farm = await _initializeFarm(options)
     const syncStatus = await farm.syncStatus()
     helpers.traceTable(
         Object.entries(syncStatus).map(([url, status]) => [
@@ -331,8 +331,8 @@ async function syncStatus(flags) {
     )
 }
 
-async function withdrawers(flags = {}) {
-    const farm = await _initializeFarm(flags)
+async function withdrawers(options = {}) {
+    const farm = await _initializeFarm(options)
     const records = await farm.withdrawers()
     if (records && Object.keys(records).length > 0) {
         helpers.traceTable(

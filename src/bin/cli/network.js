@@ -44,10 +44,6 @@ module.exports = {
         constants: {
             hint: "Show network's consensus constants.",
         },
-        // "dataProviders*": {
-        //     hint: "List data providers queried at least once by data requests during last <RANGE> epochs.",
-        //     params: "[RANGE]",
-        // },
         fees: {
             hint: "Estimate transaction fees based on recent network activity.",
             params: '"vtt" | "drt" | "st" | "ut"',
@@ -145,14 +141,14 @@ module.exports = {
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /// CLI SUBMODULE COMMANDS ============================================================================================
 
-async function blocks(flags = {}, _args = [], options = {}) {
-    flags.limit = Math.min(parseInt(flags.limit) || FLAGS_LIMIT_DEFAULT, FLAGS_LIMIT_MAX)
-    const provider = new Witnet.Provider(flags?.provider)
+async function blocks(options = {}) {
+    options.limit = Math.min(parseInt(options.limit) || FLAGS_LIMIT_DEFAULT, FLAGS_LIMIT_MAX)
+    const provider = new Witnet.Provider(options?.provider)
     // todo: use prompter?
-    const records = await provider.blocks(parseInt(options?.since) || - flags.limit - 2, flags.limit)
+    const records = await provider.blocks(parseInt(options?.since) || - options.limit - 2, options.limit)
     if (records.length > 0) {
         helpers.traceTable(
-            records.slice(0, flags.limit).map(record => [
+            records.slice(0, options.limit).map(record => [
                 record[0],
                 record[1],
             ]), {
@@ -160,37 +156,37 @@ async function blocks(flags = {}, _args = [], options = {}) {
             humanizers: [ helpers.commas, ],
             colors: [, helpers.colors.gray, ]
         })
-        console.info(`^ Listed ${records.length} blocks for a range of ${flags.limit} epochs.`)
+        console.info(`^ Listed ${records.length} blocks for a range of ${options.limit} epochs.`)
         
     } else {
         console.info(
             `> No blocks found in specified range (since: ${
-                options?.since || - flags.limit
+                options?.since || - options.limit
             }, limit: ${
-                flags.limit
+                options.limit
             }).`
         )
     }
 }
 
-async function constants(flags = {}) {
-    const provider = new Witnet.Provider(flags?.provider)
+async function constants(options = {}) {
+    const provider = new Witnet.Provider(options?.provider)
     console.info(await provider.constants())
 }
 
-async function holders(flags = {}, _args = [], options = {}) {
-    flags.limit = Math.min(parseInt(flags.limit) || FLAGS_LIMIT_DEFAULT, FLAGS_LIMIT_MAX);
-    const provider = new Witnet.Provider(flags?.provider)
+async function holders(options = {}) {
+    options.limit = Math.min(parseInt(options.limit) || FLAGS_LIMIT_DEFAULT, FLAGS_LIMIT_MAX);
+    const provider = new Witnet.Provider(options?.provider)
     const records = Object.entries(await helpers.prompter(provider.holders(
         options["min-balance"] ? options["min-balance"] * 10 ** 9 : 1000000,
         options["max-balance"] ? options["max-balance"] * 10 ** 9 : null,
     )))
     const totalRecords = records.length
     helpers.traceTable(
-        records.slice(0, flags.limit).map(([ address, balance ], index) => [ 
+        records.slice(0, options.limit).map(([ address, balance ], index) => [ 
             index + 1,
             address, 
-            ...(flags?.verbose ? [
+            ...(options?.verbose ? [
                 helpers.fromNanowits(balance.locked),
                 helpers.fromNanowits(balance.staked),
                 helpers.fromNanowits(balance.unlocked),
@@ -199,7 +195,7 @@ async function holders(flags = {}, _args = [], options = {}) {
         ]), {
             headlines: [ 
                 "RANK", "HOLDERS", 
-                ...(flags?.verbose ? [
+                ...(options?.verbose ? [
                     "Locked ($WIT)", 
                     "Staked ($WIT)", 
                     "Available ($WIT)", 
@@ -209,7 +205,7 @@ async function holders(flags = {}, _args = [], options = {}) {
             humanizers: [ ,, helpers.commas, helpers.commas, helpers.commas, helpers.commas ],
             colors: [ 
                 , mgreen, 
-                ...(flags?.verbose ? [
+                ...(options?.verbose ? [
                     gray, 
                     yellow, 
                     myellow, 
@@ -218,30 +214,30 @@ async function holders(flags = {}, _args = [], options = {}) {
             ],
         }
     )
-    if (flags.limit < totalRecords) {
-        console.info(`^ Listed ${Math.min(flags.limit, totalRecords)} out of ${totalRecords} records.`)
+    if (options.limit < totalRecords) {
+        console.info(`^ Listed ${Math.min(options.limit, totalRecords)} out of ${totalRecords} records.`)
     }
 }
 
-async function knownPeers(flags = {}) {
-    if (!flags) flags = {}
-    flags.limit = parseInt(flags.limit) || FLAGS_LIMIT_DEFAULT
-    const provider = new Witnet.Provider(flags?.provider)
+async function knownPeers(options = {}) {
+    if (!options) options = {}
+    options.limit = parseInt(options.limit) || FLAGS_LIMIT_DEFAULT
+    const provider = new Witnet.Provider(options?.provider)
     const knownPeers = await provider.knownPeers()
     console.info(knownPeers)
 }
 
-async function mempool(flags = {}) {
-    const provider = new Witnet.Provider(flags?.provider)
+async function mempool(options = {}) {
+    const provider = new Witnet.Provider(options?.provider)
     console.info(await provider.mempool())
 }
 
-async function powers(flags = {}, _args =  [], options = {}) {
-    const provider = new Witnet.Provider(flags?.provider)
+async function powers(options = {}) {
+    const provider = new Witnet.Provider(options?.provider)
     const query = {
         distinct: options?.distinct || false,
-        limit: parseInt(flags.limit) || FLAGS_LIMIT_DEFAULT,
-        offset: parseInt(flags?.offset) || 0,
+        limit: parseInt(options.limit) || FLAGS_LIMIT_DEFAULT,
+        offset: parseInt(options?.offset) || 0,
         orderBy: options?.witnessing ? "witnessing" : "mining",
     }
     const records = await provider.powers(query)
@@ -250,24 +246,24 @@ async function powers(flags = {}, _args =  [], options = {}) {
             records.map(record => [
                 record.ranking,
                 record.validator,
-                ...(flags?.verbose ? [ record.withdrawer ] : []),
+                ...(options?.verbose ? [ record.withdrawer ] : []),
                 record.power
             ]), {
                 headlines: [ 
                     "G_RANK", 
                     "VALIDATORS", 
-                    ...(flags?.verbose ? [ "Withdrawer" ] : []),
+                    ...(options?.verbose ? [ "Withdrawer" ] : []),
                     `${query.orderBy.toUpperCase()} POWER`, 
                 ],
                 colors: [ 
                     , 
                     helpers.colors.green, 
-                    ...(flags?.verbose ? [ helpers.colors.mgreen ] : []),
+                    ...(options?.verbose ? [ helpers.colors.mgreen ] : []),
                     query.orderBy === "mining" ? helpers.colors.mcyan : helpers.colors.mmagenta, 
                 ],
                 humanizers: [ 
                     helpers.commas,,
-                    ...(flags?.verbose ? [ , helpers.commas ] : [ helpers.commas ]), 
+                    ...(options?.verbose ? [ , helpers.commas ] : [ helpers.commas ]), 
                 ],
             },  
         )
@@ -285,13 +281,13 @@ async function powers(flags = {}, _args =  [], options = {}) {
     }
 }
 
-async function priorities(flags = {}) {
-    const provider = new Witnet.Provider(flags?.provider)
+async function priorities(options = {}) {
+    const provider = new Witnet.Provider(options?.provider)
     console.info(await provider.priorities())
 }
 
-async function provider(flags = {}) {
-    const provider = await Witnet.Provider.fromEnv(flags?.provider)
+async function provider(options = {}) {
+    const provider = await Witnet.Provider.fromEnv(options?.provider)
     console.info(`> Witnet RPC provider: ${white(provider.endpoints)}`)
     console.info(`> Witnet environment:  ${
         provider.networkId === 40941
@@ -301,12 +297,12 @@ async function provider(flags = {}) {
     console.info(`> Witnet network id:   ${green("0x" + provider.networkId.toString(16).toUpperCase())}`)    
 }
 
-async function senate(flags = {}, _args = [], options = {}) {
-    const provider = new Witnet.Provider(flags?.provider)
+async function senate(options = {}) {
+    const provider = new Witnet.Provider(options?.provider)
     const params = {
         distinct: true,
-        limit: Math.min(parseInt(flags.limit) || FLAGS_LIMIT_DEFAULT, FLAGS_LIMIT_MAX),
-        offset: parseInt(flags?.offset || 0),
+        limit: Math.min(parseInt(options.limit) || FLAGS_LIMIT_DEFAULT, FLAGS_LIMIT_MAX),
+        offset: parseInt(options?.offset || 0),
         order: { by: "mining", },
         since:  - Math.abs(parseInt(options?.since) || OPTIONS_DEFAULT_SINCE) - 1,
     }
@@ -315,7 +311,7 @@ async function senate(flags = {}, _args = [], options = {}) {
         helpers.traceTable(
             records
                 .map((record, index) => [
-                    ...(flags?.verbose ? [ 
+                    ...(options?.verbose ? [ 
                         index + 1,
                         record.key.validator,
                         record.value.nonce,
@@ -327,7 +323,7 @@ async function senate(flags = {}, _args = [], options = {}) {
                 ])
             , {
                 headlines: [
-                    ...(flags?.verbose ? [ 
+                    ...(options?.verbose ? [ 
                         "INDEX",
                         `Superblock Voting Committee ${params.since + 1}`, 
                         "Nonce",
@@ -338,14 +334,14 @@ async function senate(flags = {}, _args = [], options = {}) {
                     "LM_Epoch",
                 ],
                 humanizers: [ 
-                    ...(flags?.verbose ? [ 
+                    ...(options?.verbose ? [ 
                         helpers.commas,, helpers.commas, helpers.commas, helpers.commas, 
                     ] : [
                         , helpers.commas, helpers.commas, helpers.commas, 
                     ]),
                 ],
                 colors: [ 
-                    ...(flags?.verbose ? [ 
+                    ...(options?.verbose ? [ 
                         ,,, helpers.colors.magenta, helpers.colors.mcyan, 
                     ] : [ 
                         , helpers.colors.mcyan, 
@@ -371,12 +367,12 @@ async function senate(flags = {}, _args = [], options = {}) {
     }
 }
 
-async function stakes(flags = {}, _args = [], options = {}) {
-    const provider = new Witnet.Provider(flags?.provider)
+async function stakes(options = {}) {
+    const provider = new Witnet.Provider(options?.provider)
     const query = {
         params: {
-            limit: Math.min(parseInt(flags.limit) || FLAGS_LIMIT_DEFAULT, FLAGS_LIMIT_MAX),
-            offset: parseInt(flags?.offset || 0),
+            limit: Math.min(parseInt(options.limit) || FLAGS_LIMIT_DEFAULT, FLAGS_LIMIT_MAX),
+            offset: parseInt(options?.offset || 0),
         }
     }
     if (options?.validator) query.filter = { validator: options.validator }
@@ -390,7 +386,7 @@ async function stakes(flags = {}, _args = [], options = {}) {
                     record.key.withdrawer, 
                     record.key.validator, 
                     ...(
-                        flags?.verbose 
+                        options?.verbose 
                             ? [ record.value.nonce, record.value.epochs.witnessing, record.value.epochs.mining, ]
                             : []
                     ),
@@ -402,7 +398,7 @@ async function stakes(flags = {}, _args = [], options = {}) {
                     "STAKERS", 
                     "Validator", 
                     ...(
-                        flags?.verbose 
+                        options?.verbose 
                             ? [ "Nonce",  "LW_Epoch", "LM_Epoch", ]
                             : []
                     ),
@@ -410,7 +406,7 @@ async function stakes(flags = {}, _args = [], options = {}) {
                 ],
                 humanizers: [
                     ,,, ...(
-                        flags?.verbose
+                        options?.verbose
                             ? [ helpers.commas, helpers.commas, helpers.commas, ]
                             : []
                     ),
@@ -418,7 +414,7 @@ async function stakes(flags = {}, _args = [], options = {}) {
                 ],
                 colors: [
                     , helpers.colors.mgreen,, ...(
-                        flags?.verbose
+                        options?.verbose
                             ? [ , helpers.colors.magenta, helpers.colors.cyan, ]
                             : []
                     ),
@@ -440,8 +436,8 @@ async function stakes(flags = {}, _args = [], options = {}) {
     }
 }
 
-async function supplyInfo(flags = {}) {
-    const reporter = new Witnet.Reporter(flags?.provider || process.env.WITNET_SDK_PROVIDER_URL)
+async function supplyInfo(options = {}) {
+    const reporter = new Witnet.Reporter(options?.provider || process.env.WITNET_SDK_PROVIDER_URL)
     const data = await reporter.supplyInfo()
     console.info(`> Supply info at epoch ${helpers.colors.white(helpers.commas(data.epoch))}:`)
     const records = []
@@ -463,8 +459,8 @@ async function supplyInfo(flags = {}) {
     })
 }
 
-async function syncStatus(flags = {}) {
-    const provider = new Witnet.Provider(flags?.provider)
+async function syncStatus(options = {}) {
+    const provider = new Witnet.Provider(options?.provider)
     const syncStatus = await provider.syncStatus()
     helpers.traceTable(
         [[
@@ -485,8 +481,8 @@ async function syncStatus(flags = {}) {
     )
 }
 
-async function versions(flags = {}) {
-    const provider = new Witnet.Provider(flags?.provider)
+async function versions(options = {}) {
+    const provider = new Witnet.Provider(options?.provider)
     const protocolInfo = await provider.protocolInfo()
     if (
         protocolInfo?.all_checkpoints_periods
@@ -519,9 +515,8 @@ async function versions(flags = {}) {
     console.info(`Current protocol version is ${helpers.colors.mgreen(protocolInfo.current_version)}.`)
 }
 
-
-async function wips(flags = {}, _args = [], options = {}) {
-    const provider = new Witnet.Provider(flags?.provider)
+async function wips(options = {}) {
+    const provider = new Witnet.Provider(options?.provider)
     const wips = await provider.wips()
     if (!options?.pending) {
         // console.info(`> Active WIP upgrades at epoch ${helpers.colors.white(helpers.commas(wips.epoch))}:`)

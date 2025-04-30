@@ -192,11 +192,9 @@ if (args.includes('--debug')) {
   args.splice(args.indexOf('--debug'), 1)
 }
 
-let forceIndex = args.indexOf('--force');
-if (forceIndex >= 2) {
-  // If the `--force` flag is found, process it, but remove it from args so it doesn't get passed down to the binary
-  settings.force = args[forceIndex]
-  args.splice(forceIndex, 1)
+if (args.includes('--force')) {
+  settings.force = true
+  args.splice(args.indexOf('--force'), 1)
 }
 
 if (args.includes('--help')) {
@@ -233,28 +231,25 @@ async function main () {
   if (settings.update) {
     await forcedInstallCommand(settings)
   }
-  args = process.argv
-  const command = mainRouter[args[2]]; 
-  if (command) {
-    await command(settings, args.slice(3))
+  var args = process.argv.slice(2)
+  if (args[0] && mainRouter[args[0]]) {
+    await mainRouter[args[0]](settings, args.slice(1))
     process.exit(0)
 
-  } else if (args[2] && !args[2].startsWith(`--`)) try {
-    var cmd = args[2]
-    const module = require(`./cli/${args[2]}`)
-    var [args, flags, ] = extractFromArgs(args.slice(3), module.flags)
-    if (settings?.force) flags.force = true
+  } else if (args[0] && !args[0].startsWith('--')) try {
+    var cmd = args[0]
+    const module = require(`./cli/${cmd}`)
+    var [args, flags] = extractFromArgs(args.slice(1), module?.flags)
     if (args && args[0] && module.subcommands && module?.router[args[0]]) {
       var subcmd = args[0]
-      var options = module.router[subcmd]?.options
       if (settings?.help) {
         showUsageSubcommand(cmd, subcmd, module)
       
       } else {
-        var [args, options, ] = extractFromArgs(args.slice(1), options)
+        var [args, options ] = extractFromArgs(args.slice(1), { ...module.router[subcmd]?.options })
         args = deleteExtraFlags(args)
-        await module.subcommands[subcmd](flags, args, options, settings).catch(err => {
-            showUsageError(cmd, subcmd, module, settings, err)
+        await module.subcommands[subcmd]({ ...settings, ...flags, ...options }, args).catch(err => {
+            showUsageError(cmd, subcmd, module, err, settings)
         });
       }
     } else {
