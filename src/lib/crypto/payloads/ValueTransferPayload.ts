@@ -132,7 +132,7 @@ export class ValueTransferPayload extends TransactionPayloadMultiSig<ValueTransf
         if (!this._priorities) {
             this._priorities = await provider.priorities()
         }
-        return (
+        return Math.floor(
             this._priorities[`vtt_${priority}`].priority * (
                 this.covered ? this.weight : this.weight
                     // estimate one more input as to cover for network fees
