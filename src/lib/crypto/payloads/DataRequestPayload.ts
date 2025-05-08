@@ -16,7 +16,7 @@ export type DataRequestTemplateArgs = any | string | string[] | string[][]
 export type DataRequestParams = TransactionParams & {
     args?: DataRequestTemplateArgs,
     maxResultSize?: number,
-    witnesses: number,
+    witnesses?: number,
 }
 
 type DataRequestOutputSLA = {
@@ -40,6 +40,7 @@ const TX_WEIGHT_OUTPUT_SIZE = 36
 export class DataRequestPayload extends TransactionPayloadMultiSig<DataRequestParams> {
 
     public static COLLATERAL_RATIO = 125
+    public static DEFAULT_WITNESSES = 12
     public static MAX_WEIGHT = 80_000
     public static MIN_COLLATERAL = 20_000_000_000
 
@@ -83,7 +84,7 @@ export class DataRequestPayload extends TransactionPayloadMultiSig<DataRequestPa
             const witnesses = (
                 typeof this._target.witnesses === 'object'
                     ? Object.keys(this._target.witnesses).length 
-                    : this._target.witnesses
+                    : this._target.witnesses || 0
             );
             const commitAndRevealFee = this._fees2UnitaryCommitRevealReward(this._fees, witnesses)
             const witnessReward = this._fees2UnitaryReward(this._fees) 
@@ -144,7 +145,7 @@ export class DataRequestPayload extends TransactionPayloadMultiSig<DataRequestPa
 
     public get value(): Coins {
         if (this._target && this._fees) {
-            return Coins.fromPedros(this._fees2Value(this._fees, this._target.witnesses))
+            return Coins.fromPedros(this._fees2Value(this._fees, this._target.witnesses || 0))
         } else {
             return Coins.zero()
         }
@@ -152,7 +153,7 @@ export class DataRequestPayload extends TransactionPayloadMultiSig<DataRequestPa
 
     public get weight(): Nanowits {
         if (this._request && this._target) {
-            const witnesses = typeof this._target.witnesses === 'object' ? Object.keys(this._target.witnesses).length : this._target.witnesses
+            const witnesses = typeof this._target.witnesses === 'object' ? Object.keys(this._target.witnesses).length : this._target.witnesses || 0
             return (
                 DR_TX_WEIGHT_ALPHA * (this._request.weight() + 8 + 2 + 8 + 4 + 8),
                     + this._inputs.length * TX_WEIGHT_INPUT_SIZE 
@@ -179,6 +180,24 @@ export class DataRequestPayload extends TransactionPayloadMultiSig<DataRequestPa
         }
 
         if (!this.covered) {
+            if (!this._target.witnesses) {
+                this._target.witnesses = Math.min(
+                    DataRequestPayload.DEFAULT_WITNESSES, 
+                    await ledger.provider.witnesses()
+                )
+                if (this._target.witnesses < 3) {
+                    delete this._target.witnesses
+                    throw new Error(`${this.constructor.name}: cannot estimate witnesses: network not ready for witnessing.`)    
+                
+                } else if (this.weight > DataRequestPayload.MAX_WEIGHT * 0.8) {
+                    const delta = this.weight - DataRequestPayload.MAX_WEIGHT * 0.8
+                    this._target.witnesses -= Math.ceil(delta / (DR_COMMIT_TX_WEIGHT + DR_REVEAL_TX_WEIGHT * TX_WEIGHT_OUTPUT_SIZE))
+                    if (this._target.witnesses < 3) {
+                        delete this._target.witnesses
+                        throw new Error(`${this.constructor.name}: cannot estimate witnesses: radon request too complex: ${this.weight} weight units`)
+                    }
+                }
+            }
             const priority = (this._target as any)?.fees as TransactionPriority || TransactionPriority.Opulent
             let estimatedFees = await this._estimateNetworkFees(ledger.provider, priority);
             while (this._fees < estimatedFees) {
@@ -313,17 +332,17 @@ export class DataRequestPayload extends TransactionPayloadMultiSig<DataRequestPa
                             || Object.values(TransactionPriority).includes(target.fees)
                         )
                     )
-                    && target?.witnesses
+                    && (target?.witnesses || target?.witnesses === undefined)
                     && (!this.template || target?.args)
             )) {
                 throw new TypeError(`${this.constructor.name}: invalid options: ${JSON.stringify(target)}`)
-            } else {
+            } else if (target?.witnesses) {
                 if (typeof target.witnesses === 'object') {
                     throw new TypeError(`${this.constructor.name}: explicit witnessing committees not yet supported: ${target.witnesses}`)
                 } 
                 target.witnesses = parseInt(target.witnesses as string)
-                return target as DataRequestParams
             }
+            return target as DataRequestParams
         } else {
             return undefined
         }

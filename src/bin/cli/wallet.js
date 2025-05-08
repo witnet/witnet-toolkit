@@ -901,7 +901,6 @@ async function _loadTransactionParams (options = {}) {
     }
     fees = Witnet.TransactionPriority[priority.charAt(0).toUpperCase() + priority.slice(1)]
   }
-  const witnesses = options?.witnesses ? parseInt(options?.witnesses) : 3
   return {
     await: options?.await,
     confirmations,
@@ -910,7 +909,7 @@ async function _loadTransactionParams (options = {}) {
     force: options?.force,
     value,
     verbose: options?.verbose,
-    witnesses,
+    witnesses: options?.witnesses,
   }
 }
 

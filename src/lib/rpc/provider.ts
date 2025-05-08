@@ -4,7 +4,7 @@ import { Root as ProtoRoot } from "protobufjs"
 const protoRoot = ProtoRoot.fromJSON(require("../../../witnet/witnet.proto.json")) 
 const protoBuf = protoRoot.lookupType("ConsensusConstants")
 
-import { PublicKeyHashString, TransactionReceipt } from "../crypto/types"
+import { PublicKey, PublicKeyHashString, TransactionReceipt } from "../crypto/types"
 import { Epoch, Hash, Network, UtxoMetadata } from "../types"
 import * as utils from "../utils"
 
@@ -31,6 +31,7 @@ export interface IProvider {
     supplyInfo(): Promise<SupplyInfo>;
     syncStatus(): Promise<any>;
     wips(): Promise<SignalingInfo>;
+    witnesses(): Promise<number>;
 
     getBalance(pkh: PublicKeyHashString): Promise<Balance2>;
     getBlock(blockHash: Hash, showTransactionHashes?: boolean): Promise<Block>;
@@ -270,6 +271,38 @@ export class Provider implements IProvider {
     
     public async wips(): Promise<SignalingInfo> {
         return this.callApiMethod<SignalingInfo>(Methods.SignalingInfo)
+    }
+
+    public async witnesses(_since?: number): Promise<number> {
+        // todo: witnesses estimation should instead be computed in proportion to
+        //       ratio of validators that have honestly witnessed data requests
+        //       vs validators that have honestly witnessed data requests and
+        //       never revealed "i passed" out of majority, 
+        //       within the specified range of epochs.
+        let census = 0
+        return this 
+            .stakes({ params: { distinct: true }}) // todo: implement `count` flag on IProvider.stakes()
+            .then(records => {
+                console.log("stakes =>", records)
+                census = records.length
+                return this.blocks(-16, 16) // todo: blocks() should return epoch, hash and validator pkh for each block
+            })
+            .then(records => {
+                console.log("blocks =>", records)
+                return Promise.all(records.map(record => this.getBlock(record[1])))
+            })
+            .then(blocks => {
+                const validators: Array<PublicKeyHashString> = []
+                blocks.map(block => {
+                    const pkh = PublicKey.fromProtobuf(block.block_sig.public_key).hash().toBech32(this.network)
+                    console.log(pkh)
+                    if (!validators.includes(pkh)) validators.push(pkh);
+                })
+                return Math.min(
+                    validators.length,
+                    Math.floor(this.network === "testnet" ? census / 2 : census / 4)
+                )
+            })
     }
     
     /// ---------------------------------------------------------------------------------------------------------------
