@@ -460,7 +460,7 @@ async function stakes (options = {}) {
 }
 
 async function supplyInfo (options = {}) {
-  const reporter = new Witnet.Reporter(options?.provider || process.env.WITNET_SDK_PROVIDER_URL)
+  const reporter = new Witnet.Provider(options?.provider || process.env.WITNET_SDK_PROVIDER_URL)
   const data = await reporter.supplyInfo()
   console.info(`> Supply info at epoch ${helpers.colors.white(helpers.commas(data.epoch))}:`)
   const records = []

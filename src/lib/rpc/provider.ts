@@ -13,7 +13,7 @@ import {
     Mempool, Methods, PeerAddr, Priorities, ProtocolInfo, 
     QueryStakes, QueryStakingPowers,
     TransactionReport, SignalingInfo, StakeEntry, StakingPower, 
-    SuperblockReport, SyncStatus, UtxoInfo, 
+    SuperblockReport, SupplyInfo, SyncStatus, UtxoInfo,
 } from "./types"
 
 export interface IProvider {
@@ -28,6 +28,7 @@ export interface IProvider {
     priorities(): Promise<Priorities>;
     protocolInfo(): Promise<ProtocolInfo>;
     stakes(params: QueryStakes): Promise<Array<StakeEntry>>; 
+    supplyInfo(): Promise<SupplyInfo>;
     syncStatus(): Promise<any>;
     wips(): Promise<SignalingInfo>;
 
@@ -325,5 +326,10 @@ export class Provider implements IProvider {
     /// ---------------------------------------------------------------------------------------------------------------
     public async sendRawTransaction(transaction: any): Promise<boolean> {
         return this.callApiMethod<boolean>(Methods.Inventory, { transaction })
+    }
+
+    /// Get supply info
+    public async supplyInfo(): Promise<SupplyInfo> {
+        return this.callApiMethod<SupplyInfo>(Methods.GetSupplyInfo)
     }
 }
