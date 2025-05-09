@@ -654,57 +654,56 @@ function txReceiptJsonReplacer (key, value) {
 
 function traceTransactionOnCheckpoint (receipt) {
   if (receipt?.confirmations) {
-    console.info(` > Checkpoint:  ${commas(receipt.blockEpoch + receipt.confirmations)}`)
+    console.info(` > Checkpoint #${commas(receipt.confirmations)}...`)
   }
 }
 
 function traceTransactionOnStatusChange (receipt) {
-  if (
-    (receipt.status === "mined" && receipt?.blockHash) ||
-      (receipt.status === "confirmed" && !receipt?.confirmations)
-  ) {
-    console.info(` > Block hash:  ${gray(receipt?.blockHash)}`)
-    console.info(` > Block miner: ${mcyan(receipt?.blockMiner)}`)
-    console.info(` > Block epoch: ${white(commas(receipt?.blockEpoch))}`)
-  }
   const captions = {
     pending: "Awaiting relay...",
-    confirmed: receipt?.confirmations ? "Transaction confirmed." : "Transaction mined.",
-    finalized: "Transaction finalized.",
+    // confirmed: "Transaction confirmed:",
+    // finalized: "Transaction finalized:",
     relayed: "Awaiting inclusion...",
     mined: "Awaiting confirmations...",
   }
   const caption = captions[receipt.status]
   if (caption) console.info(` > ${captions[receipt.status]}`)
+  if (["finalized", "confirmed"].includes(receipt.status)) {
+    console.info(` > Block hash:   ${gray(receipt?.blockHash)}`)
+    console.info(` > Block miner:  ${cyan(receipt?.blockMiner)}`);
+    console.info(` > Block epoch:  ${white(commas(receipt?.blockEpoch))}`)
+    console.info(` > Included at:  ${green(moment.unix(receipt?.blockTimestamp).format("MMMM Do YYYY, h:mm:ss a"))}`)
+    console.info(` > ${receipt.status[0].toUpperCase() + receipt.status.slice(1)} at: ${mgreen(moment.unix(receipt.timestamp).format("MMMM Do YYYY, h:mm:ss a"))}`)
+  }
 }
 
 function traceTransactionReceipt (receipt) {
   const captions = {
-    DataRequest: " > DRT hash:    ",
-    ValueTransfer: " > VTT hash:    ",
+    DataRequest: " > DRT hash:     ",
+    ValueTransfer: " > VTT hash:     ",
   }
-  console.info(`${captions[receipt.type] || " > TX hash:     "}${white(receipt.hash)}`)
-  if (receipt?.droHash) console.info(` > DRO hash:    ${green(receipt.droHash)}`)
-  if (receipt?.radHash) console.info(` > RAD hash:    ${mgreen(receipt.radHash)}`)
-  if (receipt?.droSLA) console.info(` > SLA params:  ${JSON.stringify(receipt.droSLA)}`)
+  console.info(`${captions[receipt.type] || " > TX hash:      "}${white(receipt.hash)}`)
+  if (receipt?.droHash) console.info(` > DRO hash:     ${green(receipt.droHash)}`)
+  if (receipt?.radHash) console.info(` > RAD hash:     ${mgreen(receipt.radHash)}`)
+  if (receipt?.droSLA) console.info(` > SLA params:   ${JSON.stringify(receipt.droSLA)}`)
   if (receipt?.withdrawer) {
     if (receipt?.validator) {
-      console.info(` > Validator:   ${mcyan(receipt.validator)}`)
+      console.info(` > Validator:    ${mcyan(receipt.validator)}`)
     }
-    console.info(` > Withdrawer:  ${mmagenta(receipt.withdrawer)}`)
+    console.info(` > Withdrawer:   ${mmagenta(receipt.withdrawer)}`)
   } else {
-    console.info(` > Signer/s:    ${mmagenta(receipt.from)}`)
+    console.info(` > Signer/s:     ${mmagenta(receipt.from)}`)
   }
   if (receipt?.recipients) {
-    console.info(` > Recipient/s: ${
+    console.info(` > Recipient/s:  ${
       mmagenta(receipt.recipients.filter((pkh, index, array) => index === array.indexOf(pkh)))
     }`)
   }
-  if (receipt?.fees) console.info(` > Fees:        ${yellow(receipt.fees.toString(2))}`)
-  if (receipt?.value) console.info(` > Value:       ${myellow(receipt.value.toString(2))}`)
-  if (receipt?.weight) console.info(` > Weight:      ${mgreen(commas(receipt.weight))}`)
+  if (receipt?.fees) console.info(` > Fee:          ${yellow(receipt.fees.toString(2))}`)
+  if (receipt?.value) console.info(` > Value:        ${myellow(receipt.value.toString(2))}`)
+  if (receipt?.weight) console.info(` > Weight:       ${mgreen(commas(receipt.weight))}`)
   if (receipt?.witnesses) {
-    console.info(` > Witnesses:   ${receipt.witnesses}`)
+    console.info(` > Witnesses:    ${receipt.witnesses}`)
   }
 }
 
@@ -735,6 +734,7 @@ async function traceTransaction (transmitter, options) {
   }
   try {
     console.info()
+    receipt = await transmitter.sendTransaction()
     if (options?.await || options?.confirmations !== undefined) {
       receipt = await transmitter.confirmTransaction(receipt.hash, {
         confirmations: options?.confirmations || 0,
@@ -742,7 +742,6 @@ async function traceTransaction (transmitter, options) {
         onStatusChange: traceTransactionOnStatusChange,
       })
     } else {
-      receipt = await transmitter.sendTransaction()
       const data = { status: receipt?.status, timestamp: receipt?.timestamp }
       console.info(`${yellow(JSON.stringify(data, txReceiptJsonReplacer, 2))}`)
     }

@@ -24,7 +24,7 @@ module.exports = {
     ? {
       assets: {
         hint: "List available Witnet Radon assets.",
-        params: "[ASSET_SUBSTRS ...]",
+        params: "[RADON_ASSETS ...]",
         options: {
           filter: {
             hint: "Restrict output to name-matching assets.",
@@ -80,7 +80,7 @@ module.exports = {
     : {
       assets: {
         hint: "List available Witnet Radon assets.",
-        params: "[ASSET_SUBSTRS ...]",
+        params: "[RADON_ASSETS ...]",
         options: {
           filter: {
             hint: "Restrict output to name-matching assets.",

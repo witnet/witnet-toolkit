@@ -6,6 +6,7 @@ const protoRoot = ProtoRoot.fromJSON(require("../../../witnet/witnet.proto.json"
 import { TransactionReport, UtxoMetadata, ValueTransferOutput } from "../rpc/types"
 import { Provider } from "../rpc"
 import { Hash, Network } from "../types"
+import { isHexString } from "../utils";
 
 import { 
     ILedger,
@@ -28,7 +29,6 @@ import {
     TransmissionError,
     Utxo,
 } from "./types"
-
 
 export abstract class Transmitter<Specs, Payload extends ITransactionPayload<Specs>> implements ITransmitter {
     
@@ -206,7 +206,10 @@ export abstract class Transmitter<Specs, Payload extends ITransactionPayload<Spe
         
         } else if (receipt.status === "removed") {
             throw new MempoolError(receipt, `${this.constructor.name}: transaction removed from mempool: ${hash}`)
-        }
+        
+        } else if (receipt.status === "relayed" && options?.onStatusChange) try {
+            options.onStatusChange(receipt)
+        } catch {};
 
         const globalTimer = (start: number, ms: number) => {
             return new Promise((_, reject) => {
@@ -231,13 +234,14 @@ export abstract class Transmitter<Specs, Payload extends ITransactionPayload<Spe
             promisePoller({
                 taskFn: () => this.provider.getTransaction(hash),
                 shouldContinue: (error: any, report: TransactionReport) => {
+                    const status = receipt.status
                     receipt.error = error
                     if (error instanceof Error && error.message.indexOf("not found") >= 0) {
                         receipt.status = "removed"
                     
                     } else switch (receipt.status) {
                         case "relayed":
-                            if (report?.blockHash) {
+                            if (report?.blockHash && isHexString(report.blockHash)) {
                                 receipt.confirmations = report.confirmations
                                 receipt.blockHash = report.blockHash,
                                 receipt.blockEpoch = report.blockEpoch,
@@ -273,10 +277,10 @@ export abstract class Transmitter<Specs, Payload extends ITransactionPayload<Spe
                             }
                             break;
                     };
-                    
-                    if (receipt.status !== Provider.receipts[hash].status) {
-                        receipt.timestamp = Date.now()
-                        if (options?.onStatusChange) try {
+
+                    if (status !== receipt.status) {
+                        receipt.timestamp = Math.floor(Date.now() / 1000) 
+                        if (!["confirmed", "finalized"].includes(receipt.status) && options?.onStatusChange) try {
                             options.onStatusChange(receipt)
                         } catch {};
                     }
@@ -336,16 +340,23 @@ export abstract class Transmitter<Specs, Payload extends ITransactionPayload<Spe
                                 signer: vto.pkh,
                             }))
                         }
+                        // console.log("output utxos before =>", utxos)
+                        // console.log("output utxos after  =>", this.ledger.addUtxos(...utxos))
                         this.ledger.addUtxos(...utxos)
                     } catch (err) {
                         console.error(`${this.constructor.name}: warning: cannot recover output UTXOs from ${hash}: ${err}`)
                     }
                     // 2. Add blockMiner address to the transaction receipt: 
-                    const block = await this.provider.getBlock(receipt.blockHash || "")
-                    Provider.receipts[hash].blockMiner = PublicKey
-                        .fromProtobuf(block.block_sig.public_key)
-                        .hash()
-                        .toBech32(this.network);
+                    if (receipt?.blockHash && isHexString(receipt.blockHash)) {
+                        const block = await this.provider.getBlock(receipt.blockHash || "")
+                        Provider.receipts[hash].blockMiner = PublicKey
+                            .fromProtobuf(block.block_sig.public_key)
+                            .hash()
+                            .toBech32(this.network);
+                    }
+                    if (options?.onStatusChange) try {
+                        options.onStatusChange(receipt)
+                    } catch {};
                     // 3. Return transaction receipt:
                     return Provider.receipts[hash]
                 }
@@ -397,7 +408,7 @@ export abstract class Transmitter<Specs, Payload extends ITransactionPayload<Spe
             fees: this._payload.fees,
             from: this._from,
             status,
-            timestamp: Date.now(),
+            timestamp: Math.floor(Date.now() / 1000),
             tx: this._toJSON(true),
             type: this.type,
             value: this._payload.value,
@@ -409,10 +420,6 @@ export abstract class Transmitter<Specs, Payload extends ITransactionPayload<Spe
     protected abstract _signTransactionPayload(): Hash;
     protected abstract _toJSON(_humanize: boolean): any;
     protected abstract _toProtobuf(): any;
-
-    // abstract signTransaction(target?: any, params?: any): Promise<TransactionReceipt>;
-    // protected abstract get _from(): Array<PublicKeyHashString> | PublicKeyHashString | undefined;
-    // protected abstract _prepared: boolean;
 }
 
 

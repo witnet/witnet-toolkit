@@ -283,19 +283,16 @@ export class Provider implements IProvider {
         return this 
             .stakes({ params: { distinct: true }}) // todo: implement `count` flag on IProvider.stakes()
             .then(records => {
-                console.log("stakes =>", records)
                 census = records.length
                 return this.blocks(-16, 16) // todo: blocks() should return epoch, hash and validator pkh for each block
             })
             .then(records => {
-                console.log("blocks =>", records)
                 return Promise.all(records.map(record => this.getBlock(record[1])))
             })
             .then(blocks => {
                 const validators: Array<PublicKeyHashString> = []
                 blocks.map(block => {
                     const pkh = PublicKey.fromProtobuf(block.block_sig.public_key).hash().toBech32(this.network)
-                    console.log(pkh)
                     if (!validators.includes(pkh)) validators.push(pkh);
                 })
                 return Math.min(
