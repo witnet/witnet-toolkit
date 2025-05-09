@@ -736,7 +736,7 @@ async function traceTransaction (transmitter, options) {
   try {
     console.info()
     if (options?.await || options?.confirmations !== undefined) {
-      receipt = await transmitter.waitTransaction({
+      receipt = await transmitter.confirmTransaction(receipt.hash, {
         confirmations: options?.confirmations || 0,
         onCheckpoint: traceTransactionOnCheckpoint,
         onStatusChange: traceTransactionOnStatusChange,
