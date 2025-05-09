@@ -103,22 +103,7 @@ export type TransactionReceipt = {
     witnesses?: number | Record<PublicKeyHashString, Coins>;
 }
 
-export enum TransactionStatus {
-    /// Awating to be relayed by the RPC provider
-    Pending = "pending", 
-
-    /// Remains on-chain after certain amount of epochs since mined
-    Confirmed = "confirmed",
-
-    /// Remains on-chain after end of next super-epoch to the one on which the tx got mined
-    Finalized = "finalized",
-    
-    /// Relayed and allegedly included in a block
-    Mined = "mined",
-    
-    /// Relayed to the mempool 
-    Relayed = "relayed",
-}
+export type TransactionStatus = "signed" | "pending" | "relayed" | "removed" | "mined" | "confirmed" | "finalized";
 
 export type Transmission = {
     bytecode?: Uint8Array,
