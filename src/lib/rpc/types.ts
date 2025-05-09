@@ -554,12 +554,15 @@ export type VrfProof = {
 export type TransactionReport = {
     blockEpoch: Epoch,
     blockHash: Hash,
+    blockTimestamp: number,
+    confirmations: number,
     confirmed: boolean,
     transaction: {
         Reveal?: DataRequestRevealTransaction,
         Commit?: DataRequestCommitTransaction,
         Tally?: DataRequestTallyTransaction,
-    } 
+    },
+    weight: number
 }
 
 export type DataRequestCommitTransaction = {
