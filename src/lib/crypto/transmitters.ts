@@ -3,11 +3,9 @@ const promisePoller = require('promise-poller').default;
 import { Root as ProtoRoot, Type as ProtoType } from "protobufjs"
 const protoRoot = ProtoRoot.fromJSON(require("../../../witnet/witnet.proto.json")) 
 
-import { isHexString } from "../../bin/helpers"
-
-import { TransactionReport } from "../rpc/types"
+import { TransactionReport, UtxoMetadata, ValueTransferOutput } from "../rpc/types"
 import { Provider } from "../rpc"
-import { Block, Hash, Network, SyncStatus } from "../types"
+import { Hash, Network } from "../types"
 
 import { 
     ILedger,
@@ -21,9 +19,11 @@ import {
     KeyedSignature, 
     PublicKey, 
     PublicKeyHashString, 
+    MempoolError,
     TransactionCallback, 
     TransactionReceipt, 
     TransactionStatus, 
+    TimeoutError,
     Transmission,
     TransmissionError,
     Utxo,
@@ -104,30 +104,32 @@ export abstract class Transmitter<Specs, Payload extends ITransactionPayload<Spe
             // or previously prepared inflight (if known).
             receipt = await this.signTransaction(target || receipt)
         }
-        if (receipt?.status && !receipt?.error) {
+        if (receipt?.status && receipt.status !== "signed" && !receipt?.error) {
             // if current inflight was already transmitted and it's not yet known to fail ...
             return receipt
         }
         // if we reach this point is because an inflight transaction is 
         // ready to be transmitted
-        Provider.receipts[receipt.hash].status = TransactionStatus.Pending
+        Provider.receipts[receipt.hash].status = "pending"
         delete Provider.receipts[receipt.hash].error
         return this.provider
             .sendRawTransaction(this._toJSON(false))
             .catch(err => {
-                this._recoverInputUtxos();
-                Provider.receipts[receipt.hash].error = err
-                throw new TransmissionError(this._getInflightTransmission(), err)
+                // ??? this._recoverInputUtxos();
+                const error = new TransmissionError(this._getInflightTransmission(), err)
+                Provider.receipts[receipt.hash].error = error
+                throw error
             })
             .then(accepted => {
                 if (accepted) {
-                    this._recoverOutputUtxos()
-                    Provider.receipts[receipt.hash].status = TransactionStatus.Relayed
+                    // todo: ouptut utxos should be recovered upon tx chain inclusion, not upon tx network transmission
+                    // ??? this._recoverOutputUtxos()
+                    Provider.receipts[receipt.hash].status = "relayed"
                     return Provider.receipts[receipt.hash]
                     
                 } else {
-                    this._recoverInputUtxos()
-                    const error = new Error(`Rejected by the RPC provider for unknown reasons.`)
+                    // ??? this._recoverInputUtxos()
+                    const error = new TransmissionError(this._getInflightTransmission(), Error(`Rejected for unknown reasons`))
                     Provider.receipts[receipt.hash].error = error
                     throw error
                 }
@@ -138,19 +140,19 @@ export abstract class Transmitter<Specs, Payload extends ITransactionPayload<Spe
         target = await this._payload.validateTarget(target)
         if (!target) {
             // e.g. if called from this.send() with no params
-            throw Error(`${this.constructor.name}: cannot sign a transaction if no params were previously specified.`)
+            throw TypeError(`${this.constructor.name}: cannot sign a transaction if no params were previously specified.`)
         }
         
         const inflight = this._getInflightReceipt()
         if (inflight) {
             // console.log("sign.pendingReceipt =>", inflight)
-            if (!inflight?.status) {
+            if (!inflight?.status || inflight.status === "signed") {
                 // recover input utxos if previously signed params were not even attempted to be sent
                 if (!reloadUtxos) this._recoverInputUtxos()
             
-            } else if (inflight.status === TransactionStatus.Pending && !inflight.error) {
+            } else if (inflight.status === "pending" && !inflight.error) {
                 // throw exception if a formerly signed transaction is still waiting to be relayed by a provider
-                throw Error(`${this.constructor.name}: cannot sign until in-flight tx gets either relayed, or rejected: ${inflight.hash}`)
+                throw Error(`${this.constructor.name}: in-flight tx being relayed: ${inflight.hash}`)
             }
         } 
         
@@ -182,19 +184,31 @@ export abstract class Transmitter<Specs, Payload extends ITransactionPayload<Spe
         }
 
         // signing the transaction payload generates the transaction hash, and the receipt
-        return this._upsertTransactionReceipt(this._signTransactionPayload(), target)    
+        return this._upsertTransactionReceipt(this._signTransactionPayload(), target, "signed")    
     }
 
-    public async waitTransaction(
-        params?: Specs & { 
+    public async confirmTransaction(
+        hash: Hash, 
+        options?: {
             confirmations?: number,
+            timeoutSecs?: number,
             onCheckpoint?: TransactionCallback,
             onStatusChange?: TransactionCallback,
-            overallTimeout?: number,
-        },
-    ): Promise<TransactionReceipt>
-    {
-        const overallTimeout = (start: number, ms: number) => {
+        }
+    ): Promise<TransactionReceipt> {
+
+        let receipt = Provider.receipts[hash]
+        if (!receipt || receipt.hash !== hash) {
+            throw new Error(`${this.constructor.name}: transaction not found: ${hash}`)
+        
+        } else if (["signed", "pending"].includes(receipt.status)) {
+            throw new Error(`${this.constructor.name}: transaction status "${receipt.status}": ${hash}`)
+        
+        } else if (receipt.status === "removed") {
+            throw new MempoolError(receipt, `${this.constructor.name}: transaction removed from mempool: ${hash}`)
+        }
+
+        const globalTimer = (start: number, ms: number) => {
             return new Promise((_, reject) => {
                 setTimeout(
                     () => reject(`${this.constructor.name}: polling timeout after ${Math.floor((Date.now() - start) / 1000)} secs).`), 
@@ -202,72 +216,132 @@ export abstract class Transmitter<Specs, Payload extends ITransactionPayload<Spe
                 );
             });
         }
+
+        const [confirmations, interval, timeout, globalTimeout] = [
+            options?.confirmations || 0,
+            10000,
+            5000,
+            (options?.timeoutSecs || 600) * 1000,
+        ];
+
         return Promise.race([
-            overallTimeout(Date.now(), params?.overallTimeout || 600000),
+            globalTimer(Date.now(), globalTimeout)
+                .catch((reason: any) => { throw new TimeoutError(globalTimeout, receipt, reason) }),
             
-            this.sendTransaction(this._payload.validateTarget(params))
-                .then((receipt: TransactionReceipt) => {
-                    const hash = receipt.hash
-                    const [confirmations, interval, timeout] = [
-                        params?.confirmations || 0,
-                        10000,
-                        5000,
-                    ];
-                    if (params?.onStatusChange) {
-                        params.onStatusChange(Provider.receipts[hash]);
+            promisePoller({
+                taskFn: () => this.provider.getTransaction(hash),
+                shouldContinue: (error: any, report: TransactionReport) => {
+                    receipt.error = error
+                    if (error instanceof Error && error.message.indexOf("not found") >= 0) {
+                        receipt.status = "removed"
+                    
+                    } else switch (receipt.status) {
+                        case "relayed":
+                            if (report?.blockHash) {
+                                receipt.confirmations = report.confirmations
+                                receipt.blockHash = report.blockHash,
+                                receipt.blockEpoch = report.blockEpoch,
+                                receipt.blockTimestamp = report.blockTimestamp
+                                receipt.status = (
+                                    report.confirmed 
+                                        ? "finalized" 
+                                        : (report?.confirmations >= confirmations ? "confirmed" : "mined")
+                                );
+                            }
+                            break;
+
+                        case "mined":
+                            if (!report?.blockHash || report.blockHash !== receipt.blockHash) {
+                                delete receipt.blockHash
+                                delete receipt.blockEpoch
+                                delete receipt.blockMiner
+                                delete receipt.blockTimestamp
+                                receipt.status = "relayed"
+                            
+                            } else if (report.confirmed) {
+                                receipt.status = "finalized"
+                            
+                            } else if (report.confirmations !== receipt.confirmations) {
+                                receipt.confirmations = report.confirmations
+                                if (options?.onCheckpoint) options.onCheckpoint(receipt);
+                            }
+                            break;
+                    };
+                    
+                    if (receipt.status !== Provider.receipts[hash].status) {
+                        receipt.timestamp = Date.now()
+                        if (options?.onStatusChange) options.onStatusChange(receipt);
                     }
-                    return promisePoller({
-                        taskFn: () => this.provider.getTransaction(receipt.hash),
-                        shouldContinue: (_error: any, report: TransactionReport) => {
-                            return !isHexString(report?.blockHash)
-                        },
-                        interval, timeout, 
-                    }).then((report: TransactionReport) => {
-                        Provider.receipts[hash].confirmations = 0
-                        Provider.receipts[hash].blockHash = report.blockHash
-                        Provider.receipts[hash].blockEpoch = report.blockEpoch
-                        Provider.receipts[hash].status = TransactionStatus.Mined
-                        // TBD: add blockMiner to report from provider.getTransaction
-                        // TBD: add currentEpoch to report from provider.getTransaction
-                        return this.provider.getBlock(report.blockHash)
-                    }).then((block: Block) => {
-                        Provider.receipts[hash].blockMiner = PublicKey
-                            .fromProtobuf(block.block_sig.public_key)
-                            .hash()
-                            .toBech32(this.network);
-                        if (confirmations > 0) {
-                            if (params?.onStatusChange) params.onStatusChange(Provider.receipts[hash]);
-                            return promisePoller({
-                                taskFn: () => this.provider.syncStatus(),
-                                shouldContinue: (_error: any, report: SyncStatus) => {
-                                    if (Provider.receipts[hash]?.blockEpoch && report?.chain_beacon) {
-                                        if (report.node_state === 'Synced') {
-                                            const blockConfirmations = (
-                                                report.chain_beacon.checkpoint
-                                                    - Provider.receipts[hash].blockEpoch
-                                            );
-                                            if (blockConfirmations !== Provider.receipts[hash]?.confirmations) {
-                                                Provider.receipts[hash].confirmations = blockConfirmations
-                                                if (params?.onCheckpoint) params.onCheckpoint(Provider.receipts[hash])
-                                            }
-                                            return blockConfirmations < confirmations
-                                        }
-                                    }
-                                    return true;
-                                },
-                                interval, timeout, 
-                            }).then(() => {
-                                return this.provider.getBlock(Provider.receipts[hash]?.blockHash || "")
-                            })
-                        } else {
-                            return block;
+                    Provider.receipts[hash] = receipt
+                    return ["relayed", "mined"].includes(receipt.status)
+                },
+                interval, timeout, 
+            
+            }).then(async () => {
+                if (receipt.status === "removed" && receipt.type !== "Unstake") {
+                    // TRANSACTION REMOVED FROM MEMPOOL //
+                    // 1. Try to recover input utxos belonging to ledger's addresses:
+                    try {
+                        const inputs: Array<UtxoMetadata> = receipt.tx.body.inputs
+                        const signatures: Array<KeyedSignature> = receipt.tx.signatures
+                        const utxos: Array<Utxo> = []
+                        if (inputs.length === signatures.length) {
+                            inputs.forEach((metadata, index) => ({
+                                ...metadata,
+                                signer: PublicKey.fromProtobuf(signatures[index].public_key).hash().toBech32(this.network),
+                            }))
                         }
-                    }).then((block: Block) => {
-                        Provider.receipts[hash].status = block.confirmed ? TransactionStatus.Finalized : TransactionStatus.Confirmed
-                        if (params?.onStatusChange) params.onStatusChange(Provider.receipts[hash])
-                        return Provider.receipts[hash]
-                    })
-                })
+                        this.ledger.addUtxos(...utxos)
+                    } catch (err) {
+                        console.error(`${this.constructor.name}: warning: cannot recover input UTXOS from tx ${hash}: ${err}`)
+                    }
+                    // 2. Throw MempoolError
+                    throw new MempoolError(receipt, `${this.constructor.name}: transaction removed from mempool: ${hash}`);
+                
+                } else {
+                    // TRANSACTION EITHER CONFIRMED OR FINALIZED //
+                    // 1. Try to load value transfer outputs into the ledger's local cache: 
+                    try {
+                        const utxos: Array<Utxo> = []
+                        if (["Stake", "Unstake"].includes(receipt.type)) {
+                            let vto: ValueTransferOutput = (
+                                receipt.type === "Stake"
+                                    ? receipt.tx?.body?.output
+                                    : receipt.tx?.body?.withdrawal
+                            );
+                            if (vto) {
+                                utxos.push({
+                                    output_pointer: `${receipt.hash}:0`,
+                                    timelock: vto.time_lock,
+                                    utxo_mature: true,
+                                    value: vto.value,
+                                    signer: vto.pkh,
+                                })
+                            }
+                        } else {
+                            const outputs: Array<ValueTransferOutput> = receipt.tx?.body?.outputs || []
+                            outputs.forEach((vto, index) => utxos.push({
+                                output_pointer: `${receipt.hash}:${index}`,
+                                timelock: vto.time_lock,
+                                utxo_mature: true,
+                                value: vto.value,
+                                signer: vto.pkh,
+                            }))
+                        }
+                        this.ledger.addUtxos(...utxos)
+                    } catch (err) {
+                        console.error(`${this.constructor.name}: warning: cannot recover output UTXOs from ${hash}: ${err}`)
+                    }
+                    // 2. Add blockMiner address to the transaction receipt: 
+                    const block = await this.provider.getBlock(receipt.blockHash || "")
+                    Provider.receipts[hash].blockMiner = PublicKey
+                        .fromProtobuf(block.block_sig.public_key)
+                        .hash()
+                        .toBech32(this.network);
+                    // 3. Return transaction receipt:
+                    return Provider.receipts[hash]
+                }
+            })
         ])
     }
 
@@ -307,13 +381,14 @@ export abstract class Transmitter<Specs, Payload extends ITransactionPayload<Spe
     protected _recoverInputUtxos(): any {}
     protected _recoverOutputUtxos(): any {}
 
-    protected _upsertTransactionReceipt(hash: Hash, target: Specs): TransactionReceipt {
+    protected _upsertTransactionReceipt(hash: Hash, target: Specs, status: TransactionStatus): TransactionReceipt {
         Provider.receipts[hash] = {
             ...this._payload.intoReceipt(target, this.network),
             hash,
             change: this._payload.change,
             fees: this._payload.fees,
             from: this._from,
+            status,
             timestamp: Date.now(),
             tx: this._toJSON(true),
             type: this.type,
