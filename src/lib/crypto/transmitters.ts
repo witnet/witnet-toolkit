@@ -282,8 +282,8 @@ export abstract class Transmitter<Specs, Payload extends ITransactionPayload<Spe
                     // TRANSACTION REMOVED FROM MEMPOOL //
                     // 1. Try to recover input utxos belonging to ledger's addresses:
                     try {
-                        const inputs: Array<UtxoMetadata> = receipt.tx.body.inputs
-                        const signatures: Array<KeyedSignature> = receipt.tx.signatures
+                        const inputs: Array<UtxoMetadata> = receipt.tx[receipt.type].body.inputs
+                        const signatures: Array<KeyedSignature> = receipt.tx[receipt.type].signatures
                         const utxos: Array<Utxo> = []
                         if (inputs.length === signatures.length) {
                             inputs.forEach((metadata, index) => ({
@@ -306,8 +306,8 @@ export abstract class Transmitter<Specs, Payload extends ITransactionPayload<Spe
                         if (["Stake", "Unstake"].includes(receipt.type)) {
                             let vto: ValueTransferOutput = (
                                 receipt.type === "Stake"
-                                    ? receipt.tx?.body?.output
-                                    : receipt.tx?.body?.withdrawal
+                                    ? receipt.tx[receipt.type].body?.output
+                                    : receipt.tx[receipt.type].body?.withdrawal
                             );
                             if (vto) {
                                 utxos.push({
@@ -319,7 +319,7 @@ export abstract class Transmitter<Specs, Payload extends ITransactionPayload<Spe
                                 })
                             }
                         } else {
-                            const outputs: Array<ValueTransferOutput> = receipt.tx?.body?.outputs || []
+                            const outputs: Array<ValueTransferOutput> = receipt.tx[receipt.type].body?.outputs || []
                             outputs.forEach((vto, index) => utxos.push({
                                 output_pointer: `${receipt.hash}:${index}`,
                                 timelock: vto.time_lock,
