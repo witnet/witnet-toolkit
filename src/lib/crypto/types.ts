@@ -77,29 +77,30 @@ export enum TransactionPriority {
 
 export type TransactionReceipt = {
     authorization?: HexString;
-    blockEpoch?: Epoch;
-    blockHash?: Hash;
-    blockMiner?: PublicKeyHashString;
-    burns?: Nanowits;
+    blockEpoch?: Epoch,
+    blockHash?: Hash,
+    blockMiner?: PublicKeyHashString,
+    blockTimestamp?: number,
     confirmations?: number;
-    change?: Nanowits;
+    change?: Coins;
     droHash?: Hash;
     error?: Error,
-    fees: Nanowits;
+    fees: Coins;
     from?: Array<PublicKeyHashString> | PublicKeyHashString;
     hash: Hash;
     outputLock?: number;
     radArgs?: any;
     radHash?: HexString;
-    recipients?: Array<[PublicKeyHashString, Nanowits]>;
-    status?: TransactionStatus;
+    recipients?: Array<[PublicKeyHashString, Coins]>;
+    status: string;
     timestamp: number;
     type: string;
     tx?: any;
-    value?: Nanowits;
+    validator?: PublicKeyHashString;
+    value?: Coins;
     weight: number;
     withdrawer?: PublicKeyHashString;
-    witnesses?: number | Record<PublicKeyHashString, Nanowits>;
+    witnesses?: number | Record<PublicKeyHashString, Coins>;
 }
 
 export enum TransactionStatus {
