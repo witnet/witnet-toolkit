@@ -350,6 +350,29 @@ export class RecoverableSignature extends Signature {
 
 
 /// ===================================================================================================================
+
+abstract class TransactionError extends Error {
+    readonly receipt: TransactionReceipt
+    constructor(receipt: TransactionReceipt, message?: string) {
+        super(message)
+        this.receipt = receipt
+    }
+}
+export class MempoolError extends TransactionError {
+    constructor(receipt: TransactionReceipt, message?: string) {
+        super(receipt, message)
+    }
+}
+
+export class TimeoutError extends TransactionError {
+    readonly msecs: number;
+    constructor (msecs: number, receipt: TransactionReceipt, message?: string) {
+        super(receipt, message)
+        this.msecs = msecs
+    }
+}
+    
+
 export class TransmissionError extends Error {
     readonly error?: any;
     readonly inFlight: Transmission;
