@@ -83,9 +83,9 @@ export interface ITransmitter {
     provider: IProvider
     transactions: Array<Hash>,
     type: string
+    confirmTransaction(params?: any): Promise<TransactionReceipt>
     sendTransaction(params?: any): Promise<TransactionReceipt>
     signTransaction(params?: any, reload?: boolean): Promise<TransactionReceipt>
-    waitTransaction(params?: any): Promise<TransactionReceipt>
 }
 
 export interface ITransactionPayload<Specs> extends IHashable {
