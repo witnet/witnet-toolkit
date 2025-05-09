@@ -258,19 +258,27 @@ export abstract class Transmitter<Specs, Payload extends ITransactionPayload<Spe
                                 delete receipt.blockTimestamp
                                 receipt.status = "relayed"
                             
-                            } else if (report.confirmed) {
-                                receipt.status = "finalized"
-                            
-                            } else if (report.confirmations !== receipt.confirmations) {
-                                receipt.confirmations = report.confirmations
-                                if (options?.onCheckpoint) options.onCheckpoint(receipt);
+                            } else {
+                                receipt.status = (
+                                    report.confirmed 
+                                        ? "finalized" 
+                                        : (report?.confirmations >= confirmations ? "confirmed" : "mined")
+                                );
+                                if (report.confirmations !== receipt.confirmations) {    
+                                    receipt.confirmations = report.confirmations
+                                    if (receipt.status === "mined" && options?.onCheckpoint) try {
+                                        options.onCheckpoint(receipt)
+                                    } catch {};
+                                }
                             }
                             break;
                     };
                     
                     if (receipt.status !== Provider.receipts[hash].status) {
                         receipt.timestamp = Date.now()
-                        if (options?.onStatusChange) options.onStatusChange(receipt);
+                        if (options?.onStatusChange) try {
+                            options.onStatusChange(receipt)
+                        } catch {};
                     }
                     Provider.receipts[hash] = receipt
                     return ["relayed", "mined"].includes(receipt.status)
