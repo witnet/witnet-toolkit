@@ -16,7 +16,7 @@ const isModuleInitialized = fs.existsSync("./witnet/assets/index.js")
 module.exports = {
   flags: {
     module: {
-      hint: "Package where to fetch Radon assets from.",
+      hint: "Package where to fetch Radon assets from (supersedes --legacy).",
       param: "NPM_PACKAGE",
     },
   },
@@ -26,6 +26,9 @@ module.exports = {
         hint: "List available Witnet Radon assets.",
         params: "[RADON_ASSETS ...]",
         options: {
+          legacy: {
+            hint: "List only those declared in witnet/assets folder.",
+          },
           filter: {
             hint: "Restrict output to name-matching assets.",
           },
@@ -174,6 +177,9 @@ async function assets (options = {}, [...patterns]) {
 /// -------------------------------------------------------------------------------------------------------------------
 
 async function check (options = {}) {
+  if (!isModuleInitialized) {
+    throw new Error(`No Witnet Radon workspace has been initialized. Please, run ${white("npx witnet radon init")} if willing to declare your own Radon assets.`)
+  }
   try {
     const assets = loadAssets({ ...options, legacy: true })
     const [
