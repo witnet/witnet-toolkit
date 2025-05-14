@@ -237,7 +237,7 @@ async function decode (options = {}, args = []) {
     if (crafts.length === 0) {
       throw Error(`No matched found for pattern "${asset}"`)
     }
-    for (let { artifact, key } in crafts) {
+    for (let { artifact, key } of crafts) {
       let prefix = ""
       if (artifact instanceof Witnet.Radon.RadonRequest) {
         prefix = "RadonRequest::"
@@ -302,7 +302,7 @@ async function dryrun (options = {}, args = []) {
     if (crafts.length === 0) {
       throw Error(`No matched found for pattern "${asset}"`)
     }
-    for (let { artifact, key } in crafts) {
+    for (let { artifact, key } of crafts) {
       let prefix = ""
       if (artifact instanceof Witnet.Radon.RadonRequest) {
         prefix = "RadonRequest::"
