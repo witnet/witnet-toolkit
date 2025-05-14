@@ -36,7 +36,7 @@
     "build": "pbjs --target json witnet/witnet.proto -o witnet/witnet.proto.json && tsc -p tsconfig.json",
     "fmt": "eslint --ext .js,.cjs . --ignore-path .gitignore --ignore-pattern _*",
     "fmt!": "eslint --ext .js,.cjs . --fix --ignore-path .gitignore --ignore-pattern _*",
-    "postinstall": "npx witnet --update --version",
+    "postinstall": "node src/bin/postinstall.js",
     "prepare": "pnpm run build",
     "test": "cross-env-shell WITNET_SDK_RADON_ASSETS_PATH='../../../witnet/assets' node ./src/bin/toolkit.js"
   },
