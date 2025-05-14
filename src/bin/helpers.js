@@ -224,8 +224,8 @@ function showUsage (cmd, module) {
   showUsageHeadline(cmd)
   showUsageOptions({ ...module?.flags })
   showUsageFlags({ ...module?.flags })
-  showUsageRouter({ ...module.router })
-  showUsageEnvars({ ...module.envars })
+  showUsageRouter({ ...module?.router })
+  showUsageEnvars({ ...module?.envars })
 }
 
 function showUsageRouter (router) {
@@ -252,35 +252,39 @@ function showUsageError (cmd, subcmd, module, error, flags) {
 }
 
 function showUsageEnvars (envars) {
-  envars = Object.entries(envars)
-  if (envars.length > 0) {
-    console.info("\nENVARS:")
-    const maxWidth = Math.max(...envars.map(([envar]) => envar.length))
-    envars.forEach(([envar, hint]) => {
-      if (envar.toUpperCase().indexOf("KEY") < 0 && process.env[envar]) {
-        console.info("  ", `${yellow(envar.toUpperCase())}${" ".repeat(maxWidth - envar.length)}`, ` => Settled to "${myellow(process.env[envar])}"`)
-      } else {
-        console.info("  ", `${yellow(envar.toUpperCase())}${" ".repeat(maxWidth - envar.length)}`, ` ${hint}`)
-      }
-    })
+  if (envars) {
+    envars = Object.entries(envars)
+    if (envars.length > 0) {
+      console.info("\nENVARS:")
+      const maxWidth = Math.max(...envars.map(([envar]) => envar.length))
+      envars.forEach(([envar, hint]) => {
+        if (envar.toUpperCase().indexOf("KEY") < 0 && process.env[envar]) {
+          console.info("  ", `${yellow(envar.toUpperCase())}${" ".repeat(maxWidth - envar.length)}`, ` => Settled to "${myellow(process.env[envar])}"`)
+        } else {
+          console.info("  ", `${yellow(envar.toUpperCase())}${" ".repeat(maxWidth - envar.length)}`, ` ${hint}`)
+        }
+      })
+    }
   }
 }
 
 function showUsageFlags (flags) {
-  flags = Object.entries(flags).filter(([, flag]) => !flag?.param).sort(([a], [b]) => {
-    if (a < b) return -1
-    else if (a > b) return 1
-    else return 0
-  })
-  if (flags.length > 0) {
-    console.info("\nFLAGS:")
-    const maxLength = Math.max(...flags.filter(([, { hint }]) => hint).map(([key, { param }]) => param ? key.length + param.length + 3 : key.length))
-    flags.forEach(flag => {
-      const str = `${flag[0]}${flag[1].param ? gray(` <${flag[1].param}>`) : ""}`
-      if (flag[1].hint) {
-        console.info("  ", `--${str}${" ".repeat(maxLength - colorstrip(str).length)}`, "  ", flag[1].hint)
-      }
+  if (flags) {
+    flags = Object.entries(flags).filter(([, flag]) => !flag?.param).sort(([a], [b]) => {
+      if (a < b) return -1
+      else if (a > b) return 1
+      else return 0
     })
+    if (flags.length > 0) {
+      console.info("\nFLAGS:")
+      const maxLength = Math.max(...flags.filter(([, { hint }]) => hint).map(([key, { param }]) => param ? key.length + param.length + 3 : key.length))
+      flags.forEach(flag => {
+        const str = `${flag[0]}${flag[1].param ? gray(` <${flag[1].param}>`) : ""}`
+        if (flag[1].hint) {
+          console.info("  ", `--${str}${" ".repeat(maxLength - colorstrip(str).length)}`, "  ", flag[1].hint)
+        }
+      })
+    }
   }
 }
 
