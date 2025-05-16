@@ -343,7 +343,7 @@ function showUsageSubcommand (cmd, subcmd, module) {
 }
 
 function showVersion () {
-  console.info(`${mcyan(`Wit/Oracle Toolkit CLI v${require("../../package.json").version}`)}`)
+  console.info(`${mcyan(`Witnet SDK v${require("../../package.json").version}`)}`)
 }
 
 function getWildcardsCountFromString (str) {
