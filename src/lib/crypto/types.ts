@@ -6,7 +6,7 @@ import { fromHexString, fromWits, isHexString, toHexString, whole_wits } from ".
 import { sha256 } from "./utils"
 
 export class Coins {
-    readonly pedros: Nanowits;
+    readonly nanowits: Nanowits;
     public static fromBalance(balance: Balance): Coins {
         return Coins.fromPedros(Object.values(balance).reduce((prev, curr) => prev + curr))
     }
@@ -23,16 +23,16 @@ export class Coins {
         return new Coins(0)
     }
     constructor (pedros: Nanowits) {
-        this.pedros = pedros
+        this.nanowits = pedros
     }
-    public get nanowits(): Nanowits {
-        return this.pedros
+    public get pedros(): Nanowits {
+        return this.nanowits
     }
     public get wits(): number {
-        return this.pedros / 10 ** 9
+        return this.nanowits / 10 ** 9
     }
-    public toString(decimals = 2): string {
-        return whole_wits(this.pedros, decimals)
+    public toString(decimals = 9): string {
+        return whole_wits(this.nanowits, decimals)
     }
 }
 
