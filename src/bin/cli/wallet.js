@@ -238,7 +238,7 @@ async function accounts (options = {}, args = []) {
   const coinbaseWithdrawers = await wallet.coinbase.getWithdrawers()
   const coinbaseBalance = await wallet.coinbase.getBalance()
   const coinbaseColor = utils.totalCoins(coinbaseBalance).pedros > 0 ? colors.mred : (coinbaseWithdrawers.length > 0 ? colors.mcyan : colors.cyan)
-  const coinbase = coinbaseWithdrawers.length > 0 || utils.totalCoins(coinbaseBalance).pedros > 0
+  const coinbase = coinbaseWithdrawers.length > 0 || utils.totalCoins(coinbaseBalance).pedros > 0 || utils.totalCoins(await wallet.getBalance()).pedros === 0
 
   const records = []
 
