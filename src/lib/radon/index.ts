@@ -159,8 +159,8 @@ export class RadonRequest extends RadonArtifact {
     return (await execRadonBytecode(this.toBytecode(), '--json')).trim()
   }
 
-  public radHash(): string {
-    return toHexString(sha256(this._encode()))//.slice(0, 40)
+  public get radHash(): string {
+    return toHexString(sha256(this._encode()), true)
   }
 
   public toBytecode(): string {
@@ -601,12 +601,14 @@ export class RadonRetrieval {
 
 export namespace filters {
   export const Opcodes = Filters
+  export const Class = RadonFilter
   export function Mode() { return new RadonFilter(Filters.Mode); }
   export function Stdev(stdev: number) { return new RadonFilter(Filters.StandardDeviation, stdev); }
 }
 
 export namespace reducers {
   export const Opcodes = Reducers
+  export const Class = RadonReducer
   export function Mode(...filters: RadonFilter[]) { return new RadonReducer(Reducers.Mode, filters); }
   export function Mean(...filters: RadonFilter[]) { return new RadonReducer(Reducers.MeanAverage, filters); }
   export function Median(...filters: RadonFilter[]) { return new RadonReducer(Reducers.MedianAverage, filters); }
@@ -843,7 +845,6 @@ export namespace retrievals {
     );
   }
 }
-
 export namespace types {
   export const RadonArray = _RadonArray;
   export const RadonBoolean = _RadonBoolean;
@@ -851,6 +852,7 @@ export namespace types {
   export const RadonFloat = _RadonFloat;
   export const RadonInteger = _RadonInteger;
   export const RadonMap = _RadonMap;
+  export const RadonScript = _RadonScript;
   export const RadonString = _RadonString;
 }
 

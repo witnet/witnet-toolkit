@@ -136,7 +136,7 @@ export class DataRequestPayload extends TransactionPayloadMultiSig<DataRequestPa
     }
 
     public get radHash(): HexString | undefined {
-        return this.request?.radHash()
+        return this.request?.radHash
     }
 
     public get request(): RadonRequest | undefined {
