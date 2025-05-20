@@ -2,7 +2,6 @@ import { PublicKeyHashString } from "../crypto/types"
 import {
     Epoch,
     Hash,
-    Nanowits,
     f64, i64, u8, u16, u32, u64, usize,
 } from "../types"
 
@@ -80,16 +79,16 @@ export type QueryStakingPowers = {
 // Structure that the includes the confirmed and pending balance of a node
 export type Balance = {
     //Total amount of a node's funds after last confirmed superblock
-    confirmed?: u64;
+    confirmed?: bigint;
     //Total amount of node's funds after last block
-    total: u64;
+    total: bigint;
 };
 
 // Balance struct in Wit/2 containing locked, unlocked and staked balance 
 export type Balance2 = {
-    locked: u64,
-    staked: u64,
-    unlocked: u64,
+    locked: bigint,
+    staked: bigint,
+    unlocked: bigint,
 }
 
 //Struct that count the positives votes of a WIP
@@ -223,7 +222,7 @@ export type ConsensusConstants = {
     mining_replication_factor: u32;
   
     //Minimum value in nanowits for a collateral value
-    collateral_minimum: u64;
+    collateral_minimum: bigint;
   
     //Minimum input age of an UTXO for being a valid collateral
     collateral_age: u32;
@@ -426,7 +425,7 @@ export type StakeAuthorization = {
 }
 
 export type StakeDelegate = {
-    coins: Nanowits,
+    coins: bigint,
     validator: PublicKeyHashString,
 }
 
@@ -436,14 +435,14 @@ export type StakeEntry = {
         withdrawer: PublicKeyHashString,
     },
     value: {
-        coins: Nanowits,
+        coins: bigint,
         epochs: Record<StakingCapability, Epoch>,
         nonce: u64,
     }
 }
 
 export type Stake = {
-    total: Nanowits,
+    total: bigint,
     delegates: Array<StakeDelegate>,
 }
 
@@ -496,15 +495,15 @@ export type SupplyInfo = {
     //WIT minted through block creation
     blocks_minted_reward: u64;
     //Amount of nanowits that have been burnt so far
-    burnt_supply: u64;
+    burnt_supply: bigint;
     //Current locked supply
-    current_locked_supply: u64;
+    current_locked_supply: bigint;
     //Current staked supply
-    current_staked_supply: u64;
+    current_staked_supply: bigint;
     //Current unlocked supply
-    current_unlocked_supply: u64;
+    current_unlocked_supply: bigint;
     //Initial supply
-    initial_supply: u64;
+    initial_supply: bigint;
     //WIT currently locked as collateral by in-flight data requests
     requests_in_flight_collateral: u64;
   };
@@ -524,19 +523,19 @@ export type UtxoInfo = {
     //Vector of UtxoPointers with their values, time_locks and if it is ready for collateral
     utxos: Array<UtxoMetadata>;
     //Minimum collateral from consensus constants
-    collateral_min: u64;
+    collateral_min: bigint;
 };
 
 export type UtxoMetadata = {
     output_pointer: string;
     timelock: u64;
     utxo_mature?: boolean;
-    value: u64;
+    value: bigint;
 };
 
 export type ValueTransferOutput = {
     pkh: Hash;
-    value: u64;
+    value: bigint;
     time_lock: u64;
 };
 

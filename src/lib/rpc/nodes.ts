@@ -23,7 +23,6 @@ import {
 import { 
     Epoch, 
     HexString, 
-    Nanowits,
     Nonce
 } from "../types"
 
@@ -36,7 +35,7 @@ export interface INodeFarm extends IProvider {
 
     peers(validator?: PublicKeyHashString): Promise<Array<PeerAddr>>;
     stats(): Promise<Record<string, NodeStats>>;
-    withdrawers(): Promise<Record<PublicKeyHashString, [Nanowits, Nonce, number]>>;
+    withdrawers(): Promise<Record<PublicKeyHashString, [BigInt, Nonce, number]>>;
 
     addPeers(peers: Array<string>): Promise<Record<string, Boolean>>;
     authorizeStakes(withdrawer: PublicKeyHashString): Promise<Record<string, [PublicKeyHashString, HexString]>>;
@@ -217,7 +216,7 @@ export class NodeFarm extends Provider implements INodeFarm {
         return this.batchApiMethod<SyncStatus>(Methods.SyncStatus)
     }
 
-    public async withdrawers(limit?: number, offset?: number): Promise<Record<PublicKeyHashString, [Nanowits, Nonce, number]>> {
+    public async withdrawers(limit?: number, offset?: number): Promise<Record<PublicKeyHashString, [bigint, Nonce, number]>> {
         return this.addresses()
             .then(async (addresses: Record<string, Error | string>) => {
                 const promises = Object.entries(addresses).map(async ([url, validator]) => [
@@ -252,7 +251,7 @@ export class NodeFarm extends Provider implements INodeFarm {
             })))
             .then((results: Record<string, Error | Array<StakeEntry>>) => {
                 const max = (a: number, b: number) => a > b ? a : b;
-                const withdrawers: Record<PublicKeyHashString, [Nanowits, Nonce, number]> = {}
+                const withdrawers: Record<PublicKeyHashString, [bigint, Nonce, number]> = {}
                 Object.values(results).forEach(moreEntries => {
                     if (moreEntries && !(moreEntries instanceof Error)) { 
                         moreEntries.forEach(entry => {

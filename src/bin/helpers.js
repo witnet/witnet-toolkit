@@ -30,11 +30,11 @@ function toFixedTrunc (x, n) {
 
 const whole_wits = (number, digits) => {
   const lookup = [
-    { value: 1, symbol: " pedros" },
-    { value: 1e6, symbol: " mWits" },
-    { value: 1e9, symbol: "  Wits" },
-    { value: 1e12, symbol: " KWits" },
-    { value: 1e15, symbol: " MWits" },
+    { value: 1n, symbol: " pedros" },
+    { value: 10n ** 6n, symbol: " mWits" },
+    { value: 10n ** 9n, symbol: "  Wits" },
+    { value: 10n ** 12n, symbol: " KWits" },
+    { value: 10n ** 15n, symbol: " MWits" },
   ]
   // const regexp = /\.0+$|(?<=\.[0-9])0+$/
   const item = lookup.findLast(item => number >= item.value)

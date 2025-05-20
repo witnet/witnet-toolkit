@@ -1,6 +1,6 @@
 import { fromHexString, fromNanowits } from "../../../bin/helpers"
 
-import { HexString, IProvider, Nanowits, Network } from "../../types"
+import { HexString, IProvider, Network } from "../../types"
 
 import { TransactionPayloadMultiSig } from "../payloads"
 import { 
@@ -185,11 +185,11 @@ export class StakePayload extends TransactionPayloadMultiSig<StakeDepositParams>
         }
     }
 
-    protected async _estimateNetworkFees(provider: IProvider, priority = TransactionPriority.Medium): Promise<Nanowits> {
+    protected async _estimateNetworkFees(provider: IProvider, priority = TransactionPriority.Medium): Promise<bigint> {
         if (!this._priorities) {
             this._priorities = await provider.priorities()
         }
-        return Math.floor(
+        return BigInt(Math.floor(
             // todo: replace `vtt_` for `st_`
             this._priorities[`vtt_${priority}`].priority * (
                 this.covered ? this.weight : this.weight
@@ -198,7 +198,7 @@ export class StakePayload extends TransactionPayloadMultiSig<StakeDepositParams>
                     // estimate weight of one single output in case there was change to pay back
                     + TX_WEIGHT_OUTPUT_SIZE 
             )
-        );
+        ));
     }
 
 }

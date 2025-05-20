@@ -1,5 +1,5 @@
 import { fromHexString } from "../../../bin/helpers"
-import { IProvider, Nanowits } from "../../types"
+import { IProvider } from "../../types"
 
 import { TransactionPayloadMultiSig } from "../payloads"
 import { Coins, PublicKeyHash, PublicKeyHashString, TransactionParams, TransactionPriority } from "../types"
@@ -26,7 +26,7 @@ export class ValueTransferPayload extends TransactionPayloadMultiSig<ValueTransf
     }
 
     public get value(): Coins {
-        return Coins.fromPedros(this._target?.recipients.reduce((prev, [,curr]) => prev + curr.pedros, 0) || 0)
+        return Coins.fromPedros(this._target?.recipients.reduce((prev, [,curr]) => prev + curr.pedros, 0n) || 0n)
     }
 
     public get weight(): number {
@@ -36,7 +36,7 @@ export class ValueTransferPayload extends TransactionPayloadMultiSig<ValueTransf
         );
     }
 
-    public prepareOutputs(change?: { value: Nanowits, pkh: PublicKeyHashString }): any {
+    public prepareOutputs(change?: { value: bigint, pkh: PublicKeyHashString }): any {
         if (this._target && this._outputs.length === 0) {
             this._outputs.push(...this._target.recipients.map(([pkh, value]) => ({
                 pkh, 
@@ -141,11 +141,11 @@ export class ValueTransferPayload extends TransactionPayloadMultiSig<ValueTransf
         }
     }
 
-    protected async _estimateNetworkFees(provider: IProvider, priority = TransactionPriority.Medium): Promise<Nanowits> {
+    protected async _estimateNetworkFees(provider: IProvider, priority = TransactionPriority.Medium): Promise<bigint> {
         if (!this._priorities) {
             this._priorities = await provider.priorities()
         }
-        return Math.floor(
+        return BigInt(Math.floor(
             this._priorities[`vtt_${priority}`].priority * (
                 this.covered ? this.weight : this.weight
                     // estimate one more input as to cover for network fees
@@ -153,6 +153,6 @@ export class ValueTransferPayload extends TransactionPayloadMultiSig<ValueTransf
                     // estimate as many outputs as recipients plus one, as to cover for eventual change output
                     + TX_WEIGHT_OUTPUT_SIZE * (this._target?.recipients.length || 1 + 1) * TX_WEIGHT_GAMMA
             )
-        );
+        ));
     }
 }
