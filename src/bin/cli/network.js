@@ -153,7 +153,7 @@ module.exports = {
 
 async function blocks (options = {}) {
   options.limit = Math.min(parseInt(options.limit) || FLAGS_LIMIT_DEFAULT, FLAGS_LIMIT_MAX)
-  const provider = new Witnet.Provider(options?.provider)
+  const provider = new Witnet.JsonRpcProvider(options?.provider)
   // todo: use prompter?
   const records = await provider.blocks(parseInt(options?.since) || -options.limit - 2, options.limit)
   if (records.length > 0) {
@@ -179,13 +179,13 @@ async function blocks (options = {}) {
 }
 
 async function constants (options = {}) {
-  const provider = new Witnet.Provider(options?.provider)
+  const provider = new Witnet.JsonRpcProvider(options?.provider)
   console.info(await provider.constants())
 }
 
 async function holders (options = {}) {
   options.limit = Math.min(parseInt(options.limit) || FLAGS_LIMIT_DEFAULT, FLAGS_LIMIT_MAX)
-  const provider = new Witnet.Provider(options?.provider)
+  const provider = new Witnet.JsonRpcProvider(options?.provider)
   const records = Object.entries(await helpers.prompter(provider.holders(
     options["min-balance"] ? options["min-balance"] * 10 ** 9 : 1000000,
     options["max-balance"] ? options["max-balance"] * 10 ** 9 : null,
@@ -237,18 +237,18 @@ async function holders (options = {}) {
 async function knownPeers (options = {}) {
   if (!options) options = {}
   options.limit = parseInt(options.limit) || FLAGS_LIMIT_DEFAULT
-  const provider = new Witnet.Provider(options?.provider)
+  const provider = new Witnet.JsonRpcProvider(options?.provider)
   const knownPeers = await provider.knownPeers()
   console.info(knownPeers)
 }
 
 async function mempool (options = {}) {
-  const provider = new Witnet.Provider(options?.provider)
+  const provider = new Witnet.JsonRpcProvider(options?.provider)
   console.info(await provider.mempool())
 }
 
 async function powers (options = {}) {
-  const provider = new Witnet.Provider(options?.provider)
+  const provider = new Witnet.JsonRpcProvider(options?.provider)
   const query = {
     distinct: options?.distinct || false,
     limit: parseInt(options.limit) || FLAGS_LIMIT_DEFAULT,
@@ -297,12 +297,12 @@ async function powers (options = {}) {
 }
 
 async function priorities (options = {}) {
-  const provider = new Witnet.Provider(options?.provider)
+  const provider = new Witnet.JsonRpcProvider(options?.provider)
   console.info(await provider.priorities())
 }
 
 async function provider (options = {}) {
-  const provider = await Witnet.Provider.fromEnv(options?.provider)
+  const provider = await Witnet.JsonRpcProvider.fromEnv(options?.provider)
   console.info(`> Witnet RPC provider: ${white(provider.endpoints)}`)
   console.info(`> Witnet environment:  ${
     provider.networkId === 40941
@@ -313,7 +313,7 @@ async function provider (options = {}) {
 }
 
 async function senate (options = {}) {
-  const provider = new Witnet.Provider(options?.provider)
+  const provider = new Witnet.JsonRpcProvider(options?.provider)
   const params = {
     distinct: true,
     limit: Math.min(parseInt(options.limit) || FLAGS_LIMIT_DEFAULT, FLAGS_LIMIT_MAX),
@@ -391,7 +391,7 @@ async function senate (options = {}) {
 }
 
 async function stakes (options = {}) {
-  const provider = new Witnet.Provider(options?.provider)
+  const provider = new Witnet.JsonRpcProvider(options?.provider)
   const query = {
     params: {
       limit: Math.min(parseInt(options.limit) || FLAGS_LIMIT_DEFAULT, FLAGS_LIMIT_MAX),
@@ -460,7 +460,7 @@ async function stakes (options = {}) {
 }
 
 async function supplyInfo (options = {}) {
-  const reporter = new Witnet.Provider(options?.provider || process.env.WITNET_SDK_PROVIDER_URL)
+  const reporter = new Witnet.JsonRpcProvider(options?.provider || process.env.WITNET_SDK_PROVIDER_URL)
   const data = await reporter.supplyInfo()
   console.info(`> Supply info at epoch ${helpers.colors.white(helpers.commas(data.epoch))}:`)
   const records = []
@@ -483,7 +483,7 @@ async function supplyInfo (options = {}) {
 }
 
 async function syncStatus (options = {}) {
-  const provider = new Witnet.Provider(options?.provider)
+  const provider = new Witnet.JsonRpcProvider(options?.provider)
   const syncStatus = await provider.syncStatus()
   helpers.traceTable(
     [[
@@ -505,7 +505,7 @@ async function syncStatus (options = {}) {
 }
 
 async function versions (options = {}) {
-  const provider = new Witnet.Provider(options?.provider)
+  const provider = new Witnet.JsonRpcProvider(options?.provider)
   const protocolInfo = await provider.protocolInfo()
   if (
     protocolInfo?.all_checkpoints_periods &&
@@ -539,7 +539,7 @@ async function versions (options = {}) {
 }
 
 async function wips (options = {}) {
-  const provider = new Witnet.Provider(options?.provider)
+  const provider = new Witnet.JsonRpcProvider(options?.provider)
   const wips = await provider.wips()
   if (!options?.pending) {
     // console.info(`> Active WIP upgrades at epoch ${helpers.colors.white(helpers.commas(wips.epoch))}:`)

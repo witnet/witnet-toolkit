@@ -1,8 +1,8 @@
-import { IProvider, Provider } from "./provider"
+import { IJsonRpcProvider, JsonRpcProvider } from "./provider"
 import { DataRequestReport, Methods, PeerAddr, SupplyInfo, } from "./types"
 import { Hash } from "../types"
 
-export interface IReporter extends IProvider {
+export interface IReporter extends IJsonRpcProvider {
     providers(): Promise<Array<string>>
     supplyInfo(): Promise<SupplyInfo>;
 
@@ -10,7 +10,7 @@ export interface IReporter extends IProvider {
     searchDataRequests(radHash: Hash): Promise<any>;
 }
 
-export class Reporter extends Provider implements IReporter {
+export class Reporter extends JsonRpcProvider implements IReporter {
     constructor(url?: string) {
         super(url || process.env.WITNET_TOOLKIT_REPORTER_URL || "https://kermit.witnet.io")
     }

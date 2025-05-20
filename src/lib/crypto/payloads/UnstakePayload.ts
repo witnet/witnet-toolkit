@@ -1,6 +1,6 @@
 import { Epoch, ValueTransferOutput } from "../../types"
 
-import { ILedger, IProvider } from "../interfaces"
+import { ILedger, IJsonRpcProvider } from "../interfaces"
 import { TransactionPayload } from "../payloads"
 import { Coins, PublicKeyHash, PublicKeyHashString, TransactionParams, TransactionPriority } from "../types"
 
@@ -174,7 +174,7 @@ export class UnstakePayload extends TransactionPayload<StakeWithdrawalParams> {
         }
     }
 
-    protected async _estimateNetworkFees(provider: IProvider, priority = TransactionPriority.Medium): Promise<bigint> {
+    protected async _estimateNetworkFees(provider: IJsonRpcProvider, priority = TransactionPriority.Medium): Promise<bigint> {
         if (!this._priorities) {
             this._priorities = await provider.priorities()
         }

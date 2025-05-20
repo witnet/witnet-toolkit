@@ -1,5 +1,5 @@
 import { fromHexString } from "../../../bin/helpers"
-import { IProvider } from "../../types"
+import { IJsonRpcProvider } from "../../types"
 
 import { TransactionPayloadMultiSig } from "../payloads"
 import { Coins, PublicKeyHash, PublicKeyHashString, TransactionParams, TransactionPriority } from "../types"
@@ -141,7 +141,7 @@ export class ValueTransferPayload extends TransactionPayloadMultiSig<ValueTransf
         }
     }
 
-    protected async _estimateNetworkFees(provider: IProvider, priority = TransactionPriority.Medium): Promise<bigint> {
+    protected async _estimateNetworkFees(provider: IJsonRpcProvider, priority = TransactionPriority.Medium): Promise<bigint> {
         if (!this._priorities) {
             this._priorities = await provider.priorities()
         }

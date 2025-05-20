@@ -917,7 +917,7 @@ async function _loadWallet (options = {}) {
   if (!process.env.WITNET_SDK_WALLET_MASTER_KEY) {
     throw Error("No WITNET_SDK_WALLET_MASTER_KEY is settled in environment")
   } else {
-    const provider = new Witnet.Provider(options?.provider)
+    const provider = new Witnet.JsonRpcProvider(options?.provider)
     const strategies = {
       "small-first": Witnet.UtxoSelectionStrategy.SmallFirst,
       "slim-fit": Witnet.UtxoSelectionStrategy.SlimFit,

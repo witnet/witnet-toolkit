@@ -224,7 +224,7 @@ async function rankings (options = {}) {
     if (pkh instanceof Error) {
       console.error(`> Skipping node ${url}: ${pkh}`)
     } else {
-      if (!provider) provider = new Witnet.Provider(url)
+      if (!provider) provider = new Witnet.JsonRpcProvider(url)
       validators.push(pkh)
     }
   })

@@ -1,5 +1,5 @@
 import { 
-    IProvider, 
+    IJsonRpcProvider, 
     Balance, 
     Hash, 
     HexString, 
@@ -19,7 +19,7 @@ import {
 } from "./types"
 
 export { BIP32Interface as IBIP32 } from 'bip32'
-export { IProvider } from "../rpc"
+export { IJsonRpcProvider } from "../rpc"
 
 export interface IAccount extends ILedger {
     index: number
@@ -33,7 +33,7 @@ export interface ILedger {
     changePkh: PublicKeyHashString,
     network?: Network
     pkh: PublicKeyHashString
-    provider: IProvider
+    provider: IJsonRpcProvider
     publicKey: PublicKey
     strategy: UtxoSelectionStrategy
     
@@ -80,7 +80,7 @@ interface IHashable {
 export interface ITransmitter {
     network: Network
     payload?: any
-    provider: IProvider
+    provider: IJsonRpcProvider
     transactions: Array<Hash>,
     type: string
     confirmTransaction(params?: any): Promise<TransactionReceipt>

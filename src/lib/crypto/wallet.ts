@@ -4,11 +4,11 @@ import BIP32Factory from 'bip32';
 import * as ecc from 'tiny-secp256k1';
 const bip32 = BIP32Factory(ecc);
 
-import { Provider } from "../rpc"
+import { JsonRpcProvider } from "../rpc"
 import { Balance, Network, QueryStakesOrder, StakeEntry, StakesOrderBy } from "../types"
 import { Account } from "./account"
 import { Coinbase } from "./coinbase"
-import { IAccount, IBIP32, ICoinbase, IProvider, ISigner, IWallet } from "./interfaces"
+import { IAccount, IBIP32, ICoinbase, IJsonRpcProvider, ISigner, IWallet } from "./interfaces"
 import { Coins, PublicKey, PublicKeyHashString, Utxo, UtxoCacheInfo, UtxoSelectionStrategy } from "./types"
 
 const DEFAULT_GAP = 20;
@@ -19,7 +19,7 @@ export class Wallet implements IWallet {
     protected _accounts: Array<IAccount> = [];
 
     public readonly coinbase: ICoinbase;
-    public readonly provider: IProvider;
+    public readonly provider: IJsonRpcProvider;
     public strategy: UtxoSelectionStrategy;
 
     /**
@@ -42,7 +42,7 @@ export class Wallet implements IWallet {
         /**
          * Specific Wit/RPC provider to use for interacting with the Witnet network.
          */
-        provider?: IProvider, 
+        provider?: IJsonRpcProvider, 
         /**
          * UTXO selection strategy when building transactions out of this wallet (default: UtxoSelectionStrategy.SmallFirst).
          */
@@ -81,7 +81,7 @@ export class Wallet implements IWallet {
             /**
              * Specific Wit/RPC provider to use for interacting with the Witnet network.
              */
-            provider?: IProvider, 
+            provider?: IJsonRpcProvider, 
             /**
              * UTXO selection strategy when building transactions out of this wallet (default: UtxoSelectionStrategy.SmallFirst).
              */
@@ -94,7 +94,7 @@ export class Wallet implements IWallet {
     ): Promise<Wallet> {
         const { chainCode, privateKey } = utils.parseXprv(xprv);
         const root = bip32.fromPrivateKey(Buffer.from(privateKey), Buffer.from(chainCode));
-        const provider = options?.provider || (await Provider.fromEnv())
+        const provider = options?.provider || (await JsonRpcProvider.fromEnv())
         await provider.constants()
         const wallet = new Wallet(root, provider, options?.strategy)
         if (options?.onlyWithFunds) {
@@ -126,7 +126,7 @@ export class Wallet implements IWallet {
             /**
              * Specific Wit/RPC provider to use for interacting with the Witnet network.
              */
-            provider?: IProvider, 
+            provider?: IJsonRpcProvider, 
             /**
              * UTXO selection strategy when building transactions out of this wallet (default: UtxoSelectionStrategy.SmallFirst).
              */
@@ -140,7 +140,7 @@ export class Wallet implements IWallet {
         return Wallet.fromXprv(utils.decipherXprv(xprv, passwd), options)
     }
     
-    constructor(root: IBIP32, provider: IProvider, strategy?: UtxoSelectionStrategy) {
+    constructor(root: IBIP32, provider: IJsonRpcProvider, strategy?: UtxoSelectionStrategy) {
         this.provider = provider
         this.coinbase = new Coinbase(root, provider, strategy)
         this.root = root

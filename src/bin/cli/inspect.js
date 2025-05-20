@@ -92,7 +92,7 @@ async function balance (options = {}, args = []) {
     throw Error("No WIT_ADDRESS was specified")
   }
   const pkh = args[0]
-  const provider = new Witnet.Provider(options?.provider)
+  const provider = new Witnet.JsonRpcProvider(options?.provider)
   const balance = await provider.getBalance(pkh)
   const records = []
   records.push([
@@ -116,7 +116,7 @@ async function block (options = {}, args = []) {
   if (!helpers.isHexString(blockHash)) {
     throw Error("Invalid BLOCK_HASH was provided")
   }
-  const provider = new Witnet.Provider(options?.provider)
+  const provider = new Witnet.JsonRpcProvider(options?.provider)
   const block = await provider.getBlock(blockHash)
   console.info(gray(JSON.stringify(block, (key, value) => {
     switch (key) {
@@ -139,7 +139,7 @@ async function dataRequest (options = {}, args = []) {
   if (!helpers.isHexString(drTxHash)) {
     throw Error("Invalid DR_TX_HASH was provided")
   }
-  const provider = new Witnet.Provider(options?.provider)
+  const provider = new Witnet.JsonRpcProvider(options?.provider)
 
   const drTxJsonReplacer = (key, value) => {
     switch (key) {
@@ -169,7 +169,7 @@ async function superblock (options = {}, args = []) {
   if (args.length === 0) {
     throw Error("No EPOCH was specified")
   }
-  const provider = new Witnet.Provider(options?.provider)
+  const provider = new Witnet.JsonRpcProvider(options?.provider)
   const superblock = await provider.getSuperblock(args[0])
   console.info(superblock)
 }
@@ -182,7 +182,7 @@ async function transaction (options = {}, args = []) {
   if (!helpers.isHexString(txHash)) {
     throw Error("Invalid TX_HASH was provided")
   }
-  const provider = new Witnet.Provider(options?.provider)
+  const provider = new Witnet.JsonRpcProvider(options?.provider)
   const transaction = await provider.getTransaction(txHash)
   console.info(
     `${yellow(JSON.stringify(transaction, utils.txJsonReplacer, 2))}`
@@ -194,7 +194,7 @@ async function utxos (options = {}, args = []) {
     throw Error("No WIT_ADDRESS was specified")
   }
   const now = Math.floor(Date.now() / 1000)
-  const provider = new Witnet.Provider(options?.provider)
+  const provider = new Witnet.JsonRpcProvider(options?.provider)
   let utxos = await provider.getUtxos(args[0], options["small-first"] || false)
   let totalBalance = 0
   if (!options?.verbose) {
@@ -233,7 +233,7 @@ async function validators (options = {}, args = []) {
   if (args.length === 0) {
     throw Error("No WIT_ADDRESS was specified")
   }
-  const provider = new Witnet.Provider(options?.provider)
+  const provider = new Witnet.JsonRpcProvider(options?.provider)
   const query = {
     filter: { withdrawer: args[0] },
   }
@@ -295,7 +295,7 @@ async function withdrawers (options = {}, args = []) {
   if (args.length === 0) {
     throw Error("No WIT_ADDRESS was specified")
   }
-  const provider = new Witnet.Provider(options?.provider)
+  const provider = new Witnet.JsonRpcProvider(options?.provider)
   const query = {
     filter: { validator: args[0] },
   }

@@ -4,7 +4,7 @@ const protoRoot = ProtoRoot.fromJSON(require("../../../../witnet/witnet.proto.js
 import { fromHexString, fromNanowits, toHexString } from "../../../bin/helpers"
 
 import { RadonRequest, RadonTemplate } from "../../radon"
-import { Hash, HexString, IProvider } from "../../types"
+import { Hash, HexString, IJsonRpcProvider } from "../../types"
 
 import { ILedger } from "../interfaces"
 import { TransactionPayloadMultiSig } from "../payloads"
@@ -361,7 +361,7 @@ export class DataRequestPayload extends TransactionPayloadMultiSig<DataRequestPa
         }
     }
 
-    protected async _estimateNetworkFees(provider: IProvider, priority = TransactionPriority.Medium): Promise<bigint> {
+    protected async _estimateNetworkFees(provider: IJsonRpcProvider, priority = TransactionPriority.Medium): Promise<bigint> {
         if (!this._priorities) {
             this._priorities = await provider.priorities()
         }
