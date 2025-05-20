@@ -746,7 +746,7 @@ async function traceTransaction (transmitter, options) {
         onStatusChange: traceTransactionOnStatusChange,
       })
     } else {
-      const data = { status: receipt?.status, timestamp: receipt?.timestamp }
+      const data = { status: receipt?.status, timestamp: receipt?.timestamp || Math.floor(Date.now() / 1000) }
       console.info(`${yellow(JSON.stringify(data, txReceiptJsonReplacer, 2))}`)
     }
   } catch (err) {

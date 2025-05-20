@@ -494,7 +494,7 @@ function traceWitnetRadonReportHeadline (request, options) {
   console.info(`${indent}╔══════════════════════════════════════════════════════════════════════════════╗`)
   console.info(`${indent}║ ${helpers.colors.white(options?.headline)}${" ".repeat(77 - options?.headline.length)}║`)
   console.info(`${indent}╠══════════════════════════════════════════════════════════════════════════════╣`)
-  console.info(`${indent}║ ${helpers.colors.white("RAD hash")}: ${helpers.colors.lgreen(request.radHash.slice(2))}   ║`)
+  console.info(`${indent}║ ${helpers.colors.white("RAD hash")}: ${helpers.colors.lgreen(request.radHash)}   ║`)
   console.info(`${indent}║ RAD size: ${helpers.colors.green(trait(helpers.commas(request.weight()) + " bytes"))} ║`)
   console.info(`${indent}║ RAD type: ${helpers.colors.yellow(trait(resultDataType))} ║`)
   // if (!options.verbose) {
