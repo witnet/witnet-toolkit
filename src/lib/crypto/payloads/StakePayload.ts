@@ -1,6 +1,6 @@
 import { fromHexString, fromNanowits } from "../../../bin/helpers"
 
-import { HexString, IProvider, Network } from "../../types"
+import { HexString, IJsonRpcProvider, Network } from "../../types"
 
 import { TransactionPayloadMultiSig } from "../payloads"
 import { 
@@ -185,7 +185,7 @@ export class StakePayload extends TransactionPayloadMultiSig<StakeDepositParams>
         }
     }
 
-    protected async _estimateNetworkFees(provider: IProvider, priority = TransactionPriority.Medium): Promise<bigint> {
+    protected async _estimateNetworkFees(provider: IJsonRpcProvider, priority = TransactionPriority.Medium): Promise<bigint> {
         if (!this._priorities) {
             this._priorities = await provider.priorities()
         }

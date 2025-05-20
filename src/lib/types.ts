@@ -1,5 +1,5 @@
 export { INodeFarm } from "./rpc/nodes"
-export { IProvider } from "./rpc/provider"
+export { IJsonRpcProvider } from "./rpc/provider"
 export { IReporter } from "./rpc/reporter"
 
 export { 

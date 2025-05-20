@@ -8,7 +8,7 @@ import {
     RecoverableSignature 
 } from "../crypto/types"
 
-import { IProvider, Provider, ProviderError } from "./provider"
+import { IJsonRpcProvider, JsonRpcProvider, ProviderError } from "./provider"
 
 import { 
     Balance2, 
@@ -26,7 +26,7 @@ import {
     Nonce
 } from "../types"
 
-export interface INodeFarm extends IProvider {
+export interface INodeFarm extends IJsonRpcProvider {
     addresses(): Promise<Record<string, PublicKeyHashString>>
     balances(): Promise<Record<string, [PublicKeyHashString, Balance2]>>
     masterKeys(): Promise<Record<string, [PublicKeyHashString, string]>>
@@ -49,7 +49,7 @@ function isPrivateURL(url: string): boolean {
     return utils.ipIsPrivateOrLocalhost(host.split(':')[0])
 }
 
-export class NodeFarm extends Provider implements INodeFarm {
+export class NodeFarm extends JsonRpcProvider implements INodeFarm {
     constructor(url?: string) {
         super(url || process.env.WITNET_TOOLKIT_FARM_NODES || "http://127.0.0.1:21339")
         this.endpoints.forEach(url => {

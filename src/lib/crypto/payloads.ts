@@ -4,7 +4,7 @@ const protoRoot = ProtoRoot.fromJSON(require("../../../witnet/witnet.proto.json"
 import { Hash, NetworkPriorities, ValueTransferOutput } from "../types"
 import { toHexString } from "../utils"
 
-import { ILedger, IProvider, ITransactionPayload, ITransactionPayloadMultiSig } from "./interfaces"
+import { ILedger, IJsonRpcProvider, ITransactionPayload, ITransactionPayloadMultiSig } from "./interfaces"
 import { sha256 } from "./utils"
 import { Coins, PublicKeyHashString, TransactionPriority, Utxo } from "./types";
 
@@ -88,7 +88,7 @@ export abstract class TransactionPayload<Specs> implements ITransactionPayload<S
     abstract get weight(): number;
 
     protected abstract _cleanTargetExtras(params?: any): any;
-    protected abstract _estimateNetworkFees(provider: IProvider, priority?: TransactionPriority): Promise<bigint>;
+    protected abstract _estimateNetworkFees(provider: IJsonRpcProvider, priority?: TransactionPriority): Promise<bigint>;
 }
 
 export abstract class TransactionPayloadMultiSig<Specs> 

@@ -2,7 +2,7 @@ const secp256k1 = require('secp256k1')
 import * as utils from "../utils"
 
 import { Balance, Network, QueryStakesOrder, StakeEntry } from "../types"
-import { IBIP32, IProvider, ISigner } from "./interfaces"
+import { IBIP32, IJsonRpcProvider, ISigner } from "./interfaces"
 import { Coins, KeyedSignature, PublicKey, PublicKeyHashString, Utxo, UtxoCacheInfo, UtxoSelectionStrategy } from "./types"
 import { selectUtxos } from "./utils"
 
@@ -11,12 +11,12 @@ export class Signer implements ISigner {
     protected node: IBIP32;
     protected utxos: Array<Utxo> = []
     
-    public readonly provider: IProvider
+    public readonly provider: IJsonRpcProvider
     public strategy: UtxoSelectionStrategy
 
     constructor(
         node: IBIP32, 
-        provider: IProvider, 
+        provider: IJsonRpcProvider, 
         strategy?: UtxoSelectionStrategy,
     ) {
         this.node = node

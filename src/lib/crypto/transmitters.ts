@@ -4,13 +4,13 @@ import { Root as ProtoRoot, Type as ProtoType } from "protobufjs"
 const protoRoot = ProtoRoot.fromJSON(require("../../../witnet/witnet.proto.json")) 
 
 import { TransactionReport, UtxoMetadata, ValueTransferOutput } from "../rpc/types"
-import { Provider } from "../rpc"
+import { JsonRpcProvider } from "../rpc"
 import { Hash, Network } from "../types"
 import { isHexString } from "../utils";
 
 import { 
     ILedger,
-    IProvider, 
+    IJsonRpcProvider, 
     ITransmitter, 
     ITransactionPayload, 
     ITransactionPayloadMultiSig, 
@@ -57,7 +57,7 @@ export abstract class Transmitter<Specs, Payload extends ITransactionPayload<Spe
         return this._payload.prepared ? this._payload : undefined
     }
 
-    public get provider(): IProvider {
+    public get provider(): IJsonRpcProvider {
         return this.ledger.provider
     }
 
@@ -110,27 +110,27 @@ export abstract class Transmitter<Specs, Payload extends ITransactionPayload<Spe
         }
         // if we reach this point is because an inflight transaction is 
         // ready to be transmitted
-        Provider.receipts[receipt.hash].status = "pending"
-        delete Provider.receipts[receipt.hash].error
+        JsonRpcProvider.receipts[receipt.hash].status = "pending"
+        delete JsonRpcProvider.receipts[receipt.hash].error
         return this.provider
             .sendRawTransaction(this._toJSON(false))
             .catch(err => {
                 // ??? this._recoverInputUtxos();
                 const error = new TransmissionError(this._getInflightTransmission(), err)
-                Provider.receipts[receipt.hash].error = error
+                JsonRpcProvider.receipts[receipt.hash].error = error
                 throw error
             })
             .then(accepted => {
                 if (accepted) {
                     // todo: ouptut utxos should be recovered upon tx chain inclusion, not upon tx network transmission
                     // ??? this._recoverOutputUtxos()
-                    Provider.receipts[receipt.hash].status = "relayed"
-                    return Provider.receipts[receipt.hash]
+                    JsonRpcProvider.receipts[receipt.hash].status = "relayed"
+                    return JsonRpcProvider.receipts[receipt.hash]
                     
                 } else {
                     // ??? this._recoverInputUtxos()
                     const error = new TransmissionError(this._getInflightTransmission(), Error(`Rejected for unknown reasons`))
-                    Provider.receipts[receipt.hash].error = error
+                    JsonRpcProvider.receipts[receipt.hash].error = error
                     throw error
                 }
             })
@@ -197,7 +197,7 @@ export abstract class Transmitter<Specs, Payload extends ITransactionPayload<Spe
         }
     ): Promise<TransactionReceipt> {
 
-        let receipt = Provider.receipts[hash]
+        let receipt = JsonRpcProvider.receipts[hash]
         if (!receipt || receipt.hash !== hash) {
             throw new Error(`${this.constructor.name}: transaction not found: ${hash}`)
         
@@ -284,7 +284,7 @@ export abstract class Transmitter<Specs, Payload extends ITransactionPayload<Spe
                             options.onStatusChange(receipt)
                         } catch {};
                     }
-                    Provider.receipts[hash] = receipt
+                    JsonRpcProvider.receipts[hash] = receipt
                     return ["relayed", "mined"].includes(receipt.status)
                 },
                 interval, timeout, 
@@ -349,7 +349,7 @@ export abstract class Transmitter<Specs, Payload extends ITransactionPayload<Spe
                     // 2. Add blockMiner address to the transaction receipt: 
                     if (receipt?.blockHash && isHexString(receipt.blockHash)) {
                         const block = await this.provider.getBlock(receipt.blockHash || "")
-                        Provider.receipts[hash].blockMiner = PublicKey
+                        JsonRpcProvider.receipts[hash].blockMiner = PublicKey
                             .fromProtobuf(block.block_sig.public_key)
                             .hash()
                             .toBech32(this.network);
@@ -358,7 +358,7 @@ export abstract class Transmitter<Specs, Payload extends ITransactionPayload<Spe
                         options.onStatusChange(receipt)
                     } catch {};
                     // 3. Return transaction receipt:
-                    return Provider.receipts[hash]
+                    return JsonRpcProvider.receipts[hash]
                 }
             })
         ])
@@ -383,7 +383,7 @@ export abstract class Transmitter<Specs, Payload extends ITransactionPayload<Spe
     protected _getInflightReceipt(): TransactionReceipt | undefined {
         const hash = this._payload.hash
         if (hash) {
-            return Provider.receipts[hash]
+            return JsonRpcProvider.receipts[hash]
         } else {
             return undefined
         }
@@ -401,7 +401,7 @@ export abstract class Transmitter<Specs, Payload extends ITransactionPayload<Spe
     protected _recoverOutputUtxos(): any {}
 
     protected _upsertTransactionReceipt(hash: Hash, target: Specs, status: TransactionStatus): TransactionReceipt {
-        Provider.receipts[hash] = {
+        JsonRpcProvider.receipts[hash] = {
             ...this._payload.intoReceipt(target, this.network),
             hash,
             change: this._payload.change,
@@ -414,7 +414,7 @@ export abstract class Transmitter<Specs, Payload extends ITransactionPayload<Spe
             value: this._payload.value,
             weight: this._payload.weight,
         }
-        return Provider.receipts[hash]
+        return JsonRpcProvider.receipts[hash]
     }
 
     protected abstract _signTransactionPayload(): Hash;

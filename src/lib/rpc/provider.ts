@@ -16,7 +16,7 @@ import {
     SuperblockReport, SupplyInfo, SyncStatus, UtxoInfo,
 } from "./types"
 
-export interface IProvider {
+export interface IJsonRpcProvider {
     network?: Network;
     networkId?: number;
     
@@ -57,7 +57,7 @@ export class ProviderError extends Error {
     }
 }
 
-export class Provider implements IProvider {
+export class JsonRpcProvider implements IJsonRpcProvider {
     
     public readonly endpoints: string[]
 
@@ -67,20 +67,20 @@ export class Provider implements IProvider {
     protected _headers: AxiosHeaders;
     
     /**
-     * Create and initialize a Provider object connected to the default Wit/RPC endpoint.
+     * Create and initialize a JsonRpcProvider object connected to the default Wit/RPC endpoint.
      * Defaults to https://rpc-01.witnet.io if no WITNET_SDK_PROVIDER_URL envar is settled
      * on the environment.
      */
-    static async fromEnv(url?: string): Promise<Provider> {
-        return Provider.fromURL(url || process.env.WITNET_SDK_PROVIDER_URL || "https://rpc-01.witnet.io")
+    static async fromEnv(url?: string): Promise<JsonRpcProvider> {
+        return JsonRpcProvider.fromURL(url || process.env.WITNET_SDK_PROVIDER_URL || "https://rpc-01.witnet.io")
     }
     
     /**
-     * Create and initialize a Provider object connected to the specified Wit/RPC endpoint.
+     * Create and initialize a JsonRpcProvider object connected to the specified Wit/RPC endpoint.
      * @param url Wit/RPC endpoint URL.
      */
-    static async fromURL(url: string): Promise<Provider> {
-        const provider = new Provider(url)
+    static async fromURL(url: string): Promise<JsonRpcProvider> {
+        const provider = new JsonRpcProvider(url)
         return provider.constants().then(() => provider)
     }
 
@@ -91,7 +91,7 @@ export class Provider implements IProvider {
             urls.forEach(url => {
                 const [schema, ] = utils.parseURL(url)
                 if (!schema.startsWith("http://") && !schema.startsWith("https://")) {
-                    throw Error(`Witnet.Provider: unsupported URL schema ${schema}`)
+                    throw Error(`Witnet.JsonRpcProvider: unsupported URL schema ${schema}`)
                 }
             })
             this.endpoints = urls
@@ -281,7 +281,7 @@ export class Provider implements IProvider {
         //       within the specified range of epochs.
         let census = 0
         return this 
-            .stakes({ params: { distinct: true }}) // todo: implement `count` flag on IProvider.stakes()
+            .stakes({ params: { distinct: true }}) // todo: implement `count` flag on IJsonRpcProvider.stakes()
             .then(records => {
                 census = records.length
                 return this.blocks(-16, 16) // todo: blocks() should return epoch, hash and validator pkh for each block
@@ -336,7 +336,7 @@ export class Provider implements IProvider {
 
     public async getTransactionReceipt(txHash: Hash): Promise<TransactionReceipt> {
         // todo: fetch/update receipt from provider, if not cached
-        return Provider.receipts[txHash]
+        return JsonRpcProvider.receipts[txHash]
     }
     
     /// Get utxos

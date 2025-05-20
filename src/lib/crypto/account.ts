@@ -1,5 +1,5 @@
 import { Balance, Network, QueryStakesOrder, StakeEntry } from "../types"
-import { IAccount, IBIP32, IProvider, ISigner } from "./interfaces"
+import { IAccount, IBIP32, IJsonRpcProvider, ISigner } from "./interfaces"
 import { Coins, PublicKey, PublicKeyHashString, Utxo, UtxoCacheInfo, UtxoSelectionStrategy } from "./types"
 import { selectUtxos } from "./utils"
 
@@ -11,10 +11,10 @@ export class Account implements IAccount {
     public readonly internal: ISigner
     public readonly external: ISigner
 
-    public readonly provider: IProvider
+    public readonly provider: IJsonRpcProvider
     public strategy: UtxoSelectionStrategy
 
-    constructor(root: IBIP32, provider: IProvider, index: number, strategy?: UtxoSelectionStrategy) {
+    constructor(root: IBIP32, provider: IJsonRpcProvider, index: number, strategy?: UtxoSelectionStrategy) {
         this.index = index
         this.internal = new Signer(root.derivePath(`m/3'/4919'/0'/1/${index}`), provider, strategy)
         this.external = new Signer(root.derivePath(`m/3'/4919'/0'/0/${index}`), provider, strategy)
