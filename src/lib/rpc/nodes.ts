@@ -26,7 +26,7 @@ import {
     Nonce
 } from "../types"
 
-export interface INodeFarm extends IJsonRpcProvider {
+export interface IJsonRpcNodeFarm extends IJsonRpcProvider {
     addresses(): Promise<Record<string, PublicKeyHashString>>
     balances(): Promise<Record<string, [PublicKeyHashString, Balance2]>>
     masterKeys(): Promise<Record<string, [PublicKeyHashString, string]>>
@@ -49,12 +49,12 @@ function isPrivateURL(url: string): boolean {
     return utils.ipIsPrivateOrLocalhost(host.split(':')[0])
 }
 
-export class NodeFarm extends JsonRpcProvider implements INodeFarm {
+export class JsonRpcNodeFarm extends JsonRpcProvider implements IJsonRpcNodeFarm {
     constructor(url?: string) {
         super(url || process.env.WITNET_TOOLKIT_FARM_NODES || "http://127.0.0.1:21339")
         this.endpoints.forEach(url => {
             if (!isPrivateURL(url)) {
-                throw Error(`Witnet.NodeFarm: only local host or private IPs can be provided: ${url}`)
+                throw Error(`Witnet.JsonRpcNodeFarm: only local host or private IPs can be provided: ${url}`)
             }
         })
     }

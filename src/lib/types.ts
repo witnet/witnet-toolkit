@@ -1,4 +1,4 @@
-export { INodeFarm } from "./rpc/nodes"
+export { IJsonRpcNodeFarm } from "./rpc/nodes"
 export { IJsonRpcProvider } from "./rpc/provider"
 export { IReporter } from "./rpc/reporter"
 
