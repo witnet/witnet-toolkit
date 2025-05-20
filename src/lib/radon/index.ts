@@ -160,7 +160,7 @@ export class RadonRequest extends RadonArtifact {
   }
 
   public get radHash(): string {
-    return toHexString(sha256(this._encode()), true)
+    return toHexString(sha256(this._encode()), false)
   }
 
   public toBytecode(): string {
