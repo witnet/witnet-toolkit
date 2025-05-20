@@ -1,7 +1,7 @@
 const secp256k1 = require('secp256k1')
 import * as utils from "../utils"
 
-import { Balance, Nanowits, Network, QueryStakesOrder, StakeEntry } from "../types"
+import { Balance, Network, QueryStakesOrder, StakeEntry } from "../types"
 import { IBIP32, IProvider, ISigner } from "./interfaces"
 import { Coins, KeyedSignature, PublicKey, PublicKeyHashString, Utxo, UtxoCacheInfo, UtxoSelectionStrategy } from "./types"
 import { selectUtxos } from "./utils"
@@ -32,7 +32,7 @@ export class Signer implements ISigner {
 
     public get cacheInfo(): UtxoCacheInfo {
         const now = Math.floor(Date.now() / 1000)
-        let expendable: Nanowits = 0
+        let expendable: bigint = 0n
         let timelock: number = Number.MAX_SAFE_INTEGER
         this.utxos.map(utxo => {
             expendable += utxo.value

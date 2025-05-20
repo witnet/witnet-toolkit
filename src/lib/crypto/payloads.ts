@@ -1,7 +1,7 @@
 import { Type as ProtoType, Root as ProtoRoot } from "protobufjs"
 const protoRoot = ProtoRoot.fromJSON(require("../../../witnet/witnet.proto.json"))
 
-import { Hash, Nanowits, NetworkPriorities, ValueTransferOutput } from "../types"
+import { Hash, NetworkPriorities, ValueTransferOutput } from "../types"
 import { toHexString } from "../utils"
 
 import { ILedger, IProvider, ITransactionPayload, ITransactionPayloadMultiSig } from "./interfaces"
@@ -10,9 +10,9 @@ import { Coins, PublicKeyHashString, TransactionPriority, Utxo } from "./types";
 
 export abstract class TransactionPayload<Specs> implements ITransactionPayload<Specs> {
  
-    protected _change: Nanowits;
-    protected _covered: Nanowits;
-    protected _fees: Nanowits;
+    protected _change: bigint;
+    protected _covered: bigint;
+    protected _fees: bigint;
     protected _priorities?: NetworkPriorities;
     protected _protoType: ProtoType;
     protected _target?: Specs;
@@ -20,9 +20,9 @@ export abstract class TransactionPayload<Specs> implements ITransactionPayload<S
     constructor(protoTypeName: string, initialTarget?: Specs) {
         this._protoType = protoRoot.lookupType(protoTypeName)
         this._target = this.validateTarget(initialTarget)
-        this._change = 0
-        this._covered = 0
-        this._fees = 0
+        this._change = 0n
+        this._covered = 0n
+        this._fees = 0n
     }
 
     public get bytecode(): Uint8Array | undefined {
@@ -74,8 +74,8 @@ export abstract class TransactionPayload<Specs> implements ITransactionPayload<S
         }
     }
 
-    abstract consumeUtxos(ledger: ILedger): Promise<number>;
-    abstract prepareOutputs(change?: { value: Nanowits, pkh: PublicKeyHashString }, params?: any): any;
+    abstract consumeUtxos(ledger: ILedger): Promise<bigint>;
+    abstract prepareOutputs(change?: { value: bigint, pkh: PublicKeyHashString }, params?: any): any;
     abstract resetTarget(target: Specs): any;
     abstract toJSON(humanize: boolean): any;
     abstract toProtobuf(): any;
@@ -88,7 +88,7 @@ export abstract class TransactionPayload<Specs> implements ITransactionPayload<S
     abstract get weight(): number;
 
     protected abstract _cleanTargetExtras(params?: any): any;
-    protected abstract _estimateNetworkFees(provider: IProvider, priority?: TransactionPriority): Promise<Nanowits>;
+    protected abstract _estimateNetworkFees(provider: IProvider, priority?: TransactionPriority): Promise<bigint>;
 }
 
 export abstract class TransactionPayloadMultiSig<Specs> 
@@ -119,7 +119,7 @@ export abstract class TransactionPayloadMultiSig<Specs>
         )
     }
 
-    public async consumeUtxos(ledger: ILedger, reload?: boolean): Promise<number> {
+    public async consumeUtxos(ledger: ILedger, reload?: boolean): Promise<bigint> {
         if (!this._target) {
             throw new Error(`${this.constructor.name}: internal error: no in-flight params.`)
         } 
@@ -182,7 +182,7 @@ export abstract class TransactionPayloadMultiSig<Specs>
         return this._change
     }
 
-    public prepareOutputs(change?: { value: Nanowits, pkh: PublicKeyHashString }): any {
+    public prepareOutputs(change?: { value: bigint, pkh: PublicKeyHashString }): any {
         if (change?.value) {
             this._outputs.push({
                 pkh: change.pkh,
@@ -193,9 +193,9 @@ export abstract class TransactionPayloadMultiSig<Specs>
     }
 
     public resetTarget(target: Specs): any {
-        this._change = 0
-        this._covered = 0
-        this._fees = 0
+        this._change = 0n
+        this._covered = 0n
+        this._fees = 0n
         this._inputs = []
         this._outputs = []
         this._target = target

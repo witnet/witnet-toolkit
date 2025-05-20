@@ -4,12 +4,12 @@ const protoRoot = ProtoRoot.fromJSON(require("../../../../witnet/witnet.proto.js
 import { fromHexString, fromNanowits, toHexString } from "../../../bin/helpers"
 
 import { RadonRequest, RadonTemplate } from "../../radon"
-import { Hash, HexString, IProvider, Nanowits } from "../../types"
+import { Hash, HexString, IProvider } from "../../types"
 
 import { ILedger } from "../interfaces"
 import { TransactionPayloadMultiSig } from "../payloads"
 import { Coins, PublicKeyHash, TransactionParams, TransactionPriority } from "../types"
-import { sha256 } from "../utils"
+import { BigMath, sha256 } from "../utils"
 
 export type DataRequestTemplateArgs = any | string | string[] | string[][]
     
@@ -20,11 +20,11 @@ export type DataRequestParams = TransactionParams & {
 }
 
 type DataRequestOutputSLA = {
-    collateral: Nanowits,
-    commitAndRevealFee: number,
+    collateral: bigint,
+    commitAndRevealFee: bigint,
     minConsensusPercentage: number,
     witnesses: number,
-    witnessReward?: Nanowits,
+    witnessReward?: bigint,
 }
 
 const DR_COMMIT_TX_WEIGHT = 400
@@ -42,7 +42,7 @@ export class DataRequestPayload extends TransactionPayloadMultiSig<DataRequestPa
     public static COLLATERAL_RATIO = 125
     public static DEFAULT_WITNESSES = 12
     public static MAX_WEIGHT = 80_000
-    public static MIN_COLLATERAL = 20_000_000_000
+    public static MIN_COLLATERAL = 20_000_000_000n
 
     protected _request?: RadonRequest 
     public readonly template?: RadonTemplate
@@ -88,7 +88,7 @@ export class DataRequestPayload extends TransactionPayloadMultiSig<DataRequestPa
             );
             const commitAndRevealFee = this._fees2UnitaryCommitRevealReward(this._fees, witnesses)
             const witnessReward = this._fees2UnitaryReward(this._fees) 
-            const collateral = witnessReward * DataRequestPayload.COLLATERAL_RATIO 
+            const collateral = witnessReward * BigInt(DataRequestPayload.COLLATERAL_RATIO)
             return {
                 collateral,
                 commitAndRevealFee,
@@ -151,7 +151,7 @@ export class DataRequestPayload extends TransactionPayloadMultiSig<DataRequestPa
         }
     }
 
-    public get weight(): Nanowits {
+    public get weight(): number {
         if (this._request && this._target) {
             const witnesses = typeof this._target.witnesses === 'object' ? Object.keys(this._target.witnesses).length : this._target.witnesses || 0
             return (
@@ -170,7 +170,7 @@ export class DataRequestPayload extends TransactionPayloadMultiSig<DataRequestPa
         }
     }
 
-    public async consumeUtxos(ledger: ILedger, reload?: boolean): Promise<number> {
+    public async consumeUtxos(ledger: ILedger, reload?: boolean): Promise<bigint> {
         if (!this._target) {
             throw new Error(`${this.constructor.name}: internal error: no in-flight params.`)
         
@@ -204,7 +204,7 @@ export class DataRequestPayload extends TransactionPayloadMultiSig<DataRequestPa
                 this._fees = estimatedFees
                 this._outputs = []
                 this._inputs = []
-                this._covered = 0
+                this._covered = 0n
                 // consume utxos as to cover for estimated value and estimated fees 
                 const value = this._fees2Value(this._fees, this._target.witnesses)
                 const utxos = await ledger.selectUtxos({ 
@@ -236,7 +236,7 @@ export class DataRequestPayload extends TransactionPayloadMultiSig<DataRequestPa
         }
     }
 
-    public prepareOutputs(change?: { value: Nanowits }): any {
+    public prepareOutputs(change?: { value: bigint }): any {
         if (change?.value) {
             this._outputs.push({
                 pkh: this._inputs[0].signer,
@@ -247,9 +247,9 @@ export class DataRequestPayload extends TransactionPayloadMultiSig<DataRequestPa
     }
 
     public resetTarget(target: DataRequestParams): any {
-        this._change = 0
-        this._covered = 0
-        this._fees = 0
+        this._change = 0n
+        this._covered = 0n
+        this._fees = 0n
         this._inputs = []
         this._outputs = []
         this._target = target
@@ -361,11 +361,11 @@ export class DataRequestPayload extends TransactionPayloadMultiSig<DataRequestPa
         }
     }
 
-    protected async _estimateNetworkFees(provider: IProvider, priority = TransactionPriority.Medium): Promise<Nanowits> {
+    protected async _estimateNetworkFees(provider: IProvider, priority = TransactionPriority.Medium): Promise<bigint> {
         if (!this._priorities) {
             this._priorities = await provider.priorities()
         }
-        return Math.floor(
+        return BigInt(Math.floor(
             this._priorities[`drt_${priority}`].priority * (
                 this.covered ? this.weight : (
                     this.weight
@@ -373,24 +373,24 @@ export class DataRequestPayload extends TransactionPayloadMultiSig<DataRequestPa
                     + TX_WEIGHT_OUTPUT_SIZE 
                 )
             )
-        );
+        ));
     }
 
-    protected _fees2UnitaryCommitRevealReward(fees: Nanowits, witnesses: number): Nanowits {
-        return Math.floor(fees / witnesses) || 1
+    protected _fees2UnitaryCommitRevealReward(fees: bigint, witnesses: number): bigint {
+        return fees / BigInt(witnesses) || 1n
     }
 
-    protected _fees2UnitaryReward(fees: Nanowits): Nanowits {
-        return Math.max(
+    protected _fees2UnitaryReward(fees: bigint): bigint {
+        return BigMath.max(
             fees,
-            Math.ceil(DataRequestPayload.MIN_COLLATERAL / DataRequestPayload.COLLATERAL_RATIO)
+            1n + DataRequestPayload.MIN_COLLATERAL / BigInt(DataRequestPayload.COLLATERAL_RATIO)
         );
     }
-    protected _fees2Value(fees: Nanowits, witnesses: number): Nanowits {
+    protected _fees2Value(fees: bigint, witnesses: number): bigint {
         return (
-            witnesses * (
+            BigInt(witnesses) * (
                 this._fees2UnitaryReward(fees)
-                + 2 * this._fees2UnitaryCommitRevealReward(fees, witnesses)
+                + 2n * this._fees2UnitaryCommitRevealReward(fees, witnesses)
             )
         );
     }
@@ -404,3 +404,4 @@ export class DataRequestPayload extends TransactionPayloadMultiSig<DataRequestPa
         }
     }
 }
+

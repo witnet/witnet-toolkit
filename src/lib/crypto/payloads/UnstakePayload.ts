@@ -1,4 +1,4 @@
-import { Epoch, Nanowits, ValueTransferOutput } from "../../types"
+import { Epoch, ValueTransferOutput } from "../../types"
 
 import { ILedger, IProvider } from "../interfaces"
 import { TransactionPayload } from "../payloads"
@@ -50,7 +50,7 @@ export class UnstakePayload extends TransactionPayload<StakeWithdrawalParams> {
         return UnstakePayload.WEIGHT
     }
     
-    public async consumeUtxos(ledger: ILedger): Promise<number> {
+    public async consumeUtxos(ledger: ILedger): Promise<bigint> {
         if (!this._target) {
             throw new Error(`${this.constructor.name}: internal error: no in-flight params.`)
         
@@ -72,7 +72,7 @@ export class UnstakePayload extends TransactionPayload<StakeWithdrawalParams> {
             this._change = this.value.pedros - this._fees
             if (this._change > 0) {
                 // settle nonce if none specified
-                this._covered = this._target?.nonce || await signer.getStakeEntryNonce(this._target.validator)
+                this._covered = BigInt(this._target?.nonce || await signer.getStakeEntryNonce(this._target.validator))
                 this._outputs.push({
                     pkh: signer.pkh,
                     value: this.value.pedros - this._fees,
@@ -95,9 +95,9 @@ export class UnstakePayload extends TransactionPayload<StakeWithdrawalParams> {
     public prepareOutputs(): any {}
 
     public resetTarget(target: StakeWithdrawalParams): any {
-        this._change = 0 
-        this._covered = 0
-        this._fees = 0
+        this._change = 0n
+        this._covered = 0n
+        this._fees = 0n
         this._outputs = []
         this._target = target
     }
@@ -174,14 +174,14 @@ export class UnstakePayload extends TransactionPayload<StakeWithdrawalParams> {
         }
     }
 
-    protected async _estimateNetworkFees(provider: IProvider, priority = TransactionPriority.Medium): Promise<Nanowits> {
+    protected async _estimateNetworkFees(provider: IProvider, priority = TransactionPriority.Medium): Promise<bigint> {
         if (!this._priorities) {
             this._priorities = await provider.priorities()
         }
-        return Math.floor(
+        return BigInt(Math.floor(
             // todo: replace `vtt_` for `ut_`
             this._priorities[`vtt_${priority}`].priority
                 * this.weight
-        );
+        ));
     }
 }

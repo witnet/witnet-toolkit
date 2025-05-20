@@ -1,35 +1,35 @@
 const secp256k1 = require('secp256k1')
 import { bech32 } from 'bech32'
-import { Balance, Epoch, Hash, HexString, Nanowits, UtxoMetadata } from "../types"
+import { Balance, Epoch, Hash, HexString, UtxoMetadata } from "../types"
 
 import { fromHexString, fromWits, isHexString, toHexString, whole_wits } from "../../bin/helpers"
 import { sha256 } from "./utils"
 
 export class Coins {
-    readonly nanowits: Nanowits;
+    readonly nanowits: bigint;
     public static fromBalance(balance: Balance): Coins {
         return Coins.fromPedros(Object.values(balance).reduce((prev, curr) => prev + curr))
     }
-    public static fromNanowits(nanowits: Nanowits): Coins {
-        return new Coins(Math.floor(nanowits))
+    public static fromNanowits(nanowits: bigint): Coins {
+        return new Coins(nanowits)
     }
-    public static fromPedros(pedros: number): Coins {
-        return new Coins(Math.floor(pedros))
+    public static fromPedros(pedros: bigint): Coins {
+        return new Coins(pedros)
     }
     public static fromWits(wits: number): Coins {
-        return new Coins(fromWits(wits))
+        return new Coins(BigInt(fromWits(wits)))
     }
     public static zero(): Coins {
-        return new Coins(0)
+        return new Coins(0n)
     }
-    constructor (pedros: Nanowits) {
+    constructor (pedros: bigint) {
         this.nanowits = pedros
     }
-    public get pedros(): Nanowits {
+    public get pedros(): bigint {
         return this.nanowits
     }
     public get wits(): number {
-        return this.nanowits / 10 ** 9
+        return Number(this.nanowits / 10n ** 9n)
     }
     public toString(decimals = 9): string {
         return whole_wits(this.nanowits, decimals)
@@ -115,7 +115,7 @@ export type Utxo = UtxoMetadata & { signer: PublicKeyHashString }
 
 export type UtxoCacheInfo = {
     // total amount of expendable funds with currently cached UTXOs
-    expendable: Nanowits, 
+    expendable: bigint, 
     // number of cached UTXOs
     size: number, 
     // earliest of all timelocks in the caché

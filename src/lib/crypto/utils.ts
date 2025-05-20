@@ -9,6 +9,29 @@ export { bech32 } from 'bech32'
 
 export { PrivateKey, PublicKey, PublicKeyHash, KeyedSignature, RecoverableSignature, Signature } from "./types"
 
+export const BigMath = {
+    abs(x: bigint): bigint {
+        return x < 0n ? -x : x
+    },
+    sign(x: bigint): bigint {
+        if (x === 0n) return 0n
+        return x < 0n ? -1n : 1n
+    },
+    pow(base: bigint, exponent: bigint): bigint {
+        return base ** exponent
+    },
+    min(value: bigint, ...values: bigint[]): bigint {
+        for (const v of values)
+            if (v < value) value = v
+                return value
+    },
+    max(value: bigint, ...values: bigint[]): bigint {
+        for (const v of values)
+            if (v > value) value = v
+                return value
+    },
+}
+
 const CHAIN_CODE_LENGTH = 32
 const DEPTH_LENGTH = 1
 const KEY_LENGTH = 33
@@ -115,7 +138,7 @@ export function selectUtxos(specs: {
     switch (strategy) {
         case UtxoSelectionStrategy.BigFirst:
         case UtxoSelectionStrategy.SlimFit:
-            specs.utxos = specs.utxos.sort((a, b) => b.value - a.value)
+            specs.utxos = specs.utxos.sort((a, b) => (a < b) ? -1 : ((a > b) ? 1 : 0))
             break
 
         case UtxoSelectionStrategy.Random:
@@ -129,7 +152,7 @@ export function selectUtxos(specs: {
             break
 
         case UtxoSelectionStrategy.SmallFirst:
-            specs.utxos = specs.utxos.sort((a, b) => a.value - b.value)
+            specs.utxos = specs.utxos.sort((a, b) => (a > b) ? -1 : ((a < b) ? 1 : 0))
             break
     }
     // filter locked UTXOs:
@@ -145,7 +168,7 @@ export function selectUtxos(specs: {
                 return specs.utxos.slice(slimFitIndex - 1, slimFitIndex)
             }
         }
-        let covered = 0
+        let covered: bigint = 0n 
         return specs.utxos.filter(utxo => {
             const filter = covered < pedros
             covered += utxo.value
@@ -163,5 +186,5 @@ export function sha256(buffer: any) {
 }
 
 export function totalCoins(balance: Balance): Coins {
-    return Coins.fromPedros(Object.values(balance).reduce((sum, value) => sum + value, 0))
+    return Coins.fromPedros(Object.values(balance).reduce((sum, value) => sum + value, 0n))
 }

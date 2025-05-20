@@ -31,5 +31,4 @@ export type Epoch = i32;
 export type Err = string;
 export type Hash = string;
 export type HexString = string;
-export type Nanowits = number;
 export type Nonce = u64;

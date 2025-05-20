@@ -30,7 +30,7 @@ export class Account implements IAccount {
         const internal = this.internal.cacheInfo
         const external = this.external.cacheInfo
         return {
-            expendable: internal.expendable + external.expendable,
+            expendable: BigInt(internal.expendable) + BigInt(external.expendable),
             size: internal.size + external.size,
             timelock: Math.min(internal.timelock || Number.MAX_SAFE_INTEGER, external.timelock)
         }
@@ -88,7 +88,7 @@ export class Account implements IAccount {
                     return [{ 
                         key: { validator: "", withdrawer: this.pkh }, 
                         value: { 
-                            coins: 0, 
+                            coins: 0n, 
                             nonce: 0, 
                             epochs: { mining: 0, witnessing: 0 }
                         } 

@@ -153,7 +153,7 @@ export class Wallet implements IWallet {
     }
 
     public get cacheInfo(): UtxoCacheInfo {
-        const info: UtxoCacheInfo = { expendable: 0, size: 0, timelock: Number.MAX_SAFE_INTEGER }
+        const info: UtxoCacheInfo = { expendable: 0n, size: 0, timelock: Number.MAX_SAFE_INTEGER }
         this.accounts?.forEach(account => {
             const accountInfo = account.cacheInfo
             info.expendable += accountInfo.expendable
@@ -228,7 +228,7 @@ export class Wallet implements IWallet {
             const reverse = order?.reverse ? (+1) : (-1)
             return records.sort((a, b) => {
                 switch (order.by) {
-                    case StakesOrderBy.Coins: return (b.value.coins - a.value.coins) * reverse;
+                    case StakesOrderBy.Coins: return ((a.value.coins < b.value.coins) ? -1 : ((a.value.coins > b.value.coins) ? 1 : 0)) * reverse;
                     case StakesOrderBy.Mining: return (b.value.epochs.mining - a.value.epochs.mining) * reverse;
                     case StakesOrderBy.Witnessing: return (b.value.epochs.witnessing - a.value.epochs.witnessing) * reverse;
                     case StakesOrderBy.Nonce: return (b.value.nonce - a.value.nonce) * reverse;
