@@ -90,7 +90,7 @@ module.exports = {
 /// CLI SUBMODULE COMMANDS ============================================================================================
 
 async function _initializeFarm (options = {}) {
-  return new Witnet.NodeFarm(options?.nodes)
+  return new Witnet.JsonRpcNodeFarm(options?.nodes)
 }
 
 async function addresses (options = {}) {
