@@ -62,7 +62,7 @@ export class Account implements IAccount {
     }
 
     public consumeUtxos(...utxos: Array<Utxo>): Array<Utxo> {
-        return this.external.consumeUtxos(this.internal.consumeUtxos(...utxos))
+        return this.external.consumeUtxos(...this.internal.consumeUtxos(...utxos))
     }
 
     public async getBalance(): Promise<Balance> {

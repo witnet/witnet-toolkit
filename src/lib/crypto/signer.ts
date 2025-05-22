@@ -87,9 +87,9 @@ export class Signer implements ISigner {
         this.utxos = this.utxos.filter(cached => {
             const incomingIndex = utxos.findIndex(incoming => cached.output_pointer === incoming.output_pointer);
             if (incomingIndex >= 0) {
+                utxos.splice(incomingIndex, 1)
                 return false
             } else {
-                utxos.splice(incomingIndex, 1)
                 return true
             }
         })
