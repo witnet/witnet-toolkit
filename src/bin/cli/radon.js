@@ -365,8 +365,8 @@ const stringifyReducer = (x, c) => {
 }
 
 function loadAssets (options) {
-  const { assets } = options?.module ? require(options.module) : (options?.legacy ? {} : require("witnet-toolkit"))
-  return isModuleInitialized ? merge(assets, require(`${WITNET_ASSETS_PATH}`)) : assets
+  const { assets } = options?.module ? require(options.module) : (options?.legacy ? {} : require("@witnet/sdk"))
+  return isModuleInitialized && fs.existsSync(`${WITNET_ASSETS_PATH}`) ? merge(assets, require(`${WITNET_ASSETS_PATH}`)) : assets
 }
 
 function flattenRadonArtifacts (tree, headers) {
