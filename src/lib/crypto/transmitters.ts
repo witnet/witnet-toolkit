@@ -115,20 +115,16 @@ export abstract class Transmitter<Specs, Payload extends ITransactionPayload<Spe
         return this.provider
             .sendRawTransaction(this._toJSON(false))
             .catch(err => {
-                // ??? this._recoverInputUtxos();
                 const error = new TransmissionError(this._getInflightTransmission(), err)
                 JsonRpcProvider.receipts[receipt.hash].error = error
                 throw error
             })
             .then(accepted => {
                 if (accepted) {
-                    // todo: ouptut utxos should be recovered upon tx chain inclusion, not upon tx network transmission
-                    // ??? this._recoverOutputUtxos()
                     JsonRpcProvider.receipts[receipt.hash].status = "relayed"
                     return JsonRpcProvider.receipts[receipt.hash]
                     
                 } else {
-                    // ??? this._recoverInputUtxos()
                     const error = new TransmissionError(this._getInflightTransmission(), Error(`Rejected for unknown reasons`))
                     JsonRpcProvider.receipts[receipt.hash].error = error
                     throw error
