@@ -8,7 +8,7 @@ import {
     RecoverableSignature 
 } from "../crypto/types"
 
-import { IJsonRpcProvider, JsonRpcProvider, ProviderError } from "./provider"
+import { IJsonRpcProvider, JsonRpcProvider, JsonRpcProviderError } from "./provider"
 
 import { 
     Balance2, 
@@ -72,8 +72,8 @@ export class JsonRpcNodeFarm extends JsonRpcProvider implements IJsonRpcNodeFarm
             })
             .then(entries => Object.fromEntries(entries.map(([url, [pkh, value]]) => {
                 if (value && value instanceof Error) {
-                    if ((value as ProviderError)?.error?.message) {
-                        value = new Error((value as ProviderError)?.error?.message)
+                    if ((value as JsonRpcProviderError)?.error?.message) {
+                        value = new Error((value as JsonRpcProviderError)?.error?.message)
                         delete value.stack
                     }
                 }
@@ -94,8 +94,8 @@ export class JsonRpcNodeFarm extends JsonRpcProvider implements IJsonRpcNodeFarm
             })
             .then(entries => Object.fromEntries(entries.map(([url, [pkh, value]]) => {
                 if (value && value instanceof Error) {
-                    if ((value as ProviderError)?.error?.message) {
-                        value = new Error((value as ProviderError)?.error?.message)
+                    if ((value as JsonRpcProviderError)?.error?.message) {
+                        value = new Error((value as JsonRpcProviderError)?.error?.message)
                         delete value.stack
                     }
                 }
@@ -117,7 +117,7 @@ export class JsonRpcNodeFarm extends JsonRpcProvider implements IJsonRpcNodeFarm
                     }
                 ).then((response: any) => {
                     if (response?.error || response?.data?.error) {
-                        return [url, new ProviderError(method, params, response?.error || response?.data?.error)]
+                        return [url, new JsonRpcProviderError(method, params, response?.error || response?.data?.error)]
                     } else {
                         return [url, response?.data?.result as T]
                     }
@@ -145,7 +145,7 @@ export class JsonRpcNodeFarm extends JsonRpcProvider implements IJsonRpcNodeFarm
                     }
                 ).then((response: any) => {
                     if (response?.error || response?.data?.error) {
-                        const error = new ProviderError(method, params, response?.error || response?.data?.error)
+                        const error = new JsonRpcProviderError(method, params, response?.error || response?.data?.error)
                         delete error?.stack
                         return error
                     } else {
@@ -179,8 +179,8 @@ export class JsonRpcNodeFarm extends JsonRpcProvider implements IJsonRpcNodeFarm
             .then((results: Record<string, [PublicKeyHashString, Error | Uint8Array]>) => Object.fromEntries(
                 Object.entries(results).map(([url, [pkh, raw]]) => {
                     if (raw && raw instanceof Error) {
-                        if ((raw as ProviderError)?.error?.message) {
-                            raw = new Error((raw as ProviderError)?.error?.message)
+                        if ((raw as JsonRpcProviderError)?.error?.message) {
+                            raw = new Error((raw as JsonRpcProviderError)?.error?.message)
                             delete raw.stack
                         }
                         return [url, [pkh, raw]]
@@ -239,8 +239,8 @@ export class JsonRpcNodeFarm extends JsonRpcProvider implements IJsonRpcNodeFarm
             })
             .then(entries => Object.fromEntries(entries.map(([url, stakes]) => {
                 if (stakes && stakes instanceof Error) {
-                    if ((stakes as ProviderError)?.error?.message) {
-                        stakes = new Error((stakes as ProviderError)?.error?.message)
+                    if ((stakes as JsonRpcProviderError)?.error?.message) {
+                        stakes = new Error((stakes as JsonRpcProviderError)?.error?.message)
                         delete stakes.stack
                     }
                     return [url, ]
@@ -294,8 +294,8 @@ export class JsonRpcNodeFarm extends JsonRpcProvider implements IJsonRpcNodeFarm
             .then((records: Record<string, [PublicKeyHashString, Error | StakeAuthorization]>) => Object.fromEntries(
                 Object.entries(records).map(([url, [pkh, authorization]]) => {
                     if (authorization && authorization instanceof Error) {
-                        if ((authorization as ProviderError)?.error?.message) {
-                            authorization = new Error((authorization as ProviderError)?.error?.message)
+                        if ((authorization as JsonRpcProviderError)?.error?.message) {
+                            authorization = new Error((authorization as JsonRpcProviderError)?.error?.message)
                             delete authorization.stack
                         }
                         return [url, [pkh, authorization]]
