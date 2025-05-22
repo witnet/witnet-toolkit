@@ -649,7 +649,7 @@ function txReceiptJsonReplacer (key, value) {
     case "value":
       return parseInt(value?.pedros) / 10 ** 9
     case "timestamp":
-      return moment.unix(Math.floor(value / 1000)).format("MMMM Do YYYY, h:mm:ss a")
+      return moment.unix(value).format("MMMM Do YYYY, h:mm:ss a")
     default:
       return value
   }
@@ -695,11 +695,15 @@ function traceTransactionReceipt (receipt) {
     }
     console.info(` > Withdrawer:   ${mmagenta(receipt.withdrawer)}`)
   } else {
-    console.info(` > Signer/s:     ${mmagenta(receipt.from)}`)
+    const signers = Array.isArray(receipt.from) ? receipt.from : [receipt.from]
+    console.info(` > Signer/s:     ${mmagenta(signers[0])}`)
+    signers.slice(1).forEach(signer => {
+      console.info(`                 ${mmagenta(signer)}`)
+    })
   }
   if (receipt?.recipients) {
     console.info(` > Recipient/s:  ${
-      mmagenta(receipt.recipients.filter((pkh, index, array) => index === array.indexOf(pkh)))
+      mblue(receipt.recipients.filter((pkh, index, array) => index === array.indexOf(pkh)))
     }`)
   }
   if (receipt?.fees) console.info(` > Fee:          ${yellow(receipt.fees.toString(2))}`)
@@ -746,7 +750,7 @@ async function traceTransaction (transmitter, options) {
       })
     } else {
       const data = { status: receipt?.status, timestamp: receipt?.timestamp || Math.floor(Date.now() / 1000) }
-      console.info(`${yellow(JSON.stringify(data, txReceiptJsonReplacer, 2))}`)
+      console.info(data)
     }
   } catch (err) {
     if (err?.inFlight && err.inFlight) {

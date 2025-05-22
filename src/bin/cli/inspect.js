@@ -123,9 +123,14 @@ async function block (options = {}, args = []) {
       case "bytes":
       case "der":
       case "proof":
-      case "public_key":
         return Array.isArray(value) ? helpers.toHexString(value, true) : value
-      default:
+
+      case "public_key":
+        return Array.isArray(value) 
+          ? helpers.toHexString(value, true) 
+          : (typeof value === 'object' ? Witnet.PublicKey.fromProtobuf(value).hash().toBech32(provider.network) : value)
+      
+          default:
         return value
     }
   }, 2)))
