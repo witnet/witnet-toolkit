@@ -10,6 +10,7 @@ export class Signer implements ISigner {
     
     protected node: IBIP32;
     protected utxos: Array<Utxo> = []
+    private _initialized: boolean;
     
     public readonly provider: IJsonRpcProvider
     public strategy: UtxoSelectionStrategy
@@ -25,6 +26,7 @@ export class Signer implements ISigner {
         if (!provider.network) {
             throw Error(`Signer: internal error: unintialized provider.`)
         }
+        this._initialized = false
     }
 
     // ================================================================================================================
@@ -110,8 +112,8 @@ export class Signer implements ISigner {
     }
 
     public async getUtxos(reload = false): Promise<Array<Utxo>> {
-        if (reload) this.utxos = []
-        if (this.utxos.length === 0) {
+        if (reload || !this._initialized) {
+            this._initialized = true
             this.utxos = (await this.provider.getUtxos(this.pkh))
                 .map(utxo => ({ ...utxo, signer: this.pkh }))
         }
@@ -124,7 +126,7 @@ export class Signer implements ISigner {
         strategy?: UtxoSelectionStrategy
     }): Promise<Array<Utxo>> {
         return this
-            .getUtxos(specs?.reload || this.utxos.length === 0)
+            .getUtxos(specs?.reload)
             .then(utxos => selectUtxos({ utxos, value: specs?.value, strategy: specs?.strategy || this.strategy }))
     }
     
