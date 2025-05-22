@@ -197,12 +197,12 @@ async function holders (options = {}) {
       address,
       ...(options?.verbose
         ? [
-          helpers.fromNanowits(balance.locked),
-          helpers.fromNanowits(balance.staked),
-          helpers.fromNanowits(balance.unlocked),
+          Witnet.Coins.fromNanowits(balance.locked).wits,
+          Witnet.Coins.fromNanowits(balance.staked).wits,
+          Witnet.Coins.fromNanowits(balance.unlocked).wits,
         ]
         : []),
-      helpers.fromNanowits(balance.locked + balance.staked + balance.unlocked),
+      Witnet.Coins.fromNanowits(balance.locked + balance.staked + balance.unlocked).wits,
     ]), {
       headlines: [
         "RANK", "HOLDERS",
@@ -413,7 +413,7 @@ async function stakes (options = {}) {
               ? [record.value.nonce, record.value.epochs.witnessing, record.value.epochs.mining]
               : []
           ),
-          helpers.fromNanowits(record.value.coins),
+          Witnet.Coins.fromNanowits(record.value.coins).wits,
         ]),
       {
         headlines: [

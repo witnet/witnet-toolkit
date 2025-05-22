@@ -2,13 +2,17 @@ const secp256k1 = require('secp256k1')
 import { bech32 } from 'bech32'
 import { Balance, Epoch, Hash, HexString, UtxoMetadata } from "../types"
 
-import { fromHexString, fromWits, isHexString, toHexString, whole_wits } from "../../bin/helpers"
+import { fromHexString, isHexString, toHexString, whole_wits } from "../../bin/helpers"
 import { sha256 } from "./utils"
 
 export class Coins {
-    readonly nanowits: bigint;
+    protected coins: bigint;
     public static fromBalance(balance: Balance): Coins {
-        return Coins.fromPedros(Object.values(balance).reduce((prev, curr) => prev + curr))
+        return Coins.fromPedros(
+            balance.locked
+                + balance.staked
+                + balance.unlocked
+        )
     }
     public static fromNanowits(nanowits: bigint): Coins {
         return new Coins(nanowits)
@@ -17,22 +21,40 @@ export class Coins {
         return new Coins(pedros)
     }
     public static fromWits(wits: number): Coins {
-        return new Coins(BigInt(fromWits(wits)))
+        if (wits > Number.MAX_SAFE_INTEGER) {
+            throw new TypeError(
+                `${this.constructor.name}: internal error: too many wits: ${wits} > ${Number.MAX_SAFE_INTEGER}`
+            )
+        }
+        return new Coins(
+            BigInt(Math.floor(wits)) * 10n ** 9n
+                + BigInt(Math.floor((wits - Math.floor(wits)) * 1000000000))
+        )
     }
     public static zero(): Coins {
         return new Coins(0n)
     }
     constructor (pedros: bigint) {
-        this.nanowits = pedros
+        this.coins = pedros
     }
     public get pedros(): bigint {
-        return this.nanowits
+        return this.coins
+    }
+    public get nanowits(): bigint {
+        return this.coins
     }
     public get wits(): number {
-        return Number(this.nanowits / 10n ** 9n)
+        const quotient = BigInt(this.coins) / 1000000000n
+        if (Number(quotient) > Number.MAX_SAFE_INTEGER) {
+            throw new TypeError(
+                `${this.constructor.name}: internal error: too many coins: ${quotient.toString()} > ${Number.MAX_SAFE_INTEGER}`
+            )
+        }
+        const rest = Number(BigInt(this.coins) - quotient * 1000000000n) / 1000000000
+        return Number(quotient) + rest
     }
     public toString(decimals = 9): string {
-        return whole_wits(this.nanowits, decimals)
+        return whole_wits(this.coins, decimals)
     }
 }
 

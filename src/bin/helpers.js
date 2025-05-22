@@ -16,9 +16,6 @@ const commas = (number) => {
   return result
 }
 
-const fromNanowits = (x, d) => (parseInt(x) / 10 ** 9).toFixed(d || 2)
-const fromWits = (x) => Math.floor(parseFloat(x) * 10 ** 9)
-
 function toFixedTrunc (x, n) {
   const v = (typeof x === "string" ? x : x.toString()).split(".")
   if (n <= 0) return v[0]
@@ -30,15 +27,17 @@ function toFixedTrunc (x, n) {
 
 const whole_wits = (number, digits) => {
   const lookup = [
-    { value: 1n, symbol: " pedros" },
-    { value: 10n ** 6n, symbol: " mWits" },
-    { value: 10n ** 9n, symbol: "  Wits" },
-    { value: 10n ** 12n, symbol: " KWits" },
-    { value: 10n ** 15n, symbol: " MWits" },
+    { value: 1n, symbol: "pedros" },
+    { value: 10n ** 6n, symbol: "mWits" },
+    { value: 10n ** 9n, symbol: " Wits" },
+    { value: 10n ** 12n, symbol: "KWits" },
+    { value: 10n ** 15n, symbol: "MWits" },
   ]
   // const regexp = /\.0+$|(?<=\.[0-9])0+$/
   const item = lookup.findLast(item => number >= item.value)
-  return item ? toFixedTrunc(commas(number / item.value), item.value === 1 ? 0 : digits)./* replace(regexp, "") */concat(item.symbol) : "(no coins)"
+  const quotient = item ? Number(BigInt(number) / item.value) : number.toString()
+  const decimals = item ? (item.value + BigInt(number) - BigInt(quotient) * item.value).toString().slice(1) : ""
+  return item ? `${commas(quotient)}${decimals !== "" ? `.${decimals.slice(0, digits)}` : ""} ${item.symbol}` : "(no coins)"
 }
 
 const bblue = (str) => `\x1b[1;98;44m${str}\x1b[0;0;0m`
@@ -790,8 +789,6 @@ module.exports = {
   commas,
   whole_wits,
   toFixedTrunc,
-  fromNanowits,
-  fromWits,
   countLeaves,
   execRadonBytecode,
   deleteExtraFlags,

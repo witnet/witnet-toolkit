@@ -96,10 +96,10 @@ async function balance (options = {}, args = []) {
   const balance = await provider.getBalance(pkh)
   const records = []
   records.push([
-    helpers.fromNanowits(balance.locked),
-    helpers.fromNanowits(balance.staked),
-    helpers.fromNanowits(balance.unlocked),
-    helpers.fromNanowits(balance.locked + balance.staked + balance.unlocked),
+    Witnet.Coins.fromNanowits(balance.locked).wits,
+    Witnet.Coins.fromNanowits(balance.staked).wits,
+    Witnet.Coins.fromNanowits(balance.unlocked).wits,
+    Witnet.Coins.fromNanowits(balance.locked + balance.staked + balance.unlocked).wits,
   ])
   helpers.traceTable(records, {
     headlines: ["Locked ($WIT)", "Staked ($WIT)", "Available ($WIT)", "BALANCE ($WIT)"],
@@ -196,7 +196,7 @@ async function utxos (options = {}, args = []) {
   const now = Math.floor(Date.now() / 1000)
   const provider = new Witnet.JsonRpcProvider(options?.provider)
   let utxos = await provider.getUtxos(args[0], options["small-first"] || false)
-  let totalBalance = 0
+  let totalBalance = 0n
   if (!options?.verbose) {
     utxos = utxos
       .filter(utxo => utxo.timelock <= now)
@@ -208,7 +208,7 @@ async function utxos (options = {}, args = []) {
         ]
       })
     helpers.traceTable(utxos, {
-      headlines: [":UTXOs", "Value ($nanoWIT)"],
+      headlines: [":UTXOs", "Value ($pedros)"],
       humanizers: [, helpers.commas],
       colors: [, myellow],
     })
@@ -223,7 +223,7 @@ async function utxos (options = {}, args = []) {
         ]
       })
     helpers.traceTable(utxos, {
-      headlines: [":UTXOs", "Timelock", "Value ($nanoWIT)"],
+      headlines: [":UTXOs", "Timelock", "Value ($pedros)"],
     })
   }
   console.info(`^ Showing ${utxos.length} UTXOs: ${lyellow(helpers.whole_wits(totalBalance, 2))}.`)
@@ -251,7 +251,7 @@ async function validators (options = {}, args = []) {
               ? [record.value.nonce, record.value.epochs.witnessing, record.value.epochs.mining]
               : []
           ),
-          helpers.fromNanowits(record.value.coins),
+          Witnet.Coins.fromNanowits(record.value.coins).wits,
         ]
       }), {
         headlines: [
@@ -313,7 +313,7 @@ async function withdrawers (options = {}, args = []) {
               ? [record.value.nonce, record.value.epochs.witnessing, record.value.epochs.mining]
               : []
           ),
-          helpers.fromNanowits(record.value.coins),
+          Witnet.Coins.fromNanowits(record.value.coins).wits,
         ]
       }), {
         headlines: [

@@ -1,9 +1,9 @@
-import { Epoch, ValueTransferOutput } from "../../types"
+const Long = require("long")
 
+import { Epoch, ValueTransferOutput } from "../../types"
 import { ILedger, IJsonRpcProvider } from "../interfaces"
 import { TransactionPayload } from "../payloads"
 import { Coins, PublicKeyHash, PublicKeyHashString, TransactionParams, TransactionPriority } from "../types"
-
 
 export type StakeWithdrawalParams = TransactionParams & {
     nonce?: Epoch,
@@ -104,12 +104,12 @@ export class UnstakePayload extends TransactionPayload<StakeWithdrawalParams> {
 
     public toJSON(_humanize = false): any {
         return {
-            fee: this._fees,
-            nonce: this._covered,
+            fee: this._fees.toString(),
+            nonce: Number(this._covered),
             operator: this._target?.validator,
             withdrawal: {
                 pkh: this.outputs[0].pkh,
-                value: this.outputs[0].value,
+                value: this.outputs[0].value.toString(),
                 time_lock: UnstakePayload.MIN_TIMELOCK_SECS,
             },
         }
@@ -118,12 +118,12 @@ export class UnstakePayload extends TransactionPayload<StakeWithdrawalParams> {
     public toProtobuf(): any {
         if (this.prepared && this._target) {
             return {
-                ...(this._fees > 0 ? { fee: this._fees } : {}),
-                nonce: this._covered,
+                ...(this._fees > 0 ? { fee: Long.fromValue(this._fees) } : {}),
+                nonce: Number(this._covered),
                 operator: { hash: Array.from(PublicKeyHash.fromBech32(this._target.validator).toBytes20()) },
                 withdrawal: {
                     pkh: { hash: Array.from(PublicKeyHash.fromBech32(this.outputs[0].pkh).toBytes20()) },
-                    value: this.outputs[0].value,
+                    value: Long.fromValue(this.outputs[0].value),
                     timeLock: this.outputs[0].time_lock,
                 },
             }
