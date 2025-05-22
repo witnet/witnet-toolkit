@@ -1,21 +1,21 @@
-# witnet-toolkit
+# @witnet/sdk
 
 Interact with the Witnet network without needing to run a Witnet node of your own. Manage and stake your wits. Build and test out your own Witnet-compliant parameterized data requests before asking the Wit/Oracle to attest and forever store results into the Wit/Oracle blockchain.
 
 ## Package install
 
-`$ npm install --save-dev witnet-toolkit`
+`$ npm install --save-dev @witnet/sdk`
 
 ## JS/TS libraries
 ### Import clauses
 ```javascript
-const Witnet = require('witnet-toolkit')
-const { RadonRequest, Wallet, Utils } from 'witnet-toolkit'
+const Witnet = require('@witnet/sdk')
+const { RadonRequest, Wallet, Utils } from '@witnet/sdk'
 ```
 ### Usage exmpales
 #### Managing Radon Requests
 ```
-const Witnet = require("witnet-toolkit")
+const Witnet = require("@witnet/sdk")
 
 // Example 1: CCDR for getting transaction details on a foreign EVM-chain
 const ccdr = Witnet.RadonRetrievals.CrossChainRPC({

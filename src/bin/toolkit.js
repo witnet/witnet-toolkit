@@ -138,7 +138,7 @@ async function installCommand (settings) {
 
 async function forcedInstallCommand (settings) {
   if (!fs.existsSync(".env_witnet")) {
-    fs.cpSync("node_modules/witnet-toolkit/.env_witnet", ".env_witnet")
+    fs.cpSync("node_modules/@witnet/sdk/.env_witnet", ".env_witnet")
   }
   return downloadToolkit(
     settings.paths.toolkitDownloadName,

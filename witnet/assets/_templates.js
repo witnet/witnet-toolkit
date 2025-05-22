@@ -1,4 +1,4 @@
-const { assets, Witnet } = require("witnet-toolkit")
+const { assets, Witnet } = require("@witnet/sdk")
 const { RadonModal, RadonScript, RadonTemplate } = Witnet.Radon
 const { filters, reducers, retrievals, types } = Witnet.Radon
 

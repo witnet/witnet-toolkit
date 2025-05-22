@@ -1,4 +1,4 @@
-const { assets, utils, Witnet } = require("witnet-toolkit")
+const { assets, utils, Witnet } = require("@witnet/sdk")
 const { RadonScript, retrievals, types } = Witnet.Radon
 
 module.exports = {

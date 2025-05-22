@@ -142,19 +142,19 @@ function init () {
     fs.mkdirSync("./witnet/assets", { recursive: true })
   }
   if (!fs.existsSync(".env_witnet")) {
-    fs.cpSync("node_modules/witnet-toolkit/.env_witnet", ".env_witnet")
+    fs.cpSync("node_modules/@witnet/sdk/.env_witnet", ".env_witnet")
   }
   if (!fs.existsSync("./witnet/assets/index.js")) {
-    fs.cpSync("node_modules/witnet-toolkit/witnet/assets/_index.js", "./witnet/assets/index.js")
+    fs.cpSync("node_modules/@witnet/sdk/witnet/assets/_index.js", "./witnet/assets/index.js")
   }
   if (!fs.existsSync("./witnet/assets/requests.js")) {
-    fs.cpSync("node_modules/witnet-toolkit/witnet/assets/_requests.js", "./witnet/assets/requests.js")
+    fs.cpSync("node_modules/@witnet/sdk/witnet/assets/_requests.js", "./witnet/assets/requests.js")
   }
   if (!fs.existsSync("./witnet/assets/sources.js")) {
-    fs.cpSync("node_modules/witnet-toolkit/witnet/assets/_sources.js", "./witnet/assets/sources.js")
+    fs.cpSync("node_modules/@witnet/sdk/witnet/assets/_sources.js", "./witnet/assets/sources.js")
   }
   if (!fs.existsSync("./witnet/assets/templates.js")) {
-    fs.cpSync("node_modules/witnet-toolkit/witnet/assets/_templates.js", "./witnet/assets/templates.js")
+    fs.cpSync("node_modules/@witnet/sdk/witnet/assets/_templates.js", "./witnet/assets/templates.js")
   }
   console.info(`Initialized Witnet Radon workspace at folder ${process.cwd()}/witnet/assets`)
 }
