@@ -1,4 +1,6 @@
-import { fromHexString, fromNanowits } from "../../../bin/helpers"
+const Long = require("long")
+
+import { fromHexString } from "../../../bin/helpers"
 
 import { HexString, IJsonRpcProvider, Network } from "../../types"
 
@@ -80,13 +82,13 @@ export class StakePayload extends TransactionPayloadMultiSig<StakeDepositParams>
                         validator: PublicKeyHash.fromHexString(this._target.authorization.substring(0, 40)).toBech32(network),
                         withdrawer: this._target.withdrawer,
                     },
-                    value: this._target.value.pedros,
+                    value: this._target.value.pedros.toString(),
                 }} : {}
             ),
             ...(
                 this.outputs.length > 0 ? { change: {
                     pkh: this.outputs[0].pkh,
-                    value: this.outputs[0].value,
+                    value: this.outputs[0].value.toString(),
                     time_lock: 0,
                 }} : {}
             ),
@@ -116,12 +118,12 @@ export class StakePayload extends TransactionPayloadMultiSig<StakeDepositParams>
                         validator: { hash: Array.from(PublicKeyHash.fromHexString(this._target.authorization.substring(0, 40)).toBytes20()) },
                         withdrawer: { hash: Array.from(PublicKeyHash.fromBech32(this._target.withdrawer).toBytes20()) },
                     },
-                    value: this._target.value.pedros,
+                    value: Long.fromValue(this._target.value.pedros),
                 },
                 ...(
                     this._outputs.length > 0 ? { change : {
                         pkh: { hash: Array.from(PublicKeyHash.fromBech32(this.outputs[0].pkh).toBytes20()) },
-                        value: this.outputs[0].value,
+                        value: Long.fromValue(this.outputs[0].value.toString()),
                         // timeLock: 0,
                     }} : { change: { pkh: { hash: Array(20).fill(0) }}}
                 ),
@@ -152,7 +154,7 @@ export class StakePayload extends TransactionPayloadMultiSig<StakeDepositParams>
                         `${this.constructor.name}: value below minimum stake: ${
                             (target.value as Coins).wits
                         } < ${
-                            fromNanowits(StakePayload.MIN_VALUE)
+                            Coins.fromNanowits(BigInt(StakePayload.MIN_VALUE)).wits
                         } $WIT`
                     );
                 }

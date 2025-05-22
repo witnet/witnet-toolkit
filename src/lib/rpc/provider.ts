@@ -1,5 +1,5 @@
 import { default as axios, AxiosHeaders } from "axios"
-
+const jsonBig = require('json-bigint');
 import { Root as ProtoRoot } from "protobufjs"
 const protoRoot = ProtoRoot.fromJSON(require("../../../witnet/witnet.proto.json")) 
 const protoBuf = protoRoot.lookupType("ConsensusConstants")
@@ -168,7 +168,8 @@ export class JsonRpcProvider implements IJsonRpcProvider {
                 },
                 {
                     headers: this._headers,
-                }
+                    transformResponse: function(response) { return jsonBig().parse(response) },
+                },
             
             ).then((response: any) => {
                 if (response?.error || response?.data?.error) {
@@ -305,7 +306,13 @@ export class JsonRpcProvider implements IJsonRpcProvider {
     /// ---------------------------------------------------------------------------------------------------------------
     /// Get balance
     public async getBalance(pkh: PublicKeyHashString): Promise<Balance2> {
-        return this.callApiMethod<Balance2>(Methods.GetBalance2, { pkh });
+        return this
+            .callApiMethod<Balance2>(Methods.GetBalance2, { pkh })
+            .then((balance: Balance2) => ({
+                locked: BigInt(balance.locked),
+                staked: BigInt(balance.staked),
+                unlocked: BigInt(balance.unlocked),
+            }))
     }
     
     /**
@@ -349,7 +356,10 @@ export class JsonRpcProvider implements IJsonRpcProvider {
                     if (a.value > b.value) return inversor;
                     else if (a.value < b.value) return - inversor;
                     else return 0;
-                })
+                }).map((utxo: UtxoMetadata) => ({
+                    ...utxo,
+                    value: BigInt(utxo.value),
+                }))
             })
     }
     

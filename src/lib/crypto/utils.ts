@@ -138,7 +138,7 @@ export function selectUtxos(specs: {
     switch (strategy) {
         case UtxoSelectionStrategy.BigFirst:
         case UtxoSelectionStrategy.SlimFit:
-            specs.utxos = specs.utxos.sort((a, b) => (a < b) ? -1 : ((a > b) ? 1 : 0))
+            specs.utxos = specs.utxos.sort((a, b) => (a.value > b.value) ? -1 : ((a.value < b.value) ? 1 : 0))
             break
 
         case UtxoSelectionStrategy.Random:
@@ -152,15 +152,16 @@ export function selectUtxos(specs: {
             break
 
         case UtxoSelectionStrategy.SmallFirst:
-            specs.utxos = specs.utxos.sort((a, b) => (a > b) ? -1 : ((a < b) ? 1 : 0))
+            specs.utxos = specs.utxos.sort((a, b) => (a.value < b.value) ? -1 : ((a.value > b.value) ? 1 : 0))
             break
     }
+    
     // filter locked UTXOs:
     const now = Math.floor(Date.now() / 1000)
     specs.utxos = specs.utxos.filter(utxo => utxo.timelock <= now)
 
     // if target value is specified, filter spare UTXOs
-    const pedros = specs?.value ? specs.value.pedros : undefined
+    const pedros = specs?.value?.pedros
     if (pedros) {
         if (strategy === UtxoSelectionStrategy.SlimFit) {
             const slimFitIndex = specs.utxos.findIndex(utxo => utxo.value <= pedros)
@@ -170,8 +171,8 @@ export function selectUtxos(specs: {
         }
         let covered: bigint = 0n 
         return specs.utxos.filter(utxo => {
-            const filter = covered < pedros
-            covered += utxo.value
+            const filter = covered <= pedros
+            covered += BigInt(utxo.value)
             return filter
         })
     } else {
@@ -186,5 +187,9 @@ export function sha256(buffer: any) {
 }
 
 export function totalCoins(balance: Balance): Coins {
-    return Coins.fromPedros(Object.values(balance).reduce((sum, value) => sum + value, 0n))
+    return Coins.fromPedros(
+        BigInt(balance.locked)
+            + BigInt(balance.staked)
+            + BigInt(balance.unlocked)
+    )
 }

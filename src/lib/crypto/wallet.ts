@@ -205,7 +205,9 @@ export class Wallet implements IWallet {
     public async getBalance(): Promise<Balance> {
         if (this._accounts.length > 0) {
             return Promise
-                .all(this._accounts.map((acc: IAccount) => acc.getBalance()))
+                .all(this._accounts.map(async (acc: IAccount) => { 
+                    const balance = await acc.getBalance()
+                    return balance }))
                 .then((balances: Array<Balance>) => {
                     return balances.reduce((prev, curr) => {
                         return {
@@ -213,7 +215,7 @@ export class Wallet implements IWallet {
                             staked: prev.staked + curr.staked,
                             unlocked: prev.unlocked + curr.unlocked,
                         }
-                    })
+                    }, { locked: 0n, staked: 0n, unlocked: 0n })
                 })
         } else {
             return this.coinbase.getBalance()
@@ -228,7 +230,7 @@ export class Wallet implements IWallet {
             const reverse = order?.reverse ? (+1) : (-1)
             return records.sort((a, b) => {
                 switch (order.by) {
-                    case StakesOrderBy.Coins: return ((a.value.coins < b.value.coins) ? -1 : ((a.value.coins > b.value.coins) ? 1 : 0)) * reverse;
+                    case StakesOrderBy.Coins: return ((a.value.coins < b.value.coins) ? 1 : ((a.value.coins > b.value.coins) ? -1 : 0)) * reverse;
                     case StakesOrderBy.Mining: return (b.value.epochs.mining - a.value.epochs.mining) * reverse;
                     case StakesOrderBy.Witnessing: return (b.value.epochs.witnessing - a.value.epochs.witnessing) * reverse;
                     case StakesOrderBy.Nonce: return (b.value.nonce - a.value.nonce) * reverse;
@@ -282,7 +284,7 @@ export class Wallet implements IWallet {
             const startIndex = lastIndex(this.accounts)
             for (let index = startIndex; index < lastIndex(this.accounts) + gap; index ++) {
                 const account = new Account(this.root, this.provider, index, this.strategy)
-                if (utils.totalCoins(await account.getBalance()).pedros > 0) {
+                if (utils.totalCoins(await account.getBalance()).pedros > 0n) {
                     this.accounts.push(account)
                     if (limit && this.accounts.length >= limit) break;
                 }

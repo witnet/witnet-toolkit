@@ -131,7 +131,7 @@ export abstract class TransactionPayloadMultiSig<Specs>
                 value: Coins.fromPedros(this.value.pedros - this._covered), 
                 reload,
             })
-            this._covered += utxos.map(utxo => utxo.value).reduce((prev, curr) => prev + curr)
+            this._covered += utxos.map(utxo => utxo.value).reduce((prev, curr) => prev + curr, 0n)
             this._inputs.push(...utxos)
             ledger.consumeUtxos(...utxos)
 

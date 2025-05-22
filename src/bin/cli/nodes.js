@@ -153,10 +153,10 @@ async function balance (options = {}) {
       ...(balance instanceof Error
         ? new Array(4).fill(gray("n/a"))
         : [
-          gray(helpers.fromNanowits(balance.locked)),
-          yellow(helpers.fromNanowits(balance.staked)),
-          myellow(helpers.fromNanowits(balance.unlocked)),
-          lyellow(helpers.fromNanowits(balance.locked + balance.staked + balance.unlocked)),
+          gray(Witnet.Coins.fromNanowits(balance.locked).wits),
+          yellow(Witnet.Coins.fromNanowits(balance.staked).wits),
+          myellow(Witnet.Coins.fromNanowits(balance.unlocked).wits),
+          lyellow(Witnet.Coins.fromNanowits(balance.locked + balance.staked + balance.unlocked).wits),
         ]
       ),
     ]), {
@@ -350,7 +350,7 @@ async function withdrawers (options = {}) {
       Object.entries(records).map(([withdrawer, [coins, nonce]]) => [
         withdrawer,
         nonce,
-        helpers.fromNanowits(coins),
+        Witnet.Coins.fromNanowits(coins).wits,
       ]),
       {
         headlines: ["WITHDRAWERS", "Latest nonce", "Total staked ($WIT)"],

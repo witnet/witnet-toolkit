@@ -1,3 +1,5 @@
+const Long = require("long")
+
 import { fromHexString } from "../../../bin/helpers"
 import { IJsonRpcProvider } from "../../types"
 
@@ -63,7 +65,7 @@ export class ValueTransferPayload extends TransactionPayloadMultiSig<ValueTransf
             outputs: this.outputs.map(vto => ({
                 pkh: vto.pkh,
                 time_lock: vto.time_lock,
-                value: vto.value,
+                value: vto.value.toString(),
             }))
         }
     }   
@@ -84,7 +86,7 @@ export class ValueTransferPayload extends TransactionPayloadMultiSig<ValueTransf
                     }),
                 outputs: this.outputs.map(vto => ({
                     pkh: { hash: Array.from(PublicKeyHash.fromBech32(vto.pkh).toBytes20()), },
-                    value: vto.value,
+                    value: Long.fromValue(vto.value),
                     ...(vto.time_lock > 0 ? { timeLock: vto.time_lock } : {}),
                 }))
             }

@@ -2,8 +2,6 @@ export * as cbor from 'cbor'
 
 export {
   fromHexString,
-  fromNanowits,
-  fromWits,
   ipIsPrivateOrLocalhost,
   isHexString,
   isHexStringOfLength,

@@ -1,7 +1,9 @@
+const Long = require("long")
+
 import { Root as ProtoRoot } from "protobufjs"
 const protoRoot = ProtoRoot.fromJSON(require("../../../../witnet/witnet.proto.json"))
 
-import { fromHexString, fromNanowits, toHexString } from "../../../bin/helpers"
+import { fromHexString, toHexString } from "../../../bin/helpers"
 
 import { RadonRequest, RadonTemplate } from "../../radon"
 import { Hash, HexString, IJsonRpcProvider } from "../../types"
@@ -20,11 +22,11 @@ export type DataRequestParams = TransactionParams & {
 }
 
 type DataRequestOutputSLA = {
-    collateral: bigint,
-    commitAndRevealFee: bigint,
+    collateral: number,
+    commitAndRevealFee: number,
     minConsensusPercentage: number,
     witnesses: number,
-    witnessReward?: bigint,
+    witnessReward?: number,
 }
 
 const DR_COMMIT_TX_WEIGHT = 400
@@ -89,12 +91,18 @@ export class DataRequestPayload extends TransactionPayloadMultiSig<DataRequestPa
             const commitAndRevealFee = this._fees2UnitaryCommitRevealReward(this._fees, witnesses)
             const witnessReward = this._fees2UnitaryReward(this._fees) 
             const collateral = witnessReward * BigInt(DataRequestPayload.COLLATERAL_RATIO)
+            if (collateral > Number.MAX_SAFE_INTEGER) 
+                throw new TypeError(`${this.constructor.name}: too much witness collateral: ${collateral.toString()} > ${Number.MAX_SAFE_INTEGER}`);
+            else if (witnessReward > Number.MAX_SAFE_INTEGER)
+                throw new TypeError(`${this.constructor.name}: too much witness reward: ${witnessReward.toString()} > ${Number.MAX_SAFE_INTEGER}`);
+            else if (commitAndRevealFee > Number.MAX_SAFE_INTEGER)
+                throw new TypeError(`${this.constructor.name}: too much commit/reveal fee: ${commitAndRevealFee.toString()} > ${Number.MAX_SAFE_INTEGER}`);
             return {
-                collateral,
-                commitAndRevealFee,
+                collateral: Number(collateral),
+                commitAndRevealFee: Number(commitAndRevealFee),
                 minConsensusPercentage,
                 witnesses,
-                witnessReward,
+                witnessReward: Number(witnessReward),
             }
             
         } else {
@@ -211,7 +219,7 @@ export class DataRequestPayload extends TransactionPayloadMultiSig<DataRequestPa
                     value: Coins.fromPedros(value + this._fees - this._covered), 
                     reload,
                 })
-                this._covered += utxos.map(utxo => utxo.value).reduce((prev, curr) => prev + curr)
+                this._covered += utxos.map(utxo => BigInt(utxo.value)).reduce((prev, curr) => prev + curr, 0n)
                 this._inputs.push(...utxos)
                 ledger.consumeUtxos(...utxos)
                 this._change = this._covered - (value + this._fees)
@@ -256,9 +264,9 @@ export class DataRequestPayload extends TransactionPayloadMultiSig<DataRequestPa
         if (this.droSLA?.collateral && this.droSLA.collateral < DataRequestPayload.MIN_COLLATERAL) {
             throw new TypeError(
                 `${this.constructor.name}: witnessing collateral below minimum: ${
-                    fromNanowits(this.droSLA.collateral)
+                    this.droSLA.collateral
                 } < ${
-                    fromNanowits(DataRequestPayload.MIN_COLLATERAL)
+                    DataRequestPayload.MIN_COLLATERAL
                 }`
             );
         }
@@ -283,7 +291,7 @@ export class DataRequestPayload extends TransactionPayloadMultiSig<DataRequestPa
             outputs: this.outputs.map(vto => ({ 
                 pkh: vto.pkh,
                 time_lock: vto.time_lock,
-                value: vto.value,
+                value: vto.value.toString(),
             })),
             dr_output: {
                 ...(this._request ? { data_request: this._request.toJSON(humanize) } : {}),
@@ -312,7 +320,7 @@ export class DataRequestPayload extends TransactionPayloadMultiSig<DataRequestPa
                     }),
                 outputs: this.outputs.map(vto => ({ 
                     pkh: { hash: Array.from(PublicKeyHash.fromBech32(vto.pkh).toBytes20()), },
-                    value: vto.value,
+                    value: Long.fromValue(vto.value),
                     ...(vto.time_lock > 0 ? { timeLock: vto.time_lock } : {}),
                 })),
                 drOutput: this._toDrOutputProtobuf(),

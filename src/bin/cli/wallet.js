@@ -188,7 +188,7 @@ module.exports = {
           param: "WALLET_ADDRESS",
         },
         value: {
-          hint: "Amount in Wits to withdraw.",
+          hint: "Amount in Wits to withdraw (default: `all`).",
           param: "WITS | `all`",
         },
       },
@@ -237,8 +237,8 @@ async function accounts (options = {}, args = []) {
 
   const coinbaseWithdrawers = await wallet.coinbase.getWithdrawers()
   const coinbaseBalance = await wallet.coinbase.getBalance()
-  const coinbaseColor = utils.totalCoins(coinbaseBalance).pedros > 0 ? colors.mred : (coinbaseWithdrawers.length > 0 ? colors.mcyan : colors.cyan)
-  const coinbase = coinbaseWithdrawers.length > 0 || utils.totalCoins(coinbaseBalance).pedros > 0 || utils.totalCoins(await wallet.getBalance()).pedros === 0
+  const coinbaseColor = utils.totalCoins(coinbaseBalance).pedros > 0n ? colors.mred : (coinbaseWithdrawers.length > 0 ? colors.mcyan : colors.cyan)
+  const coinbase = coinbaseWithdrawers.length > 0 || utils.totalCoins(coinbaseBalance).pedros > 0n || utils.totalCoins(await wallet.getBalance()).pedros === 0n
 
   const records = []
 
@@ -261,7 +261,7 @@ async function accounts (options = {}, args = []) {
     )
   )
 
-  let unlocked = 0
+  let unlocked = 0n
   helpers.traceTable(
     records.map(([index, pkh, count, balance]) => {
       unlocked += balance.unlocked
@@ -271,19 +271,19 @@ async function accounts (options = {}, args = []) {
         count,
         ...(verbose
           ? [
-            helpers.fromNanowits(balance.locked),
-            helpers.fromNanowits(balance.staked),
-            helpers.fromNanowits(balance.unlocked),
-            helpers.fromNanowits(balance.locked + balance.staked + balance.unlocked),
+            Witnet.Coins.fromNanowits(balance.locked).wits.toFixed(2),
+            Witnet.Coins.fromNanowits(balance.staked).wits.toFixed(2),
+            Witnet.Coins.fromNanowits(balance.unlocked).wits.toFixed(2),
+            utils.totalCoins(balance).wits.toFixed(2),
           ]
           : [
-            helpers.fromNanowits(balance.unlocked),
+            Witnet.Coins.fromNanowits(balance.unlocked).wits.toFixed(2),
           ]
         ),
       ]
     }), {
       headlines: [
-        "INDEX", ":WALLET ACCOUNTS", // ...(coinbase ? [ "WALLET COINBASE" ] : ["INDEX", ":WALLET ACCOUNTS"]),
+        "INDEX", `:WALLET ${wallet.network.toUpperCase()} ACCOUNTS`, 
         "# UTXOs",
         ...(verbose
           ? ["Locked ($WIT)", "Staked ($WIT)", "Available ($WIT)", "BALANCE ($WIT)"]
@@ -291,11 +291,11 @@ async function accounts (options = {}, args = []) {
         ),
       ],
       humanizers: [
-        helpers.commas,, // ...(coinbase ? [,] : [helpers.commas,,]),
+        helpers.commas,, 
         helpers.commas, helpers.commas, helpers.commas, helpers.commas, helpers.commas,
       ],
       colors: [
-        ,, // ...(coinbase ? [,] : [,,]),
+        ,, 
         ...(verbose
           ? [colors.white, colors.gray, colors.yellow, colors.myellow, colors.lyellow]
           : [colors.white, colors.myellow]
@@ -356,7 +356,7 @@ async function coinbase (options = {}) {
               ? [record.value.epochs.witnessing || "", record.value.epochs.mining || ""]
               : []
             ),
-            colors.yellow(helpers.fromNanowits(record.value.coins)),
+            colors.yellow(Witnet.Coins.fromNanowits(record.value.coins).wits),
           ]
         }), {
           headlines: [
@@ -502,16 +502,18 @@ async function transfer (options = {}) {
   const wallet = await _loadWallet({ ...options })
 
   // determine ledger and available funds
-  let available = 0; let ledger
+  let available = 0n; 
+  let ledger
   if (options?.from) {
     ledger = options.from === wallet.coinbase.pkh ? wallet.coinbase : wallet.getAccount(options.from)
-    if (ledger) available = (await ledger.getBalance()).unlocked
   } else {
     ledger = wallet
-    available = (await wallet.getBalance()).unlocked + (await wallet.coinbase.getBalance()).unlocked
   }
   if (!ledger) {
     throw Error(`--from address ${options?.from} doesn't belong to the wallet`)
+  } else {
+    const balance = await ledger.getBalance()
+    available = balance.unlocked
   }
 
   // validate recipient address
@@ -558,27 +560,27 @@ async function unstake (options = {}) {
     throw Error(`--into address ${options?.into} doesn't belong to the wallet`)
   }
 
-  // determine validator address:
-  const validator = Witnet.PublicKeyHash.fromBech32(options?.from).toBech32(wallet.network)
-
   // valite delegatee address:
-  const delegatee = (await ledger.getDelegatees()).find(stake => stake.key.validator === validator)
+  const delegatee = (await ledger.getDelegatees()).find(stake => 
+    stake.key.validator === validator && stake.key.withdrawer === withdrawer
+  )
   if (!delegatee) {
     throw Error(`Nothing to withdraw from ${validator} into ${withdrawer}`)
   }
-  const available = delegatee.value.coins
+  const available = BigInt(delegatee.value.coins)
 
   // determine withdrawal value:
-  const params = await _loadTransactionParams({ ...options, fees: 0 })
-  const coins = params?.value === "all"
+  const params = await _loadTransactionParams({ ...options, fees: 0n })
+  
+  const value = (params?.value || `all`) === "all"
     ? Witnet.Coins.fromPedros(available - params.fees.pedros)
     : Witnet.Coins.fromWits(params?.value)
 
   // validate withdrawal amount:
-  if (available < coins.pedros + params?.fees.pedros) {
-    throw Error(`Cannot withdraw that much: ${coins.pedros} > ${available}`)
-  } else if (params?.fees && coins.pedros <= params.fees.pedros) {
-    throw Error(`Fees equal or greater than value: ${params.fees.pedros} >= ${coins.pedros}`)
+  if (available < value.pedros + params?.fees.pedros) {
+    throw Error(`Cannot withdraw that much: ${value.pedros} > ${available}`)
+  } else if (params?.fees && value.pedros <= params.fees.pedros) {
+    throw Error(`Fees equal or greater than value: ${params.fees.pedros} >= ${value.pedros}`)
   }
 
   // withdraw deposit from validator into withdrawer:
@@ -587,7 +589,7 @@ async function unstake (options = {}) {
       headline: "STAKE WITHDRAWAL TRANSACTION",
       ...params,
       validator,
-      value: coins,
+      value,
     }
   )
 }
@@ -596,10 +598,11 @@ async function utxos (options = {}) {
   const wallet = await _loadWallet({ ...options })
 
   // determine ledger and available funds
-  let available = 0; let ledger
+  let ledger
+  let available = 0n; 
   if (options?.from) {
     ledger = options.from === wallet.coinbase.pkh ? wallet.coinbase : wallet.getAccount(options.from)
-    if (ledger) available = (await ledger.getBalance()).unlocked
+    if (ledger) available = (await ledger.getBalance()).unlocked;
   } else {
     ledger = wallet
     available = (await wallet.getBalance()).unlocked + (await wallet.coinbase.getBalance()).unlocked
@@ -637,15 +640,17 @@ async function utxos (options = {}) {
   })
 
   // select utxos of either the from account (if specified) or from all funded accounts in the wallet (including the coinbase)
-  let coins = params?.value === "all" ? Witnet.Coins.fromPedros(available - params.fees.pedros) : Witnet.Coins.fromWits(params?.value)
-  if (available < coins.pedros) {
+  let value = params?.value === "all" 
+    ? Witnet.Coins.fromPedros(available - params.fees.pedros) 
+    : (params?.value ? Witnet.Coins.fromWits(params?.value) : Witnet.Coins.fromPedros(available))
+  if (available < value.pedros) {
     throw Error(`Insufficient funds ${options?.from ? `on address ${options.from}.` : "on wallet."}`)
-  } else if (params?.fees && coins.pedros <= params.fees.pedros) {
-    throw Error(`Fees equal or greater than value: ${params.fees.pedros} >= ${coins.pedros}`)
+  } else if (params?.fees && value.pedros <= params.fees.pedros) {
+    throw Error(`Fees equal or greater than value: ${params.fees.pedros} >= ${value.pedros}`)
   }
-  const utxos = await ledger.selectUtxos({ value: coins })
-  const covered = utxos.map(utxo => utxo.value)?.reduce((prev, curr) => prev + curr) || 0
-  if (coins && covered < coins.pedros) {
+  const utxos = await ledger.selectUtxos({ value })
+  const covered = utxos.map(utxo => BigInt(utxo.value))?.reduce((prev, curr) => prev + curr, 0n) || 0n
+  if (value && covered < value.pedros) {
     throw Error(`Insufficient unlocked UTXOs in ${options?.from ? `wallet account ${ledger.pkh}` : "wallet"}`)
   }
 
@@ -659,7 +664,7 @@ async function utxos (options = {}) {
           utxo?.internal ? colors.green(utxo.output_pointer) : colors.mgreen(utxo.output_pointer),
           utxo.value,
         ]), {
-          headlines: ["INDEX", "WALLET ADDRESS", ":Unlocked UTXO pointers", "UTXO value ($pedros)"],
+          headlines: ["INDEX", `WALLET ${wallet.network.toUpperCase()} ADDRESSES`, ":Unlocked UTXO pointers", "UTXO value ($pedros)"],
           humanizers: [helpers.commas,,, helpers.commas],
           colors: [,,, colors.myellow],
         }
@@ -673,7 +678,7 @@ async function utxos (options = {}) {
       const recipients = [[
         // if a split is expected, join utxos into selected account or wallet
         options?.splits ? ledger.pkh : into,
-        coins,
+        value,
       ]]
       await helpers.traceTransaction(valueTransfer, {
         headline: `JOINING UTXOs: ${utxos.length} -> ${coins.pedros < covered ? 2 : 1}`,
@@ -688,7 +693,7 @@ async function utxos (options = {}) {
       if (splits > 50) {
         throw Error("Not possible to split into more than 50 UTXOs")
       }
-      coins = Witnet.Coins.fromPedros(Math.floor(coins.pedros / splits))
+      value = Witnet.Coins.fromPedros(BigInt(Math.floor(value.pedros / splits)))
       recipients.push(...Array(splits).fill([into, coins]))
       await helpers.traceTransaction(
         valueTransfer, {
@@ -709,14 +714,14 @@ async function validators (options = {}) {
   const order = { by: Witnet.StakesOrderBy.Coins, reverse: true }
 
   const coinbaseBalance = await wallet.coinbase.getBalance()
-  const coinbase = coinbaseBalance.staked > 0
+  const coinbase = coinbaseBalance.staked > 0n
 
   const records = await wallet.getDelegatees(order, true)
   if (records.length > 0) {
-    let staked = 0
+    let staked = 0n
     helpers.traceTable(
       records.map(record => {
-        staked += record.value.coins
+        staked += BigInt(record.value.coins)
         return [
           record.key.withdrawer === wallet.coinbase.pkh
             ? colors.mred(record.key.withdrawer)
@@ -729,18 +734,18 @@ async function validators (options = {}) {
             ? [record.value.epochs.witnessing || "", record.value.epochs.mining || ""]
             : []
           ),
-          colors.yellow(helpers.fromNanowits(record.value.coins)),
+          colors.yellow(record.value.coins),
         ]
       }), {
         headlines: [
           // "INDEX",
-          coinbase ? "WALLET COINBASE" : "WALLET ACCOUNTS",
+          coinbase ? "WALLET COINBASE" : `WALLET ${wallet.network.toUpperCase()} ACCOUNTS`,
           "STAKE DELEGATEES",
           ...(verbose
             ? ["Nonce", "LW_Epoch", "LM_Epoch"]
             : ["Nonce"]
           ),
-          "STAKED ($WIT)",
+          "STAKED ($pedros)",
         ],
         humanizers: [
           ,, ...(verbose
@@ -757,7 +762,7 @@ async function validators (options = {}) {
         ],
       }
     )
-    console.info(`^ Total deposit: ${colors.lyellow(whole_wits(staked, 2))}`)
+    console.info(`^ Total deposits: ${colors.lyellow(whole_wits(staked, 2))}`)
   } else {
     console.info("> No delegatees found.")
   }
@@ -874,7 +879,7 @@ async function _loadRadonRequest (options = {}) {
 
 async function _loadTransactionParams (options = {}) {
   const confirmations = options?.confirmations ? parseInt(options?.confirmations) : (options?.await ? 0 : undefined)
-  let fees = options?.fees ? Witnet.Coins.fromWits(options.fees) : (options?.fees === 0 ? Witnet.Coins.zero() : undefined)
+  let fees = options?.fees ? Witnet.Coins.fromWits(options.fees) : (options?.fees === 0n ? Witnet.Coins.zero() : undefined)
   const value = options?.value ? (options?.value.toLowerCase() === "all" ? "all" : options.value) : undefined
   if (fees === undefined) {
     if (value === "all") {
