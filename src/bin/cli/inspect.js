@@ -116,7 +116,7 @@ async function block (options = {}, args = []) {
   if (!helpers.isHexString(blockHash)) {
     throw Error("Invalid BLOCK_HASH was provided")
   }
-  const provider = new Witnet.JsonRpcProvider(options?.provider)
+  const provider = await Witnet.JsonRpcProvider.fromEnv(options?.provider)
   const block = await provider.getBlock(blockHash)
   console.info(gray(JSON.stringify(block, (key, value) => {
     switch (key) {

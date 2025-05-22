@@ -44,7 +44,7 @@ export interface IJsonRpcProvider {
     sendRawTransaction(tx: any): Promise<boolean>;
 }
 
-export class ProviderError extends Error {
+export class JsonRpcProviderError extends Error {
     readonly error?: any;
     readonly method: string;
     readonly params: any[];
@@ -173,7 +173,7 @@ export class JsonRpcProvider implements IJsonRpcProvider {
             
             ).then((response: any) => {
                 if (response?.error || response?.data?.error) {
-                    throw new ProviderError(method, params, response?.error || response?.data?.error);
+                    throw new JsonRpcProviderError(method, params, response?.error || response?.data?.error);
 
                 } else return response?.data?.result as T;
             })
