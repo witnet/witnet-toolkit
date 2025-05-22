@@ -102,6 +102,8 @@ export class Wallet implements IWallet {
         } else {
             wallet.deriveAccounts(options?.limit || 1)
         }
+        // load up utxos cache
+        await wallet.getUtxos(true)
         return wallet
     }
 
