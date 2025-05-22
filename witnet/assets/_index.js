@@ -1,4 +1,4 @@
-const { assets } = require("witnet-toolkit")
+const { assets } = require("@witnet/sdk")
 
 module.exports = {
   legacy: assets,
