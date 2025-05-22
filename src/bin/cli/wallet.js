@@ -543,21 +543,62 @@ async function transfer (options = {}) {
 }
 
 async function unstake (options = {}) {
-  if (!options.value) {
-    throw Error("No --value was specified")
-  } else if (!options?.from) {
-    throw Error("No --from was specified")
-  } else if (!options?.into) {
-    throw Error("No --into was specified")
-  }
 
+  // load wallet:
   const wallet = await _loadWallet({ ...options })
 
-  // validate withdrawer address:
-  const withdrawer = Witnet.PublicKeyHash.fromBech32(options?.into).toBech32(wallet.network)
+  // determine validator address:
+  let validator
+  if (options?.from) {
+    validator = Witnet.PublicKeyHash.fromBech32(options?.from).toBech32(wallet.network)
+  
+  } else {
+    const delegatees = 
+      (await wallet.getDelegatees({ by: Witnet.StakesOrderBy.Coins, reverse: true }, false))
+      .filter(entry => !options?.into || entry.key.withdrawer === options?.into)
+    if (delegatees.length === 0) throw new Error(`No delegatees to withdraw from.`);
+    else if (delegatees.length === 1) validator = delegatees[0].key.validator;
+    else {
+      const choices = delegatees
+        .map(entry => `${colors.mcyan(entry.key.validator)}`)
+        .filter((pkh, index, array) => index === array.indexOf(pkh))
+      const user = await prompt([{
+          choices,
+          message: "Validator address ?",
+          name: "key",
+          type: "list",
+          pageSize: 24,
+      }]);
+      validator = helpers.colorstrip(user.key.split(' ')[0])
+    }
+  }
+
+  // determine withdrawer address:
+  let withdrawer
+  if (options?.into) {
+    withdrawer = Witnet.PublicKeyHash.fromBech32(options?.into).toBech32(wallet.network)
+  
+  } else {
+    const stakes = (await wallet.provider.stakes({ filter: { validator }})).filter(entry => wallet.getSigner(entry.key.withdrawer) !== undefined);
+    if (stakes.length === 0) throw new Error(`Nothing to withdraw from validator ${validator}.`);
+    else if (stakes.length === 1) withdrawer = stakes[0].key.withdrawer;
+    else {
+      const choices = stakes.map(entry => `${colors.mmagenta(entry.key.withdrawer)} [${colors.yellow(Witnet.Coins.fromPedros(entry.value.coins).toString(2))}]`);
+      const user = await prompt([{
+          choices,
+          message: "Withdrawer address ?",
+          name: "key",
+          type: "list",
+          pageSize: 24,
+      }]);
+      withdrawer = helpers.colorstrip(user.key.split(' ')[0])
+    }
+  }
+
+  // validate withdrawer address
   const ledger = await wallet.getSigner(withdrawer)
   if (!ledger) {
-    throw Error(`--into address ${options?.into} doesn't belong to the wallet`)
+    throw Error(`--into address ${withdrawer} doesn't belong to the wallet`)
   }
 
   // valite delegatee address:
