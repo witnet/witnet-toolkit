@@ -10,21 +10,6 @@ export { bech32 } from 'bech32'
 export { PrivateKey, PublicKey, PublicKeyHash, KeyedSignature, RecoverableSignature, Signature } from "./types"
 
 export const BigMath = {
-    abs(x: bigint): bigint {
-        return x < 0n ? -x : x
-    },
-    sign(x: bigint): bigint {
-        if (x === 0n) return 0n
-        return x < 0n ? -1n : 1n
-    },
-    pow(base: bigint, exponent: bigint): bigint {
-        return base ** exponent
-    },
-    min(value: bigint, ...values: bigint[]): bigint {
-        for (const v of values)
-            if (v < value) value = v
-                return value
-    },
     max(value: bigint, ...values: bigint[]): bigint {
         for (const v of values)
             if (v > value) value = v
