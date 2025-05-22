@@ -37,9 +37,12 @@ export class Signer implements ISigner {
         let expendable: bigint = 0n
         let timelock: number = Number.MAX_SAFE_INTEGER
         this.utxos.map(utxo => {
-            expendable += utxo.value
-            if (utxo.timelock > now && utxo.timelock < timelock) {
-                timelock = utxo.timelock
+            if (utxo.timelock > now) {
+                if (utxo.timelock < timelock) {
+                    timelock = utxo.timelock
+                }
+            } else {
+                expendable += utxo.value
             }
         })
         if (timelock === Number.MAX_SAFE_INTEGER) timelock = 0;
