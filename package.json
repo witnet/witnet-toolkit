@@ -1,6 +1,6 @@
 {
   "name": "@witnet/sdk",
-  "version": "2.1.3-beta.0",
+  "version": "1.0.0-beta.0",
   "description": "Typescript library and CLI tooling for Web3 buidlers willing to interact with the Witnet blockchain.",
   "author": "Witnet Foundation",
   "license": "MIT",
