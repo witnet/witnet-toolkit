@@ -137,7 +137,11 @@ module.exports = {
   loadAssets,
 }
 
-function init () {
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/// CLI SUBMODULE COMMANDS ============================================================================================
+
+async function init () {
   if (!fs.existsSync("./witnet/assets/")) {
     fs.mkdirSync("./witnet/assets", { recursive: true })
   }
@@ -158,9 +162,6 @@ function init () {
   }
   console.info(`Initialized Witnet Radon workspace at folder ${process.cwd()}/witnet/assets`)
 }
-
-/// ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-/// CLI SUBMODULE COMMANDS ============================================================================================
 
 async function assets (options = {}, [...patterns]) {
   helpers.traceHeader(
