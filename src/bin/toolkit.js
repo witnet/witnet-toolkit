@@ -234,7 +234,7 @@ async function main () {
   let args = process.argv.slice(2)
 
   // Allow options and flags to be placed as first argument...
-  if (args[0].startsWith('--') && args[0].length > 2) {
+  if (args[0] && args[0].startsWith('--') && args[0].length > 2) {
     for (let index = 1; index < args.length; index ++) {
       if (!args[index].startsWith('--')) {
         try {
