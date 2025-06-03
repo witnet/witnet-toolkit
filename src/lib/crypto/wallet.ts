@@ -246,7 +246,7 @@ export class Wallet implements IWallet {
         return Promise
             .all(this.accounts.map(account => account.getUtxos(reload)))
             .then(async (utxoss: Array<Array<Utxo>>) => {
-                utxoss.push(await this.coinbase.getUtxos(reload))
+                // utxoss.push(await this.coinbase.getUtxos(reload))
                 return utxoss.flat()
             })
     }
