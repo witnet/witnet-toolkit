@@ -263,9 +263,10 @@ async function main () {
         } else {
           [args, options] = extractFromArgs(args.slice(1), { ...module.router[subcmd]?.options })
           args = deleteExtraFlags(args)
-          await module.subcommands[subcmd]({ ...settings, ...flags, ...options }, args).catch(err => {
-            showUsageError(cmd, subcmd, module, err, settings)
-          })
+          await module.subcommands[subcmd]({ ...settings, ...flags, ...options }, args)
+            .catch(err => {
+              showUsageError(cmd, subcmd, module, err, settings)
+            })
         }
       } else {
         showUsage(cmd, module)
