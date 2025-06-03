@@ -16,7 +16,8 @@
     "src/lib/cli",
     "src/lib/helpers.js",
     "witnet/witnet.proto.json",
-    "witnet/assets"
+    "witnet/assets",
+    ".env_witnet"
   ],
   "exports": {
     ".": {
