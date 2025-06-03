@@ -46,9 +46,9 @@ export function flattenRadonAssets<T extends RadonRequest | RadonTemplate | Rado
   tree: any,
   type?: { new(specs: any): T; },
   headers?: string[]
-): any {
+): Array<{ key: string, artifact: any }> {
   if (!headers) headers = []
-  const entries = []
+  const entries: Array<{ key: string, artifact: any }> = []
   for (const key in tree) {
     if (
       (type && tree[key] instanceof type)

@@ -28,16 +28,22 @@ import { toHexString } from "../bin/helpers"
 import { RadonModal, RadonRequest, RadonTemplate } from "./radon"
 import { flattenRadonAssets, requireRadonAsset } from "./radon/utils"
 
-export function flattenRadonRequests(assets: any): Array<RadonRequest> {
-  return flattenRadonAssets(assets, RadonRequest)
+export function flattenRadonRequests(assets: any): Record<string, RadonRequest> {
+  return Object.fromEntries(
+    flattenRadonAssets(assets, RadonRequest).map(asset => Object.entries(asset))
+  )
 }
 
-export function flattenRadonTemplates(assets: any): Array<RadonTemplate> {
-  return flattenRadonAssets(assets, RadonTemplate)
+export function flattenRadonTemplates(assets: any): Record<string, RadonTemplate> {
+  return Object.fromEntries(
+    flattenRadonAssets(assets, RadonTemplate).map(asset => [ asset.key, asset. artifact ])
+  )
 }
 
-export function flattenRadonModals(assets: any): Array<RadonModal> {
-  return flattenRadonAssets(assets, RadonModal)
+export function flattenRadonModals(assets: any): Record<string, RadonModal> {
+  return Object.fromEntries(
+    flattenRadonAssets(assets, RadonModal).map(asset => Object.entries(asset))
+  )
 }
 
 export function requireRadonRequest(artifact: string, assets?: any): RadonRequest | undefined {
