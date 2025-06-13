@@ -97,7 +97,7 @@ module.exports = {
         },
       },
     },
-    decipher: {
+    decipherMasterKey: {
       hint: "Decipher some master key as exported from myWitWallet.",
     },
     delegatees: {
@@ -124,6 +124,16 @@ module.exports = {
     },
     provider: {
       hint: "Show the underlying Wit/Oracle RPC provider being used.",
+    },
+    signMessage: {
+      hint: "Prove ownership of a wallet address by signing some given message.",
+      param: "TEXT",
+      options: {
+        signer: {
+          hint: "Wallet's signer address other than wallet's default.",
+          param: "WALLET_ADDRESS",
+        },
+      },
     },
     stake: {
       hint: "Stake specified amount of Wits by using some given authorization code.",
@@ -195,12 +205,38 @@ module.exports = {
     },
   },
   subcommands: {
-    accounts, coinbase, decipher, delegatees: validators, notarize: resolve, provider, stake, transfer, withdraw: unstake, utxos,
+    accounts, coinbase, delegatees: validators, 
+    notarize: resolve, stake, transfer, withdraw: unstake, utxos, 
+    decipherMasterKey: decipher, provider, 
+    signMessage, 
   },
 }
 
 /// ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /// CLI SUBMODULE COMMANDS ============================================================================================
+
+async function signMessage (options = {}, [...words]) {
+  const wallet = await _loadWallet({ 
+    ...options,
+    limit: 1,
+    "no-funds": true,
+  })
+  if (!words.length) {
+    throw Error(`some message must be entered.`)
+  }
+  const text = words.join(" ")
+  let ledger
+  if (options?.signer) {
+    ledger = options.signer === wallet.coinbase.pkh ? wallet.coinbase : wallet.getAccount(options.signer)
+  } else {
+    ledger = wallet
+  }
+  if (!ledger) {
+    throw Error(`no private key available for signer address ${options?.signer}`)
+  }
+  console.log("Message:", text)
+  console.info(ledger.getSigner().signMessage(text))
+}
 
 async function accounts (options = {}, args = []) {
   const { verbose } = options
