@@ -210,7 +210,7 @@ export class PublicKey implements Key {
         return PublicKeyHash.fromPublicKey(this)
     }
 
-    public toString(): string {
+    public toHexString(): string {
         return toHexString([this.compressed, ...this.bytes])
     }
 
@@ -348,8 +348,8 @@ export class RecoverableSignature extends Signature {
         this.recoveryId = recoveryId
     }
 
-    public toHexString(): string {
-        return toHexString([this.recoveryId, ...this.bytes])
+    public toHexString(prefix0x = false): string {
+        return toHexString([this.recoveryId, ...this.bytes], prefix0x)
     }
 
     public toKeyedSignature(): any {

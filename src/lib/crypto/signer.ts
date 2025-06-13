@@ -1,9 +1,9 @@
 const secp256k1 = require('secp256k1')
 import * as utils from "../utils"
 
-import { Balance, Network, QueryStakesOrder, StakeEntry } from "../types"
+import { Balance, HexString, Network, QueryStakesOrder, StakeEntry } from "../types"
 import { IBIP32, IJsonRpcProvider, ISigner } from "./interfaces"
-import { Coins, KeyedSignature, PublicKey, PublicKeyHashString, Utxo, UtxoCacheInfo, UtxoSelectionStrategy } from "./types"
+import { Coins, KeyedSignature, PublicKey, PublicKeyHashString, RecoverableSignature, Utxo, UtxoCacheInfo, UtxoSelectionStrategy } from "./types"
 import { selectUtxos } from "./utils"
 
 export class Signer implements ISigner {
@@ -175,6 +175,23 @@ export class Signer implements ISigner {
             }
         } else {
             throw Error(`Signer: invalid BIP32 node: no private key`)
+        }
+    }
+
+    public signMessage(text: string): {
+        address: string,
+        message: string,
+        publicKey: HexString,
+        signature: HexString
+    } {
+        let buffer = new Uint8Array(utils.toUtf16Bytes(text))
+        let digest = utils.sha256(buffer)
+        const keyedSignature = this.signHash(digest)
+        return {
+            address: this.pkh,
+            message: text,
+            publicKey: PublicKey.fromProtobuf(keyedSignature.public_key).toHexString(),
+            signature: RecoverableSignature.fromKeyedSignature(keyedSignature, digest).toHexString(),
         }
     }
 }
