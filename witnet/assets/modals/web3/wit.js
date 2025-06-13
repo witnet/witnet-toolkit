@@ -11,13 +11,13 @@ module.exports = {
   WitOracleWitGetBalance: new RadonModal({
     retrieval: retrievals.JsonRPC({
       rpc: retrievals.rpc.wit.getBalance("\\1\\"),
-      script: RadonScript(types.RadonString).asFloat().floor(),
+      script: RadonScript(types.RadonString).parseJSONMap().getMap("result").values(),
     }),
   }),
-  WitOracleWitGetTransaction: new RadonModal({
+  WitOracleWitGetValueTransfer: new RadonModal({
     retrieval: retrievals.JsonRPC({
       rpc: retrievals.rpc.wit.getTransaction("\\1\\"),
-      script: RadonScript(types.RadonString).parseJSONMap().getMap("result"),
+      script: RadonScript(types.RadonString).parseJSONMap().getMap("result").getMap("Simple").values(),
     }),
   }),
 }
