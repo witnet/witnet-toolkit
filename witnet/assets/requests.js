@@ -8,6 +8,7 @@ const {
 } = require("../../src/lib/radon")
 
 module.exports = {
+
   defi: {
     tickers: {
       crypto: {
