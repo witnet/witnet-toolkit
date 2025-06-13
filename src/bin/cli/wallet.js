@@ -63,6 +63,10 @@ module.exports = {
       hint: "List wallet's HD-accounts treasuring staked, locked or unlocked Wits.",
       params: ["[WIT_ADDRESSES ...]"],
       options: {
+        ethereum: {
+          hint: "Generate account ownership proofs verifiable in Ethereum networks.",
+          param: "EVM_ADDRESS"
+        },
         limit: {
           hint: "Max number of HD-accounts to derive.",
           param: "LIMIT",
@@ -239,7 +243,7 @@ async function signMessage (options = {}, [...words]) {
 }
 
 async function accounts (options = {}, args = []) {
-  const { verbose } = options
+  const { ethereum, verbose } = options
 
   let wallet
   if (args.length === 0) {
@@ -292,6 +296,9 @@ async function accounts (options = {}, args = []) {
           balance.unlocked > 0 ? colors.mmagenta(account.pkh) : colors.magenta(account.pkh),
           utxos.length,
           balance,
+          ...(ethereum ? [ 
+            account.getSigner().authorizeEvmAddress(ethereum), 
+          ] : [])
         ]
       }),
     )
@@ -299,45 +306,53 @@ async function accounts (options = {}, args = []) {
 
   let unlocked = 0n
   helpers.traceTable(
-    records.map(([index, pkh, count, balance]) => {
+    records.map(([index, pkh, count, balance, signature]) => {
       unlocked += balance.unlocked
       return [
-        index,
-        pkh,
-        count,
-        ...(verbose
-          ? [
-            Witnet.Coins.fromNanowits(balance.locked).wits.toFixed(2),
-            Witnet.Coins.fromNanowits(balance.staked).wits.toFixed(2),
-            Witnet.Coins.fromNanowits(balance.unlocked).wits.toFixed(2),
-            utils.totalCoins(balance).wits.toFixed(2),
-          ]
-          : [
-            Witnet.Coins.fromNanowits(balance.unlocked).wits.toFixed(2),
-          ]
+        index, pkh, 
+        ...(ethereum ? [ signature ] : (
+          verbose
+            ? [
+              count,
+              Witnet.Coins.fromNanowits(balance.locked).wits.toFixed(2),
+              Witnet.Coins.fromNanowits(balance.staked).wits.toFixed(2),
+              Witnet.Coins.fromNanowits(balance.unlocked).wits.toFixed(2),
+              utils.totalCoins(balance).wits.toFixed(2),
+            ]
+            : [
+              count,
+              Witnet.Coins.fromNanowits(balance.unlocked).wits.toFixed(2),
+            ]
+          )
         ),
       ]
     }), {
       headlines: [
-        "INDEX", `:WALLET ${wallet.network.toUpperCase()} ACCOUNTS`, 
-        "# UTXOs",
-        ...(verbose
-          ? ["Locked ($WIT)", "Staked ($WIT)", "Available ($WIT)", "BALANCE ($WIT)"]
-          : ["Available ($WIT)"]
-        ),
+        "INDEX", `:WITNET WALLET ${wallet.network.toUpperCase()} ACCOUNTS`,
+        ...(ethereum ? [`ETHEREUM ${wallet.network.toUpperCase()} WRAPPING AUTHORIZATION CODE [${ethereum}]`] : (
+          verbose
+            ? ["# UTXOS", "Locked ($WIT)", "Staked ($WIT)", "Available ($WIT)", "BALANCE ($WIT)"]
+            : ["# UTXOS", "Available ($WIT)"]
+          )
+        )
       ],
       humanizers: [
         helpers.commas,, 
-        helpers.commas, helpers.commas, helpers.commas, helpers.commas, helpers.commas,
+        ...(ethereum 
+          ? [,] 
+          : [helpers.commas, helpers.commas, helpers.commas, helpers.commas, helpers.commas]
+        ),
       ],
       colors: [
         ,, 
-        ...(verbose
-          ? [colors.white, colors.gray, colors.yellow, colors.myellow, colors.lyellow]
-          : [colors.white, colors.myellow]
+        ...(ethereum ? [colors.mblue, colors.gray] : (
+          verbose
+            ? [colors.white, colors.gray, colors.yellow, colors.myellow, colors.lyellow]
+            : [colors.white, colors.myellow]
+          )
         ),
       ],
-      maxColumnWidth: 48,
+      maxColumnWidth: 132,
     }
   )
   console.info(`^ Available balance: ${colors.lyellow(whole_wits(unlocked, 2))}`)
@@ -741,7 +756,7 @@ async function utxos (options = {}) {
           utxo?.internal ? colors.green(utxo.output_pointer) : colors.mgreen(utxo.output_pointer),
           utxo.value,
         ]), {
-          headlines: ["INDEX", `WALLET ${wallet.network.toUpperCase()} ADDRESSES`, ":Unlocked UTXO pointers", "UTXO value ($pedros)"],
+          headlines: ["INDEX", `WITNET WALLET ${wallet.network.toUpperCase()} ADDRESSES`, ":Unlocked UTXO pointers", "UTXO value ($pedros)"],
           humanizers: [helpers.commas,,, helpers.commas],
           colors: [,,, colors.myellow],
         }
@@ -816,7 +831,7 @@ async function validators (options = {}) {
       }), {
         headlines: [
           // "INDEX",
-          coinbase ? "WALLET COINBASE" : `WALLET ${wallet.network.toUpperCase()} ACCOUNTS`,
+          coinbase ? "WITNET WALLET COINBASE" : `WITNET WALLET ${wallet.network.toUpperCase()} ACCOUNTS`,
           "STAKE DELEGATEES",
           ...(verbose
             ? ["Nonce", "LW_Epoch", "LM_Epoch"]
