@@ -57,6 +57,7 @@ export interface ICoinbase extends ISigner {
 }
 
 export interface ISigner extends ILedger {
+    authorizeEvmAddress(evmAddress: HexString): any;
     getStakeEntryNonce(validator: PublicKeyHashString): Promise<number>
     signHash(hash: any): KeyedSignature
     signMessage(text: string): { 

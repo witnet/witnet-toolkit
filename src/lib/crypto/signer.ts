@@ -1,4 +1,7 @@
+const ethers = require('ethers')
+const keccak256 = require('keccak256')
 const secp256k1 = require('secp256k1')
+
 import * as utils from "../utils"
 
 import { Balance, HexString, Network, QueryStakesOrder, StakeEntry } from "../types"
@@ -135,6 +138,17 @@ export class Signer implements ISigner {
     
     // ================================================================================================================
     // --- ISigner ----------------------------------------------------------------------------------------------------
+
+    public authorizeEvmAddress(evmAddress: HexString): any {
+        const addr = utils.fromHexString(evmAddress)
+        const hash = keccak256(Buffer.from(addr))
+        if (this.node.privateKey) {
+            const signingKey = new ethers.utils.SigningKey(this.node.privateKey)
+            const signature = signingKey.signDigest(hash)
+            const sig = `0x${signature.r.slice(2)}${signature.s.slice(2)}${signature.v.toString(16)}`
+            return sig
+        }
+    }
     
     public async getStakeEntryNonce(validator: PublicKeyHashString): Promise<number> {
         return this.provider
