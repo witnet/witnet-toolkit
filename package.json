@@ -1,6 +1,6 @@
 {
   "name": "@witnet/sdk",
-  "version": "1.0.0-beta.5",
+  "version": "1.0.0",
   "description": "Typescript library and CLI tooling for Web3 buidlers willing to interact with the Witnet blockchain.",
   "author": "Witnet Foundation",
   "license": "MIT",
@@ -47,6 +47,8 @@
     "bip32": "^4.0.0",
     "cbor": "^10.0.3",
     "dotenv": "^16.4.1",
+    "ethers": "^5.7.0",
+    "keccak256": "^1.0.6",
     "graphql-query-compress": "1.2.4",
     "inquirer": "^12.4.2",
     "json-bigint": "^1.0.0",
