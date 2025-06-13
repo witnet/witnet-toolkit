@@ -9,6 +9,7 @@ export {
   toHexString,
   toUtf8Array, 
   utf8ArrayToStr,
+  toUtf16Bytes,
 } from "../bin/helpers"
 
 export {

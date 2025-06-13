@@ -433,6 +433,21 @@ function toUpperCamelCase (str) {
   }).replace(/\s+/g, "")
 }
 
+function* toUtf16Bytes(str) {
+  for (let i = 0; i < str.length; i++) {
+    const charCode = str.charCodeAt(i);
+
+    // Get the most significant byte.
+    // For example, given 0x1234, yield 0x12.
+    yield (charCode & 0xff00) >> 8;
+
+    // Get the least significant byte.
+    // For example, given 0x1234, yield 0x34.
+    yield charCode & 0x00ff;
+  }
+}
+
+
 function toUtf8Array (str) {
   const utf8 = []
   for (let i = 0; i < str.length; i++) {
@@ -809,7 +824,8 @@ module.exports = {
   showVersion,
   toolkitRun,
   toUpperCamelCase,
-  toUtf8Array,
+  toUtf16Bytes,
+  toUtf8Array,  
   utf8ArrayToStr,
   prompt,
   prompter,
