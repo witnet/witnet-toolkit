@@ -2,8 +2,9 @@ const secp256k1 = require("secp256k1")
 
 import { bech32 } from 'bech32'
 import { createDecipheriv, createHash, pbkdf2Sync } from 'crypto'
-import { Balance } from '../types'
+import { Balance, HexString } from '../types'
 import { Coins, Utxo, UtxoSelectionStrategy } from './types'
+import { fromHexString } from '../utils'
 
 export { bech32 } from 'bech32'
 
@@ -50,6 +51,19 @@ export function decipherXprv(slip32: string, passwd: string): string {
     let decrypted = decipher.update(Buffer.from(data), undefined, 'utf-8')
     decrypted += decipher.final('utf-8')
     return decrypted
+}
+
+export function ecdsaVerify(
+    msg: Buffer<ArrayBufferLike>, 
+    pubKey: HexString,
+    signature: HexString, 
+): boolean {
+    
+    return secp256k1.ecdsaVerify(
+        fromHexString(signature), 
+        msg, 
+        fromHexString(pubKey)
+    )
 }
 
 export const parseXprv = (slip32: string): {
@@ -178,3 +192,4 @@ export function totalCoins(balance: Balance): Coins {
             + BigInt(balance.unlocked)
     )
 }
+

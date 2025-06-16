@@ -13,6 +13,7 @@ export {
 } from "../bin/helpers"
 
 export {
+  ecdsaVerify,
   decipherXprv,
   parseXprv,
   sha256,
