@@ -139,6 +139,20 @@ module.exports = {
         },
       },
     },
+    verifyMessage: {
+      hint: "Verify authenticity of some given message and signature.",
+      param: "TEXT",
+      options: {
+        publicKey: {
+          hint: "Hexified public key of the alleged signer of the message.",
+          param: "<HEX_STRING>",
+        },
+        signature: {
+          hint: "Hexified signature produced with the signer's private key.",
+          param: "<HEX_STRING>",
+        },
+      },
+    },
     stake: {
       hint: "Stake specified amount of Wits by using some given authorization code.",
       params: "AUTH_CODE",
@@ -212,7 +226,7 @@ module.exports = {
     accounts, coinbase, delegatees: validators, 
     notarize: resolve, stake, transfer, withdraw: unstake, utxos, 
     decipherMasterKey: decipher, provider, 
-    signMessage, 
+    signMessage, verifyMessage,
   },
 }
 
@@ -238,8 +252,37 @@ async function signMessage (options = {}, [...words]) {
   if (!ledger) {
     throw Error(`no private key available for signer address ${options?.signer}`)
   }
-  console.log("Message:", text)
   console.info(ledger.getSigner().signMessage(text))
+}
+
+async function verifyMessage (options = {}, [...words]) {
+  if (!words.length) {
+    throw Error(`some text must be entered.`)
+  }
+  const text = words.join(" ")
+  const digest = utils.digestMessage(text)
+  let { publicKey, signature } = options
+  if (!publicKey) {
+    throw Error(`--publicKey must be specified.`)
+  } else if (!signature) {
+    throw Error(`--signature must be specified`)
+  }
+  if (publicKey.startsWith("0x")) publicKey = publicKey.slice(2);
+  if (signature.startsWith("0x")) signature = signature.slice(2);
+  console.info(`Message:   "${text}"`)
+  console.info(`Digest:     ${utils.toHexString(digest)}`)
+  console.info(`Public key: ${publicKey}`)
+  console.info(`Signature:  ${signature}`)
+  console.info("-".repeat(120))
+  if (utils.ecdsaVerify(digest, publicKey, signature.slice(2))) {
+    console.info(
+      `^ Signed by ${
+        Witnet.PublicKey.fromUint8Array(utils.fromHexString(publicKey)).hash().toBech32("mainnet")
+      }.\n^ Message is authentic.`
+    );
+  } else {
+    console.error(`^ Invalid signature.`)
+  }
 }
 
 async function accounts (options = {}, args = []) {
