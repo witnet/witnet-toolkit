@@ -198,7 +198,7 @@ export class Signer implements ISigner {
         publicKey: HexString,
         signature: HexString
     } {
-        let buffer = new Uint8Array(utils.toUtf16Bytes(text))
+        const digest = utils.digestMessage(text)
         let digest = utils.sha256(buffer)
         const keyedSignature = this.signHash(digest)
         return {
