@@ -25,9 +25,16 @@ export {
   searchRadonAssets,
 } from "./radon/utils"
 
-import { toHexString } from "../bin/helpers"
+import { toHexString, toUtf16Bytes } from "../bin/helpers"
+import { sha256 } from "./crypto/utils"
 import { RadonModal, RadonRequest, RadonTemplate } from "./radon"
 import { flattenRadonAssets, requireRadonAsset } from "./radon/utils"
+
+export function digestMessage(text: string): Buffer<ArrayBufferLike> {
+  return sha256(
+    new Uint8Array(toUtf16Bytes(text))
+  );
+}
 
 export function flattenRadonRequests(assets: any): Record<string, RadonRequest> {
   return Object.fromEntries(
