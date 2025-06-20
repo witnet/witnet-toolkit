@@ -1,8 +1,6 @@
 const {
   RadonModal,
   RadonScript,
-  // filters,
-  // reducers,
   retrievals,
   types,
 } = require("../../../../src/lib/radon")
@@ -16,8 +14,8 @@ module.exports = {
   }),
   WitOracleWitGetValueTransfer: new RadonModal({
     retrieval: retrievals.JsonRPC({
-      rpc: retrievals.rpc.wit.getTransaction("\\1\\"),
-      script: RadonScript(types.RadonString).parseJSONMap().getMap("result").getMap("Simple").values(),
+      rpc: retrievals.rpc.wit.getValueTransfer("\\1\\", "\\2\\"),
+      script: RadonScript(types.RadonString).parseJSONMap().getMap("result").getMap("\\2\\").values(),
     }),
   }),
 }
