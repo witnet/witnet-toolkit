@@ -433,20 +433,15 @@ function toUpperCamelCase (str) {
   }).replace(/\s+/g, "")
 }
 
-function* toUtf16Bytes(str) {
+function toUtf16Bytes(str) {
+  const bytes = new Uint8Array(str.length * 2);
   for (let i = 0; i < str.length; i++) {
-    const charCode = str.charCodeAt(i);
-
-    // Get the most significant byte.
-    // For example, given 0x1234, yield 0x12.
-    yield (charCode & 0xff00) >> 8;
-
-    // Get the least significant byte.
-    // For example, given 0x1234, yield 0x34.
-    yield charCode & 0x00ff;
+    const code = str.charCodeAt(i);
+    bytes[i * 2] = code >> 8;
+    bytes[i * 2 + 1] = code & 0xff;
   }
+  return bytes;
 }
-
 
 function toUtf8Array (str) {
   const utf8 = []
