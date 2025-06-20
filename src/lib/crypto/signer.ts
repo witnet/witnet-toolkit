@@ -199,7 +199,6 @@ export class Signer implements ISigner {
         signature: HexString
     } {
         const digest = utils.digestMessage(text)
-        let digest = utils.sha256(buffer)
         const keyedSignature = this.signHash(digest)
         return {
             address: this.pkh,
