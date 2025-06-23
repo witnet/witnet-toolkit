@@ -191,6 +191,10 @@ module.exports = {
           param: "WALLET_ADDRESS",
         },
         join: { hint: "Join selected UTXOs together into a single UTXO (requires --value)." },
+        limit: {
+          hint: "Max number of HD-accounts to derive.",
+          param: "LIMIT",
+        },
         splits: {
           hint: "Number of UTXOs to split the target balance into (max: 50; requires --value).",
           param: "NUMBER",
@@ -785,9 +789,10 @@ async function utxos (options = {}) {
   }
   const utxos = await ledger.selectUtxos({ value })
   const covered = utxos.map(utxo => BigInt(utxo.value))?.reduce((prev, curr) => prev + curr, 0n) || 0n
-  if (value && covered < value.pedros) {
-    throw Error(`Insufficient unlocked UTXOs in ${options?.from ? `wallet account ${ledger.pkh}` : "wallet"}`)
-  }
+  // if (value && covered < value.pedros) {
+  //   console.log(value, covered)
+  //   throw Error(`Insufficient unlocked UTXOs in ${options?.from ? `wallet account ${ledger.pkh}` : "wallet"}`)
+  // }
 
   // only if at least one utxo is selected, proceed with report and other operations, if any
   if (utxos.length > 0) {
