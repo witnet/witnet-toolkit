@@ -40,6 +40,7 @@ export interface IJsonRpcProvider {
     getTransaction(txHash: Hash): Promise<TransactionReport>;
     getTransactionReceipt(txHash: Hash): Promise<TransactionReceipt>;
     getUtxos(pkh: PublicKeyHashString, smallestFirst?: boolean): Promise<Array<UtxoMetadata>>;
+    getValueTransfer(txHash: Hash, mode?: string): Promise<any>;
         
     sendRawTransaction(tx: any): Promise<boolean>;
 }
@@ -361,6 +362,14 @@ export class JsonRpcProvider implements IJsonRpcProvider {
                     value: BigInt(utxo.value),
                 }))
             })
+    }
+
+    public async getValueTransfer(txHash: Hash, mode?: string, force = true): Promise<any> {
+        return this.callApiMethod<any>(Methods.GetValueTransfer, {
+            hash: txHash,
+            mode: mode || "full",
+            force
+        })
     }
     
     /// ---------------------------------------------------------------------------------------------------------------
