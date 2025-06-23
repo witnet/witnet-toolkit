@@ -176,6 +176,10 @@ module.exports = {
           hint: "Recipient address.",
           param: "WIT_ADDRESS",
         },
+        metadata: {
+          hint: "Optional 20-byte metadata info.",
+          param: "HEX_STRING"
+        },
         value: {
           hint: "Amount in Wits to be transfered (e.g. `0.5` Wits).",
           param: "WITS | `all`",
@@ -614,12 +618,21 @@ async function transfer (options = {}) {
     available = balance.unlocked
   }
 
+  // validate metadata info, if specified
+  let metadata
+  if (options?.metadata) {
+    if (!utils.isHexStringOfLength(options.metadata, 20)) {
+      throw Error(`--metadata must be a 20-byte hex string`)
+    }
+    metadata = Witnet.PublicKeyHash.fromHexString(options.metadata).toBech32(wallet.network)
+  }
+
   // validate recipient address
   if (!options?.into) {
     throw Error("--into address must be specified")
   }
   const into = Witnet.PublicKeyHash.fromBech32(options?.into).toBech32(wallet.network)
-
+  
   // determine transfer params
   const params = await _loadTransactionParams({ ...options })
   const coins = params?.value === "all" ? Witnet.Coins.fromPedros(available - params.fees.pedros) : Witnet.Coins.fromWits(params?.value)
@@ -630,12 +643,15 @@ async function transfer (options = {}) {
   }
 
   // transfer value
+  const recipients = options?.metadata
+    ? [[into, coins], [metadata, Witnet.Coins.fromPedros(1n)]]
+    : [[into, coins]]
   await helpers.traceTransaction(
     Witnet.ValueTransfers.from(ledger), {
       headline: "VALUE TRANSFER TRANSACTION",
       color: colors.bblue,
       ...params,
-      recipients: [[into, coins]],
+      recipients,
     }
   )
 }
