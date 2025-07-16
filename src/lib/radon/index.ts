@@ -404,7 +404,7 @@ export class RadonRetrieval {
   public readonly argsCount: number;
   public readonly method: retrievals.Methods;
   public readonly authority?: string;
-  public readonly body?: string;
+  public readonly body?: any;
   public readonly headers?: Record<string, string>;
   public readonly path?: string;
   public readonly query?: string;
@@ -564,7 +564,13 @@ export class RadonRetrieval {
     if (this.headers) {
       json.headers = Object.entries(this.headers);
     }
-    if (this.body) json.body = this.body
+    if (this.body) {
+      if (typeof this.body === 'string') {
+        json.body = humanize ? this.body : toUtf8Array(this.body)
+      } else {
+        json.body = this.body
+      }
+    }
     json.script = humanize ? this.script?.toString() : Array.from(fromHexString(this.script?.toBytecode() || '0x80'))
     return json
   }
