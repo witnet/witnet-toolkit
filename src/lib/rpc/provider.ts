@@ -9,7 +9,8 @@ import { Epoch, Hash, Network, UtxoMetadata } from "../types"
 import * as utils from "../utils"
 
 import {
-    Balance, Balance2, Block, ConsensusConstants, DataRequestReport, 
+    Balance, Balance2, Block, ConsensusConstants, 
+    GetDataRequestFullReport, GetDataRequestEtherealReport, GetDataRequestMode,
     Mempool, Methods, PeerAddr, Priorities, ProtocolInfo, 
     QueryStakes, QueryStakingPowers,
     TransactionReport, SignalingInfo, StakeEntry, StakingPower, 
@@ -35,7 +36,7 @@ export interface IJsonRpcProvider {
 
     getBalance(pkh: PublicKeyHashString): Promise<Balance2>;
     getBlock(blockHash: Hash, showTransactionHashes?: boolean): Promise<Block>;
-    getDataRequest(drTxHash: Hash): Promise<DataRequestReport>;
+    getDataRequest(drTxHash: Hash, mode?: GetDataRequestMode): Promise<GetDataRequestFullReport | GetDataRequestEtherealReport>;
     getSuperblock(epoch: Epoch): Promise<SuperblockReport>;
     getTransaction(txHash: Hash): Promise<TransactionReport>;
     getTransactionReceipt(txHash: Hash): Promise<TransactionReceipt>;
@@ -329,8 +330,12 @@ export class JsonRpcProvider implements IJsonRpcProvider {
         return this.callApiMethod<Block>(Methods.GetBlock, [blockHash, showTransactionHash, ])
     }
     
-    public async getDataRequest(drTxHash: Hash): Promise<DataRequestReport> {
-        return this.callApiMethod<DataRequestReport>(Methods.DataRequestReport, [drTxHash, ])
+    public async getDataRequest(drTxHash: Hash, mode?: GetDataRequestMode, force = false): Promise<GetDataRequestFullReport | GetDataRequestEtherealReport> {
+        return this.callApiMethod<GetDataRequestFullReport | GetDataRequestEtherealReport>(Methods.GetDataRequest, {
+            hash: drTxHash,
+            mode: mode || "full",
+            force
+        })
     }
     
     /// Get the blocks that pertain to the superblock index
@@ -364,10 +369,10 @@ export class JsonRpcProvider implements IJsonRpcProvider {
             })
     }
 
-    public async getValueTransfer(txHash: Hash, mode?: string, force = true): Promise<any> {
+    public async getValueTransfer(txHash: Hash, mode?: string, force = false): Promise<any> {
         return this.callApiMethod<any>(Methods.GetValueTransfer, {
             hash: txHash,
-            mode: mode || "full",
+            mode: mode,
             force
         })
     }

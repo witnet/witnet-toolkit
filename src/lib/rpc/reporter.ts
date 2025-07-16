@@ -1,12 +1,12 @@
 import { IJsonRpcProvider, JsonRpcProvider } from "./provider"
-import { DataRequestReport, Methods, PeerAddr, SupplyInfo, } from "./types"
+import { GetDataRequestEtherealReport, GetDataRequestFullReport, Methods, PeerAddr, SupplyInfo, } from "./types"
 import { Hash } from "../types"
 
 export interface IReporter extends IJsonRpcProvider {
     providers(): Promise<Array<string>>
     supplyInfo(): Promise<SupplyInfo>;
 
-    getDataRequest(drTxHash: Hash, channel?: string): Promise<DataRequestReport>
+    getDataRequest(drTxHash: Hash, channel?: string): Promise<GetDataRequestEtherealReport | GetDataRequestFullReport>
     searchDataRequests(radHash: Hash): Promise<any>;
 }
 

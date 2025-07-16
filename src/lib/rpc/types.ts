@@ -15,6 +15,7 @@ export enum Methods {
     GetBlockChain = "getBlockChain",
     GetBlock = "getBlock",
     GetConsensusConstants = "getConsensusConstants",
+    GetDataRequest = "getDataRequest",
     GetMempool = "getMempool",
     GetPkh = "getPkh",
     GetPublicKey = "getPublicKey",
@@ -177,32 +178,64 @@ export type CheckpointBeacon = {
 
 // Protocol's consensus constants
 export type ConsensusConstants = {
+
+    //An identity is considered active if it participated in the witnessing protocol at least once in the last `activity_period` epochs
+    activity_period: u32;
+  
+    //Auxiliary bootstrap block hash value
+    bootstrap_hash: Hash;
+
+    //Superblock signing committee for the first superblocks
+    bootstrapping_committee: Array<string>;
+
     //Timestamp at checkpoint 0 (the start of epoch 0)
     checkpoint_zero_timestamp: i64;
   
     //Seconds between the start of an epoch and the start of the next one
     checkpoints_period: u16;
-  
-    //Auxiliary bootstrap block hash value
-    bootstrap_hash: Hash;
-  
+
+    //Minimum input age of an UTXO for being a valid collateral
+    collateral_age: u32;
+    
+    //Minimum value in nanowits for a collateral value
+    collateral_minimum: bigint;
+
+    //Number of epochs with the minimum difficulty active
+    //(This number represent the last epoch where the minimum difficulty is active)
+    epochs_with_minimum_difficulty: u32;
+
+    //Extra rounds for commitments and reveals
+    extra_rounds: u16;
+
     //Genesis block hash value
     genesis_hash: Hash;
-  
+
+    //Halving period
+    halving_period: u32;
+
+    //Initial block reward
+    initial_block_reward: u64;
+
     //Maximum weight a block can have, this affects the number of
     //transactions a block can contain: there will be as many
     //transactions as the sum of _their_ weights is less than, or
     //equal to, this maximum block weight parameter.
     //
+    //Maximum aggregated weight of all the data requests transactions in one block
+    max_dr_weight: u32;
+    //
     //Maximum aggregated weight of all the value transfer transactions in one block
     max_vt_weight: u32;
 
-    //Maximum aggregated weight of all the data requests transactions in one block
-    max_dr_weight: u32;
+    //Minimum difficulty
+    minimum_difficulty: u32;
+
+    //Backup factor for mining: valid VRFs under this factor will result in broadcasting a block
+    mining_backup_factor: u32;
   
-    //An identity is considered active if it participated in the witnessing protocol at least once in the last `activity_period` epochs
-    activity_period: u32;
-  
+    //Replication factor for mining: valid VRFs under this factor will have priority
+    mining_replication_factor: u32;
+
     //Reputation will expire after N witnessing acts
     reputation_expire_alpha_diff: u32;
   
@@ -214,50 +247,19 @@ export type ConsensusConstants = {
   
     //Penalization factor: fraction of reputation lost by liars for out of consensus claims
     // FIXME(#172): Use fixed point arithmetic
-    reputation_penalization_factor: f64;
-  
-    //Backup factor for mining: valid VRFs under this factor will result in broadcasting a block
-    mining_backup_factor: u32;
-  
-    //Replication factor for mining: valid VRFs under this factor will have priority
-    mining_replication_factor: u32;
-  
-    //Minimum value in nanowits for a collateral value
-    collateral_minimum: bigint;
-  
-    //Minimum input age of an UTXO for being a valid collateral
-    collateral_age: u32;
-  
-    //Build a superblock every `superblock_period` epochs
-    superblock_period: u16;
-  
-    //Extra rounds for commitments and reveals
-    extra_rounds: u16;
-  
-    //Minimum difficulty
-    minimum_difficulty: u32;
-  
-    //Number of epochs with the minimum difficulty active
-    //(This number represent the last epoch where the minimum difficulty is active)
-    epochs_with_minimum_difficulty: u32;
-  
-    //Superblock signing committee for the first superblocks
-    bootstrapping_committee: Array<string>;
-  
-    //Size of the superblock signing committee
-    superblock_signing_committee_size: u32;
+    reputation_penalization_factor: f64;    
   
     //Period after which the committee size should decrease (in superblock periods)
     superblock_committee_decreasing_period: u32;
   
     //Step by which the committee should be reduced after superblock_agreement_decreasing_period
     superblock_committee_decreasing_step: u32;
+
+    //Build a superblock every `superblock_period` epochs
+    superblock_period: u16;
   
-    //Initial block reward
-    initial_block_reward: u64;
-  
-    //Halving period
-    halving_period: u32;
+    //Size of the superblock signing committee
+    superblock_signing_committee_size: u32;  
 };
 
 export type DataRequestPayload = {
@@ -269,25 +271,51 @@ export type DataRequestPayload = {
     collateral: number;
 };
 
+export type DataRequestStatus = "cancelled" | "pending" | "committing" | "revealing" | "solved" | "reverted";
+
+export type GetDataRequestMode = "full" | "ethereal"
+
 // List of outputs related to a data request
-export type DataRequestReport = {
-    // List of commitments to resolve the data request
-    commits: Record<PublicKeyHashString, DataRequestCommitTransaction>;
-    //List of reveals to the commitments (contains the data request witnet result)
-    reveals: Record<PublicKeyHashString, DataRequestRevealTransaction>;
-    //Tally of data request (contains final result)
-    tally?: DataRequestTallyTransaction;
-    //Hash of the block with the DataRequestTransaction
-    block_hash_dr_tx?: Hash;
-    //Hash of the block with the TallyTransaction
-    block_hash_tally_tx?: Hash;
-    //Current commit round
-    current_commit_round: u16;
-    //Current reveal round
-    current_reveal_round: u16;
-    //Current stage, or None if finished
-    current_stage?: DataRequestStage;
+export type GetDataRequestFullReport = {
+    status: DataRequestStatus,
+    report: {
+        // List of commitments to resolve the data request
+        commits: Record<PublicKeyHashString, DataRequestCommitTransaction>;
+        //List of reveals to the commitments (contains the data request witnet result)
+        reveals: Record<PublicKeyHashString, DataRequestRevealTransaction>;
+        //Tally of data request (contains final result)
+        tally?: DataRequestTallyTransaction;
+        //Hash of the block with the DataRequestTransaction
+        block_hash_dr_tx?: Hash;
+        //Hash of the block with the TallyTransaction
+        block_hash_tally_tx?: Hash;
+        //Current commit round
+        current_commit_round: u16;
+        //Current reveal round
+        current_reveal_round: u16;
+        //Current stage, or None if finished
+        current_stage?: DataRequestStage;
+    }
 };
+
+export type GetDataRequestEtherealReport = {
+    block_epoch?: number;
+    block_hash?: Hash;
+    confirmations?: number;
+    query?: {
+        collateral: bigint,
+        dro_hash: Hash,
+        rad_hash: Hash,
+        weight: number,
+        witnesses: number,
+    },
+    result?: {
+        cbor_bytes: string,
+        confirmations: number,
+        timestamp: number,
+    },
+    status: DataRequestStatus,
+}
 
 // Data request current stage
 export enum DataRequestStage {
