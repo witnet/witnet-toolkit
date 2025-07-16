@@ -839,7 +839,7 @@ async function utxos (options = {}) {
         value,
       ]]
       await helpers.traceTransaction(valueTransfer, {
-        headline: `JOINING UTXOs: ${utxos.length} -> ${coins.pedros < covered ? 2 : 1}`,
+        headline: `JOINING UTXOs: ${utxos.length} -> ${value.pedros < covered ? 2 : 1}`,
         ...params,
         await: params?.await || options?.splits !== undefined,
         recipients,
@@ -851,11 +851,11 @@ async function utxos (options = {}) {
       if (splits > 50) {
         throw Error("Not possible to split into more than 50 UTXOs")
       }
-      value = Witnet.Coins.fromPedros(BigInt(Math.floor(value.pedros / splits)))
-      recipients.push(...Array(splits).fill([into, coins]))
+      value = Witnet.Coins.fromPedros(BigInt(Math.floor(Number(value.pedros) / splits)))
+      recipients.push(...Array(splits).fill([into, value]))
       await helpers.traceTransaction(
         valueTransfer, {
-          headline: `SPLITTING UTXOs: ${utxos.length} -> ${coins.pedros * splits < covered ? splits + 1 : splits}`,
+          headline: `SPLITTING UTXOs: ${utxos.length} -> ${Number(value.pedros) * splits < covered ? splits + 1 : splits}`,
           ...params,
           recipients,
           reload: options?.join,
