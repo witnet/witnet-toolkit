@@ -114,11 +114,11 @@ module.exports = {
     "stats*": {
       hint: "Report network stats.",
     },
+    status: {
+      hint: "Report the sync status of the network's Wit/Oracle RPC provider being used.",
+    },
     supplyInfo: {
       hint: "Get network's Wit supply information.",
-    },
-    syncStatus: {
-      hint: "Report the sync status of the network's Wit/Oracle RPC provider being used.",
     },
     versions: {
       hint: "List known protocol versions and which one is currently live.",
@@ -142,7 +142,7 @@ module.exports = {
     senate,
     stakes,
     supplyInfo,
-    syncStatus,
+    status: syncStatus,
     versions,
     wips,
   },
@@ -483,23 +483,25 @@ async function supplyInfo (options = {}) {
 }
 
 async function syncStatus (options = {}) {
-  const provider = new Witnet.JsonRpcProvider(options?.provider)
+  const provider = await Witnet.JsonRpcProvider.fromEnv(options?.provider)
   const syncStatus = await provider.syncStatus()
   helpers.traceTable(
     [[
+      provider.network === "mainnet" ? "Mainnet" : `Testnet (${provider.networkId.toString(16).toUpperCase()})`,
       syncStatus.node_state || "",
       syncStatus.current_epoch,
       syncStatus.chain_beacon.checkpoint,
       syncStatus.chain_beacon.hashPrevBlock,
     ]], {
       headlines: [
+        "NETWORK",
         ":STATUS",
         "Current epoch",
         "Checkpoint epoch",
         "Checkpoint block hash",
       ],
-      humanizers: [, helpers.commas, helpers.commas],
-      colors: [helpers.colors.mgreen, helpers.colors.white,, helpers.colors.gray],
+      humanizers: [,, helpers.commas, helpers.commas],
+      colors: [helpers.colors.mgreen, helpers.colors.lgreen, helpers.colors.white,, helpers.colors.gray],
     },
   )
 }
