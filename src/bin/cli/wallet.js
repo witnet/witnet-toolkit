@@ -931,16 +931,16 @@ async function validators (options = {}) {
 
 async function _loadRadonRequest (options = {}) {
   const args = options?.args || []
-  // TODO:
+  if (options?.pattern && typeof options.pattern === 'string' && utils.isHexString(options.pattern)) {
   // if (options?.pattern && typeof options.pattern === 'string' && utils.isHexString(options.pattern)) {
   //     if (utils.isHexStringOfLength(options.pattern, 32)) {
   //         throw `Searching RADON_BYTECODE by RAD_HASH not yet supported.`
-  //     } else try {
-  //         return Witnet.RadonRequest.fromHexString(pattern)
-  //     } catch {
-  //         throw `Invalid RADON_BYTECODE.`
-  //     }
-  // }
+      try {
+          return Witnet.Radon.RadonRequest.fromBytecode(options.pattern)
+      } catch (e) {
+          throw Error(`Invalid RADON_BYTECODE: ${e}`)
+      }
+  }
 
   // load Radon assets from environment
   let assets = utils.searchRadonAssets(
