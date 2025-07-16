@@ -22,6 +22,7 @@ export enum Methods {
     GetSupplyInfo = "getSupplyInfo2",
     GetTransaction = "getTransaction",
     GetUtxoInfo = "getUtxoInfo",
+    GetValueTransfer = "getValueTransfer",
     InitializePeers = "initializePeers",
     Inventory = "inventory",
     KnownPeers = "knownPeers",

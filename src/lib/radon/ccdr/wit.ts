@@ -38,3 +38,18 @@ export const getTransaction = (txHash: Bytes32 | Wildcard) => {
         params: [ txHash ]
     };
 }
+
+/**
+ * Retrieve detailed informatinon about a mined transaction in the Witnet blockchain.
+ * @param txHash The hash of the transaction to retrieve.
+ */
+export const getValueTransfer = (hash: Bytes32 | Wildcard, mode: "ethereal" | "simple" | "full") => {
+    checkRpcWildcards(hash)
+    if (!isHexStringOfLength(hash, 32) && !isWildcard(hash)) {
+        throw new EvalError("rpc.wit.getValueTransfer: invalid transaction hash value");
+    }
+    return {
+        method: "getValueTransfer", 
+        params: { hash, mode }
+    };
+}
