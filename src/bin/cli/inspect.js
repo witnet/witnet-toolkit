@@ -65,6 +65,19 @@ module.exports = {
       hint: "List validators treasuring delegated stake from the specified address.",
       params: "WIT_ADDRESS",
     },
+    valueTransfer: {
+      hint: "Report value transfer details given its transaction hash.",
+      params: "VT_TX_HASH",
+      options: {
+        force: {
+          hint: "Get data even if the WIT/RPC provider is not synced."
+        },
+        mode: {
+          hint: "Possible report formats (default: `full`).",
+          param: "`ethereal` | `full` | `simple`",
+        },
+      },
+    },
     withdrawers: {
       hint: "List withdrawers currently delegating stake to the specified address.",
       params: "WIT_ADDRESS",
@@ -80,7 +93,7 @@ module.exports = {
     },
   },
   subcommands: {
-    balance, block, dataRequest, superblock, transaction, validators, withdrawers, utxos,
+    balance, block, dataRequest, superblock, transaction, validators, withdrawers, utxos, valueTransfer,
   },
 }
 
@@ -294,6 +307,25 @@ async function validators (options = {}, args = []) {
   } else {
     console.info(`> No validators found for withdrawer ${mmagenta(args[0])}.`)
   }
+}
+
+async function valueTransfer (options = {}, args = []) {
+  if (args.length === 0) {
+    throw Error("No VT_TX_HASH was specified")
+  }
+  const txHash = args[0].startsWith("0x") ? args[0].slice(2) : args[0]
+  if (!helpers.isHexString(txHash)) {
+    throw Error("Invalid VT_TX_HASH was provided")
+  }
+  const mode = options?.mode || `full`
+  if (!["ethereal", "full", "simple"].includes(mode)) {
+    throw Error(`Invalid mode value: "${options.mode}"`)
+  }
+  const provider = new Witnet.JsonRpcProvider(options?.provider)
+  const transaction = await provider.getValueTransfer(txHash, mode, options?.force)
+  console.info(
+    `${yellow(JSON.stringify(transaction, utils.txJsonReplacer, 2))}`
+  )
 }
 
 async function withdrawers (options = {}, args = []) {
