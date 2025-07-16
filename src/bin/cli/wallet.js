@@ -635,7 +635,9 @@ async function transfer (options = {}) {
   
   // determine transfer params
   const params = await _loadTransactionParams({ ...options })
-  const coins = params?.value === "all" ? Witnet.Coins.fromPedros(available - params.fees.pedros) : Witnet.Coins.fromWits(params?.value)
+  const coins = params?.value === "all" 
+    ? Witnet.Coins.fromPedros(BigInt(available - params.fees.pedros - BigInt(options?.metadata ? 1: 0))) 
+    : Witnet.Coins.fromWits(params?.value)
   if (available < coins.pedros) {
     throw Error(`Insufficient funds ${options?.from ? `on address ${options.from}.` : "on wallet."}`)
   } else if (params?.fees && coins.pedros <= params.fees.pedros) {
