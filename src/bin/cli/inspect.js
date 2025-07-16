@@ -31,8 +31,17 @@ module.exports = {
       params: "BLOCK_HASH",
     },
     dataRequest: {
-      hint: "Report resolution workflow for the specified data request transaction.",
+      hint: "Get query parameters and result to some data request transaction.",
       params: "DR_TX_HASH",
+      options: {
+        force: {
+          hint: "Get data even if the WIT/RPC provider is not synced."
+        },
+        mode: {
+          hint: "Possible report formats (default: `ethereal`).",
+          param: "`ethereal` | `full``",
+        },
+      },
     },
     "dataRequests*": {
       hint: "Search for in-flight or recently solved data request transactions.",
@@ -179,7 +188,12 @@ async function dataRequest (options = {}, args = []) {
     }
   }
 
-  const report = await provider.getDataRequest(drTxHash)
+  const mode = options?.mode || `ethereal`
+  if (!["ethereal", "full"].includes(mode)) {
+    throw Error(`Invalid mode value: "${options.mode}"`)
+  }
+
+  const report = await provider.getDataRequest(drTxHash, mode, options?.force)
   console.info(JSON.stringify(report, drTxJsonReplacer, 4))
 }
 
