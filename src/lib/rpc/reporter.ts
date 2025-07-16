@@ -30,9 +30,7 @@ export class Reporter extends JsonRpcProvider implements IReporter {
     }
     
     /// ---------------------------------------------------------------------------------------------------------------
-    public async reportDataRequest(drTxHash: Hash, channel?: string): Promise<DataRequestReport> {
-        return this.callApiMethod<DataRequestReport>(Methods.DataRequestReport, [drTxHash, channel, ])
-    }
+    
     
     public async searchDataRequests(radHash: Hash): Promise<any> {
         return this.callApiMethod<any>(Methods.SearchDataRequests, [radHash, ])

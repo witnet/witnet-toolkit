@@ -347,7 +347,7 @@ function showVersion () {
 
 function getWildcardsCountFromString (str) {
   let maxArgsIndex = 0
-  if (str) {
+  if (str && typeof str === 'string') {
     let match
     const regexp = /\\\d\\/g
     while ((match = regexp.exec(str)) !== null) {

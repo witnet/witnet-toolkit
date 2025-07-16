@@ -6,6 +6,7 @@ export {
     Balance2 as Balance, 
     Block, 
     BlockTransactionsHashes,
+    ConsensusConstants,
     Network,
     Priorities as NetworkPriorities,
     QueryStakesOrder,
