@@ -41,10 +41,10 @@ const TX_WEIGHT_OUTPUT_SIZE = 36
 
 export class DataRequestPayload extends TransactionPayloadMultiSig<DataRequestParams> {
 
-    public static COLLATERAL_RATIO = 125
     public static DEFAULT_WITNESSES = 12
     public static MAX_WEIGHT = 80_000
     public static MIN_COLLATERAL = 20_000_000_000n
+    public static MIN_CONSENSUS_PERCENTAGE = 51;
 
     protected _request?: RadonRequest 
     public readonly template?: RadonTemplate
@@ -82,15 +82,15 @@ export class DataRequestPayload extends TransactionPayloadMultiSig<DataRequestPa
 
     public get droSLA(): DataRequestOutputSLA | undefined {
         if (this._target && this._fees) {
-            const minConsensusPercentage = 51
+            const minConsensusPercentage = DataRequestPayload.MIN_CONSENSUS_PERCENTAGE
             const witnesses = (
                 typeof this._target.witnesses === 'object'
                     ? Object.keys(this._target.witnesses).length 
                     : this._target.witnesses || 0
             );
             const commitAndRevealFee = this._fees2UnitaryCommitRevealReward(this._fees, witnesses)
-            const witnessReward = this._fees2UnitaryReward(this._fees) 
-            const collateral = witnessReward * BigInt(DataRequestPayload.COLLATERAL_RATIO)
+            const witnessReward = this._fees2UnitaryReward(this._fees, witnesses) 
+            const collateral = witnessReward * BigInt(witnesses)
             if (collateral > Number.MAX_SAFE_INTEGER) 
                 throw new TypeError(`${this.constructor.name}: too much witness collateral: ${collateral.toString()} > ${Number.MAX_SAFE_INTEGER}`);
             else if (witnessReward > Number.MAX_SAFE_INTEGER)
@@ -388,16 +388,16 @@ export class DataRequestPayload extends TransactionPayloadMultiSig<DataRequestPa
         return fees / BigInt(witnesses) || 1n
     }
 
-    protected _fees2UnitaryReward(fees: bigint): bigint {
+    protected _fees2UnitaryReward(fees: bigint, witnesses: number): bigint {
         return BigMath.max(
             fees,
-            1n + DataRequestPayload.MIN_COLLATERAL / BigInt(DataRequestPayload.COLLATERAL_RATIO)
+            1n + DataRequestPayload.MIN_COLLATERAL / BigInt(witnesses)
         );
     }
     protected _fees2Value(fees: bigint, witnesses: number): bigint {
         return (
             BigInt(witnesses) * (
-                this._fees2UnitaryReward(fees)
+                this._fees2UnitaryReward(fees, witnesses)
                 + 2n * this._fees2UnitaryCommitRevealReward(fees, witnesses)
             )
         );

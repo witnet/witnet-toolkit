@@ -9,7 +9,6 @@ export { DataRequestParams } from "../payloads/DataRequestPayload"
 
 export class DataRequests extends TransmitterMultiSig<DataRequestParams, DataRequestPayload> {
     
-    public static COLLATERAL_RATIO = DataRequestPayload.COLLATERAL_RATIO;
     public static MAX_WEIGHT = DataRequestPayload.MAX_WEIGHT;
 
     public static from(ledger: ILedger, artifact: RadonRequest | RadonTemplate) : DataRequests {
