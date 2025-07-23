@@ -226,7 +226,8 @@ async function decode (options = {}, args = []) {
     } catch (err) {
       console.error(err)
       if ((asset.startsWith("0x") && asset.length === 66) || (!asset.startsWith("0x") && asset.length === 64)) {
-        // TODO: assume it's a RAD_HASH, and try to retrieve the BYTECODE from the Witnet network
+        // TODO: assume it's a DR_TX_HASH
+        // TODO: assume it's a RAD_HASH
       }
     }
   } else {

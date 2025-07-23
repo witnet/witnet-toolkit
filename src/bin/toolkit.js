@@ -277,14 +277,14 @@ async function main () {
     }
   }
   console.info("USAGE:")
-  console.info(`    ${colors.white("npx witnet")} [FLAGS] <COMMAND>`)
+  console.info(`    ${colors.white("npx witnet")} [FLAGS] <MODULE>`)
   console.info("\nFLAGS:")
   console.info("    --debug     Outputs stack trace in case of error.")
   console.info("    --force     Avoids asking the user to confirm operation.")
   console.info("    --help      Describes command or subcommand usage.")
   console.info("    --update    Forces update of underlying binaries.")
   console.info("    --version   Prints toolkit name and version as first line.")
-  console.info("\nCOMMANDS:")
+  console.info("\nMODULES:")
   console.info("    inspect     Inspect public data from the Wit/Oracle blockchain.")
   console.info("    network     Dynamic information from the Wit/Oracle P2P network.")
   console.info("    nodes       Interact with your private Wit/Oracle nodes, if reachable.")
