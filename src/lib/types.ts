@@ -1,6 +1,5 @@
 export { IJsonRpcNodeFarm } from "./rpc/nodes"
 export { IJsonRpcProvider } from "./rpc/provider"
-export { IReporter } from "./rpc/reporter"
 
 export { 
     Balance2 as Balance, 
