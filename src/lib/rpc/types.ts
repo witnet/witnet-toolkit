@@ -302,19 +302,21 @@ export type GetDataRequestEtherealReport = {
     block_epoch?: number;
     block_hash?: Hash;
     confirmations?: number;
+    hash?: Hash;
     query?: {
-        collateral: bigint,
         dro_hash: Hash,
         rad_hash: Hash,
-        weight: number,
+        rad_bytecode: string,
+        collateral_ratio: number,
+        unitary_reward: bigint,
         witnesses: number,
     },
     result?: {
         cbor_bytes: string,
-        confirmations: number,
+        finalized: boolean,
         timestamp: number,
     },
-    status: DataRequestStatus,
+    stage: DataRequestStatus,
 }
 
 // Data request current stage
