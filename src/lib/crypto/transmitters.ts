@@ -264,7 +264,7 @@ export abstract class Transmitter<Specs, Payload extends ITransactionPayload<Spe
                                         ? "finalized" 
                                         : (report?.confirmations >= confirmations ? "confirmed" : "mined")
                                 );
-                                if (report.confirmations !== receipt.confirmations) {    
+                                if (report?.confirmations !== receipt.confirmations) {    
                                     receipt.confirmations = report.confirmations
                                     if (receipt.status === "mined" && options?.onCheckpoint) try {
                                         options.onCheckpoint(receipt)
@@ -322,7 +322,7 @@ export abstract class Transmitter<Specs, Payload extends ITransactionPayload<Spe
                                     output_pointer: `${receipt.hash}:0`,
                                     timelock: vto.time_lock,
                                     utxo_mature: true,
-                                    value: vto.value,
+                                    value: BigInt(vto.value),
                                     signer: vto.pkh,
                                 })
                             }
@@ -332,7 +332,7 @@ export abstract class Transmitter<Specs, Payload extends ITransactionPayload<Spe
                                 output_pointer: `${receipt.hash}:${index}`,
                                 timelock: vto.time_lock,
                                 utxo_mature: true,
-                                value: vto.value,
+                                value: BigInt(vto.value),
                                 signer: vto.pkh,
                             }))
                         }
