@@ -188,8 +188,10 @@ module.exports = {
     },
     utxos: {
       hint: "List currently available UTXOs on wallet's specified address, or on all funded accounts otherwise.",
+      params: "[WALLET_ADDRESS]",
       options: {
         ...options,
+        from: {},
         into: {
           hint: "Alternative wallet address where to JOIN or SPLIT the selected UTXOs, other than default.",
           param: "WALLET_ADDRESS",
@@ -751,27 +753,27 @@ async function unstake (options = {}) {
   )
 }
 
-async function utxos (options = {}) {
+async function utxos (options = {}, [from]) {
   const wallet = await _loadWallet({ ...options })
 
   // determine ledger and available funds
   let ledger
   let available = 0n; 
-  if (options?.from) {
-    ledger = options.from === wallet.coinbase.pkh ? wallet.coinbase : wallet.getAccount(options.from)
+  if (from) {
+    ledger = from === wallet.coinbase.pkh ? wallet.coinbase : wallet.getAccount(from)
     if (ledger) available = (await ledger.getBalance()).unlocked;
   } else {
     ledger = wallet
     available = (await wallet.getBalance()).unlocked + (await wallet.coinbase.getBalance()).unlocked
   }
   if (!ledger) {
-    throw Error(`Address ${options?.from} doesn't belong to the wallet`)
+    throw Error(`Address ${from} doesn't belong to the wallet`)
   }
 
   // determine into address
   let into = options?.into
   if (into) {
-    if (into !== options?.from && !wallet.getAccount(into) && into !== wallet.coinbase.pkh && !options?.force) {
+    if (into !== from && !wallet.getAccount(into) && into !== wallet.coinbase.pkh && !options?.force) {
       const user = await prompt([{
         message: `Recipient address ${into} doesn't belong to the wallet. Proceed anyway?`,
         name: "continue",
@@ -801,7 +803,7 @@ async function utxos (options = {}) {
     ? Witnet.Coins.fromPedros(available - params.fees.pedros) 
     : (params?.value ? Witnet.Coins.fromWits(params?.value) : Witnet.Coins.fromPedros(available))
   if (available < value.pedros) {
-    throw Error(`Insufficient funds ${options?.from ? `on address ${options.from}.` : "on wallet."}`)
+    throw Error(`Insufficient funds ${from ? `on address ${from}.` : "on wallet."}`)
   } else if (params?.fees && value.pedros <= params.fees.pedros) {
     throw Error(`Fees equal or greater than value: ${params.fees.pedros} >= ${value.pedros}`)
   }
@@ -809,7 +811,7 @@ async function utxos (options = {}) {
   const covered = utxos.map(utxo => BigInt(utxo.value))?.reduce((prev, curr) => prev + curr, 0n) || 0n
   // if (value && covered < value.pedros) {
   //   console.log(value, covered)
-  //   throw Error(`Insufficient unlocked UTXOs in ${options?.from ? `wallet account ${ledger.pkh}` : "wallet"}`)
+  //   throw Error(`Insufficient unlocked UTXOs in ${from ? `wallet account ${ledger.pkh}` : "wallet"}`)
   // }
 
   // only if at least one utxo is selected, proceed with report and other operations, if any
