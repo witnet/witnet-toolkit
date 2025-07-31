@@ -98,7 +98,7 @@ async function execRadonBytecode (bytecode, ...flags) {
     throw EvalError("invalid hex string")
   } else {
     const npx = os.type() === "Windows_NT" ? "npx.cmd" : "npx"
-    return cmd(npx, "witnet", "radon", "dryrun", bytecode, ...flags)
+    return cmd(npx, "witnet", "radon", "dry-run", bytecode, ...flags)
     // .catch((err) => {
     //     let errorMessage = err.message.split('\n').slice(1).join('\n').trim()
     //     const errorRegex = /.*^error: (?<message>.*)$.*/gm
