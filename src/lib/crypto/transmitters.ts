@@ -96,13 +96,13 @@ export abstract class Transmitter<Specs, Payload extends ITransactionPayload<Spe
         )
     }
 
-    public async sendTransaction(target?: any): Promise<TransactionReceipt> {
+    public async sendTransaction(target?: Specs): Promise<TransactionReceipt> {
         let receipt = this._getInflightReceipt()
         if (!receipt || target) {
             // if inflight not yet prepared, or prepared but not yet transmitted,
             // prepare a new inflight either with specified params (if any),
             // or previously prepared inflight (if known).
-            receipt = await this.signTransaction(target || receipt)
+            receipt = await this.signTransaction(target || receipt as Specs)
         }
         if (receipt?.status && receipt.status !== "signed" && !receipt?.error) {
             // if current inflight was already transmitted and it's not yet known to fail ...
