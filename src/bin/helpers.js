@@ -513,7 +513,7 @@ async function prompt (question) {
   })
 }
 
-async function prompter (promise) {
+function prompter (promise) {
   const loading = (() => {
     const h = ["|", "/", "-", "\\"]
     let i = 0

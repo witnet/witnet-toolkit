@@ -280,11 +280,11 @@ export class Wallet implements IWallet {
         return this._accounts
     }
 
-    public async exploreAccounts(limit = 0, gap = DEFAULT_GAP): Promise<Array<IAccount>> {
+    public async exploreAccounts(limit = 1, gap = DEFAULT_GAP): Promise<Array<IAccount>> {
         if (limit === 0 || limit > this.accounts.length) {
-            const lastIndex = (x: Array<IAccount>) => x.length > 0 ? x[x.length - 1].index + 1 : 0
+            const lastIndex = (x: Array<IAccount>) => Number(x.length > 0 ? x[x.length - 1].index + 1 : 0)
             const startIndex = lastIndex(this.accounts)
-            for (let index = startIndex; index < lastIndex(this.accounts) + gap; index ++) {
+            for (let index = startIndex; index < lastIndex(this.accounts) + Number(gap); index ++) {
                 const account = new Account(this.root, this.provider, index, this.strategy)
                 if (utils.totalCoins(await account.getBalance()).pedros > 0n) {
                     this.accounts.push(account)
