@@ -304,13 +304,13 @@ function showUsageHeadline (cmd, subcmd, module) {
         params = optionalize(params)
       }
     }
-    console.info(`   ${white(`npx witnet ${cmd}`)} ${white(subcmd)} ${params ? green(params) + " " : ""}[OPTIONS] [FLAGS]`)
+    console.info(`   ${white(`npx witsdk ${cmd}`)} ${white(subcmd)} ${params ? green(params) + " " : ""}[OPTIONS] [FLAGS]`)
     if (module?.router[subcmd]?.hint) {
       console.info("\nDESCRIPTION:")
       console.info(`   ${module.router[subcmd].hint}`)
     }
   } else {
-    console.info(`   ${white(`npx witnet ${cmd}`)} <SUBCOMMAND> ... [OPTIONS] [FLAGS]`)
+    console.info(`   ${white(`npx witsdk ${cmd}`)} <SUBCOMMAND> ... [OPTIONS] [FLAGS]`)
   }
 }
 

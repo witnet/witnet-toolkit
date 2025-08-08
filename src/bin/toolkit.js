@@ -277,7 +277,7 @@ async function main () {
     }
   }
   console.info("USAGE:")
-  console.info(`    ${colors.white("npx witnet")} [FLAGS] <MODULE>`)
+  console.info(`    ${colors.white("npx witsdk")} [FLAGS] <MODULE>`)
   console.info("\nFLAGS:")
   console.info("    --debug     Outputs stack trace in case of error.")
   console.info("    --force     Avoids asking the user to confirm operation.")

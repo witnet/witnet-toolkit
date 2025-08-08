@@ -179,7 +179,7 @@ async function assets (options = {}, [...patterns]) {
 
 async function check (options = {}) {
   if (!isModuleInitialized) {
-    throw new Error(`No Witnet Radon workspace has been initialized. Please, run ${white("npx witnet radon init")} if willing to declare your own Radon assets.`)
+    throw new Error(`No Witnet Radon workspace has been initialized. Please, run ${white("npx witsdk radon init")} if willing to declare your own Radon assets.`)
   }
   try {
     const assets = loadAssets({ ...options, legacy: true })
@@ -551,6 +551,7 @@ function traceWitnetRadonRequest (request, options) {
           console.info(`${indent}   │ ${sep}    > HTTP body:      ${helpers.colors.green(source.body)}`)
         }
         if (source?.script) {
+          // console.log(source.script.toBytecode())
           const steps = source.script.disect()
           console.info(
             `${indent}   │ ${sep}    > Radon script:   ${helpers.colors.lyellow("[ ")

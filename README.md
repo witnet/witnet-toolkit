@@ -76,9 +76,9 @@ WITNET_TOOLKIT_REPORTER_URL=
 
 ### General-purpose usage
 ```
-$ npx witnet
+$ npx witsdk
 USAGE:
-    npx witnet [FLAGS] <COMMAND>
+    npx witsdk [FLAGS] <COMMAND>
 
 FLAGS:
     --help      Describes command or subcommand usage
@@ -95,9 +95,9 @@ COMMANDS:
 ```
 ### Setting up your own Radon assets workspace
 ``` 
-$ npx witnet radon init
+$ npx witsdk radon init
 ...
 
-$ npx witnet radon
+$ npx witsdk radon
 ...
 ```
