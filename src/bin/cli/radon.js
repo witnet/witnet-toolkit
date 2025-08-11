@@ -544,7 +544,7 @@ function traceWitnetRadonRequest (request, options) {
           }`
         )
         console.info(`${indent}   │ ${sep}    > URL query:      ${helpers.colors.green(source.url)}`)
-        if (source?.headers) { 
+        if (source?.headers && Object.keys(source.headers).length > 0) { 
           console.info(`${indent}   │ ${sep}    > HTTP headers:   ${helpers.colors.green(JSON.stringify(source.headers))}`)
         }
         if (source?.body) {
@@ -679,7 +679,7 @@ async function traceWitnetRadonRequestDryRun (request, options) {
         }`
       )
       console.info(`${indent}   │ ${sep}    > URL query:      ${helpers.colors.green(source.url)}`)
-      if (source?.headers) {
+      if (source?.headers && Object.keys(source.headers).length > 0) {
         console.info(`${indent}   │ ${sep}    > HTTP headers:   ${helpers.colors.green(JSON.stringify(source.headers))}`)
       }
       if (source?.body) {
