@@ -1,103 +1,113 @@
-# @witnet/sdk
+# Witnet SDK and CLI tools
 
-Interact with the Witnet network without needing to run a Witnet node of your own. Manage and stake your wits. Build and test out your own Witnet-compliant parameterized data requests before asking the Wit/Oracle to attest and forever store results into the Wit/Oracle blockchain.
+> The **Witnet SDK** empowers devops and Web3 developers to seamlessly interact with the Witnet blockchain.
 
-## Package install
+## ✨ Overview
 
-`$ npm install --save-dev @witnet/sdk`
+Users of the Witnet SDK library or the embedded CLI tools, will be able to:
 
-## JS/TS libraries
-### Import clauses
+- 👛 Create HD-wallets to hold and transact with $WIT coins.
+- 🌱 Stake and withdraw $WIT coins into and from Witnet validators.
+- 🧮 Build oracle queries adapted to all sorts of data sources and use cases.
+- 🩺 Simulate resolution of oracle queries, locally and at no cost.
+- 🧑‍⚖️ Notarize resolution of oracle queries on the Witnet blockchain.
+- 📰 Report resolution of oracle queries into smart contracts.
+- ⛓️ Check dynamic information on the Witnet P2P network.
+- 🔎 Explore public data on the Witnet blockchain.
+- 🪪 Generate legit stake-authorization codes for external customers.
+
+## 📦 Installation
+
+### CLI as a global binary
+Install the `witsdk` binary:
+```bash
+$ npm install g @witnet/sdk
+$ witsdk --version
+```
+
+### SDK as project dependency
+- Add the @witnet/sdk package to your project:
+```bash
+$ npm install --save-dev @witnet/sdk`
+```
+- Import from Javascript:
 ```javascript
-const Witnet = require('@witnet/sdk')
-const { RadonRequest, Wallet, Utils } from '@witnet/sdk'
+const { assets, utils, Witnet } = require("@witnet/sdk")`
 ```
-### Usage exmpales
-#### Managing Radon Requests
+- Import from Typescript:
+```typescript
+import { assets, utils, Witnet } from "@witnet/sdk"
 ```
-const Witnet = require("@witnet/sdk")
 
-// Example 1: CCDR for getting transaction details on a foreign EVM-chain
-const ccdr = Witnet.RadonRetrievals.CrossChainRPC({
-    rpc: Witnet.RadonRetrievals.RPCs.ETH.getTransactionByHash("\\1\\"),
-    script: Witnet.RadonScript().parseJSONMap()
-})
-const template = new Witnet.RadonTemplate({
-    retrieve: ccdr.spawnRetrievals(
-        "https://polygon-amoy.gateway.tenderly.co",
-        "https://rpc.ankr.com/polygon_amoy",
-        "https://polygon-amoy-bor-rpc.publicnode.com",    
-    ),
-    aggregate: Witnet.RadonReducers.Mode(),
-    tally: Witnet.RadonReducers.Mode(),
-});
-const request = template.buildRequestModal("0xfc3c17407f788c075483b0ad5383b1d5e6fbdc7ba500b08397c80423755c5eba")
+## ⚙️ Requirements
+- Node.js >= 20.
+- Witnet wallet with sufficient $WIT balance.
 
-// Example 2: Compose a regular randomness request
-const request = new Witnet.RadonRequest({
-    retrieve: Witnet.RadonRetrievals.RNG(),
-    tally: Witnet.RadonReducers.ConcatHash(),
-}) 
-
-// Example 3: Leverage a pre-built price feed from the WF's pricefeeds repository
-const assets = require('witnet-feeds')
-const request = assets.legacy.requests.price.crypto.WitOracleRequestPriceAvaxUsd6;
-
-// Example 4: Get WSB addresses on "conflux:core:mainnet"
-const addresses = assets.getAddresses("conflux:core:mainnet")
-
-// Example 5: Serialize a RadonRequest into a hexified buffer
-const hexString = request.toBytecode()
-
-// Example 6: Convert RadonRequest into Witnet-compliant protobuf object
-const protobuf = request.toProtobuf()
-
-// Example 7: Stringify a Witnet-compliant script
-console.info(request.retrieve[0].script.toString())
-
-// Example 8: Decode hexified bytecode into a RadonRequest
-const request = Witnet.RadonRequest.from(hexString)
-
-// Example 9: Get result of dry running a RadonRequest, locally
-const result = JSON.parse(await request.execDryRun())
+## 🔧 Configuration
+Both the CLI and the library can be configured by using a **.env** file declaring this variable:
+```bash
+WITNET_SDK_WALLET_MASTER_KEY="xprv_string_here_as_exported_from_a_node_mww_or_sheikah"
 ```
-#### Interacting with the Witnet network
-#### Sending a Data Request to the Witnet network
+
+You can optionally:
+- Settle your preferred WIT/RPC provider, like a Witnet node of your own, or third-party providers, by using the command-line option `--provider` (if using the CLI), or by setting the `WITNET_SDK_PROVIDER_URL` environment variable.
+
+## 🧪 Supported Networks
+| Witnet Network | Network id | WIT/RPC endpoints |
+| -: | :-: | :- 
+| Mainnet | `0x9fed` | https://rpc-01.witnet.io
+| Testnet | `0x749f` | https://rpc-testnet.witnet.io
+
+## 🛠️ Usage
+
+### Library modules
+
+> *Please, find Javascript and Typescript code snippets in the [Witnet Docs site](https://docs.witnet.io/witnet-sdk/how-to-guides).*
+
+### CLI modules
 
 ---
-## CLI binaries
+#### `$ npx witsdk network`
+Retrieve dynamic information from the Witnet's P2P network:
+![alt text](docs/network.png)
 
-### Optional environment constiables
-```
-WITNET_SDK_WALLET_MASTER_KEY=
-WITNET_SDK_PROVIDER_URL=
-WITNET_TOOLKIT_REPORTER_URL=
-```
+---
+#### `$ npx witsdk wallet`
+Self-custodian local wallet for spending and staking at will your own $WIT coins:
+![alt text](docs/wallet.png)
 
-### General-purpose usage
-```
-$ npx witsdk
-USAGE:
-    npx witsdk [FLAGS] <COMMAND>
+---
+#### `$ npx witsdk inspect`
+Inspect public data from the Witnet blockchain:
+![alt text](docs/inspect.png)
 
-FLAGS:
-    --help      Describes command or subcommand usage
-    --update    Forces update of underlying binaries
-    --version   Prints toolkit name and version as first line
+---
+#### `$ npx witsdk radon`
+- Manage pre-built Witnet-compliant data requests and templates (aka. Radon assets):
+![alt text](docs/radon.png)
 
-COMMANDS:
-    fetch     Fetch public data from the Wit/Oracle blockchain.
-    history   Aggregated historical data from the Wit/Oracle blockchain.
-    network   Current information about the Wit/Oracle P2P network.
-    node      Interact with private Wit/Oracle nodes, if reachable.
-    radon     Manage Radon requests and templates within your project.
-    wallet    Simple CLI wallet for spending and staking your Wits.
-```
-### Setting up your own Radon assets workspace
-``` 
-$ npx witsdk radon init
-...
+- If willing to customize Radon assets specific to your Web3 project, please initialize the **witnet/** workspace folder, please run:
+  ```bash
+  $ npx witsdk radon init
+  ```
 
-$ npx witsdk radon
-...
-```
+---
+#### `$ npx witsdk nodes`
+Interact with your own private Witnet nodes, if reachable:
+![alt text](docs/nodes.png)
+
+
+## 🔐 Security
+- Do not share your private keys.
+- Use trusted RPC endpoints when using third-party providers.
+- Disable "sensitive methods" on your Witnet node if willing to publish any of its  of the RPC ports.
+
+## Documentation
+Learn more about Witnet, the $WIT coin and the Wit/Oracle framework for smart contracts at:
+👉 https://docs.witnet.io 
+👉 https://witnet.io
+👉 https://witnet.foundation/
+
+## 🧾 License
+MIT © 2025 — Maintained by the [Witnet Project](https://github.com/witnet).
+
