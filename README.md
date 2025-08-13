@@ -21,7 +21,7 @@ Users of the Witnet SDK library or the embedded CLI tools, will be able to:
 ### CLI as a global binary
 Install the `witsdk` binary:
 ```bash
-$ npm install g @witnet/sdk
+$ npm install -g @witnet/sdk
 $ witsdk --version
 ```
 
@@ -104,6 +104,7 @@ Interact with your own private Witnet nodes, if reachable:
 
 ## Documentation
 Learn more about Witnet, the $WIT coin and the Wit/Oracle framework for smart contracts at:
+
 👉 https://docs.witnet.io 
 👉 https://witnet.io
 👉 https://witnet.foundation/
