@@ -69,24 +69,24 @@ You can optionally:
 ---
 #### `$ npx witsdk network`
 Retrieve dynamic information from the Witnet's P2P network:
-![alt text](docs/network.png)
+![Snapshot showing Witnet SDK's network commands](./docs/nodes.png)
 
 ---
 #### `$ npx witsdk wallet`
 Self-custodian local wallet for spending and staking at will your own $WIT coins:
-![alt text](docs/wallet.png)
+![Snapshot showing Witnet SDK's wallet commands](./docs/wallet.png)
 
 ---
 #### `$ npx witsdk inspect`
 Inspect public data from the Witnet blockchain:
-![alt text](docs/inspect.png)
+![Snapshot showing Witnet SDK's inspection commands](./docs/inspect.png)
 
 ---
 #### `$ npx witsdk radon`
 - Manage pre-built Witnet-compliant data requests and templates (aka. Radon assets):
-![alt text](docs/radon.png)
+![Snapshot showing Witnet SDK's radon commands](./docs/radon.png)
 
-- If willing to customize Radon assets specific to your Web3 project, please initialize the **witnet/** workspace folder, please run:
+- If willing to customize Radon assets specific to your Web3 project, please initialize the **witnet/** workspace folder:
   ```bash
   $ npx witsdk radon init
   ```
@@ -94,7 +94,7 @@ Inspect public data from the Witnet blockchain:
 ---
 #### `$ npx witsdk nodes`
 Interact with your own private Witnet nodes, if reachable:
-![alt text](docs/nodes.png)
+![Snapshot showing Witnet SDK's nodes farming commands](https://raw.githubusercontent.com/witnet/witnet-toolkit/main/docs/nodes.png)
 
 
 ## 🔐 Security
