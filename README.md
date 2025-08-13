@@ -69,22 +69,22 @@ You can optionally:
 ---
 #### `$ npx witsdk network`
 Retrieve dynamic information from the Witnet's P2P network:
-![Snapshot showing Witnet SDK's network commands](./docs/nodes.png)
+![Snapshot showing Witnet SDK's network commands](https://raw.githubusercontent.com/witnet/witnet-toolkit/main/docs/network.png)
 
 ---
 #### `$ npx witsdk wallet`
 Self-custodian local wallet for spending and staking at will your own $WIT coins:
-![Snapshot showing Witnet SDK's wallet commands](./docs/wallet.png)
+![Snapshot showing Witnet SDK's wallet commands](https://raw.githubusercontent.com/witnet/witnet-toolkit/main/docs/wallet.png)
 
 ---
 #### `$ npx witsdk inspect`
 Inspect public data from the Witnet blockchain:
-![Snapshot showing Witnet SDK's inspection commands](./docs/inspect.png)
+![Snapshot showing Witnet SDK's inspection commands](https://raw.githubusercontent.com/witnet/witnet-toolkit/main/docs/inspect.png)
 
 ---
 #### `$ npx witsdk radon`
 - Manage pre-built Witnet-compliant data requests and templates (aka. Radon assets):
-![Snapshot showing Witnet SDK's radon commands](./docs/radon.png)
+![Snapshot showing Witnet SDK's radon commands](https://raw.githubusercontent.com/witnet/witnet-toolkit/main/docs/radon.png)
 
 - If willing to customize Radon assets specific to your Web3 project, please initialize the **witnet/** workspace folder:
   ```bash
@@ -100,7 +100,7 @@ Interact with your own private Witnet nodes, if reachable:
 ## 🔐 Security
 - Do not share your private keys.
 - Use trusted RPC endpoints when using third-party providers.
-- Disable "sensitive methods" on your Witnet node if willing to publish any of its  of the RPC ports.
+- Disable "sensitive methods" on your Witnet node if willing to publish any of its RPC ports.
 
 ## Documentation
 Learn more about Witnet, the $WIT coin and the Wit/Oracle framework for smart contracts at:
