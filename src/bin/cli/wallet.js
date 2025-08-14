@@ -580,7 +580,7 @@ async function stake (options = {}, [authorization]) {
   if (available < coins.pedros) {
     throw Error(`Insufficient funds ${options?.from ? `on address ${options.from}.` : "on wallet."}`)
   } else if (params?.fees && coins.pedros <= params.fees.pedros) {
-    throw Error(`Fees equal or greater than value: ${params.fees.pedros} >= ${coins.pedros}`)
+    throw Error(`The fees cannot be greater than the value: ${params.fees.pedros} > ${coins.pedros} $pedros`)
   }
 
   // todo: validate withdrawer matches delegatee's withdrawer
@@ -643,7 +643,7 @@ async function transfer (options = {}) {
   if (available < coins.pedros) {
     throw Error(`Insufficient funds ${options?.from ? `on address ${options.from}.` : "on wallet."}`)
   } else if (params?.fees && coins.pedros <= params.fees.pedros) {
-    throw Error(`Fees equal or greater than value: ${params.fees.pedros} >= ${coins.pedros}`)
+    throw Error(`The fees cannot be greater than the value: ${params.fees.pedros} > ${coins.pedros} $pedros`)
   }
 
   // transfer value
@@ -739,7 +739,7 @@ async function unstake (options = {}) {
   if (available < value.pedros + params?.fees.pedros) {
     throw Error(`Cannot withdraw that much: ${value.pedros} > ${available}`)
   } else if (params?.fees && value.pedros <= params.fees.pedros) {
-    throw Error(`Fees equal or greater than value: ${params.fees.pedros} >= ${value.pedros}`)
+    throw Error(`The fees cannot be greater than the value: ${params.fees.pedros} > ${value.pedros} $pedros`)
   }
 
   // withdraw deposit from validator into withdrawer:
@@ -805,7 +805,7 @@ async function utxos (options = {}, [from]) {
   if (available < value.pedros) {
     throw Error(`Insufficient funds ${from ? `on address ${from}.` : "on wallet."}`)
   } else if (params?.fees && value.pedros <= params.fees.pedros) {
-    throw Error(`Fees equal or greater than value: ${params.fees.pedros} >= ${value.pedros}`)
+    throw Error(`The fees cannot be greater than the value: ${params.fees.pedros} > ${value.pedros} $pedros`)
   }
   const utxos = await ledger.selectUtxos({ value })
   const covered = utxos.map(utxo => BigInt(utxo.value))?.reduce((prev, curr) => prev + curr, 0n) || 0n
