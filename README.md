@@ -73,7 +73,7 @@ Retrieve dynamic information from the Witnet's P2P network:
 
 ---
 #### `$ npx witsdk wallet`
-Self-custodian local wallet for spending and staking at will your own $WIT coins:
+Self-custody local wallet for spending and staking at will your own $WIT coins:
 ![Snapshot showing Witnet SDK's wallet commands](https://raw.githubusercontent.com/witnet/witnet-toolkit/main/docs/wallet.png)
 
 ---
