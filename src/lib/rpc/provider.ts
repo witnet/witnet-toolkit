@@ -40,7 +40,7 @@ export interface IJsonRpcProvider {
     getSuperblock(epoch: Epoch): Promise<SuperblockReport>;
     getTransaction(txHash: Hash): Promise<TransactionReport>;
     getTransactionReceipt(txHash: Hash): Promise<TransactionReceipt>;
-    getUtxos(pkh: PublicKeyHashString, smallestFirst?: boolean): Promise<Array<UtxoMetadata>>;
+    getUtxos(pkh: PublicKeyHashString, filter?: { minValue?: bigint, signer?: PublicKeyHashString }): Promise<Array<UtxoMetadata>>;
     getValueTransfer(txHash: Hash, mode?: string): Promise<any>;
         
     sendRawTransaction(tx: any): Promise<boolean>;
@@ -353,20 +353,13 @@ export class JsonRpcProvider implements IJsonRpcProvider {
     }
     
     /// Get utxos
-    public async getUtxos(pkh: PublicKeyHashString, smallFirst = true): Promise<Array<UtxoMetadata>> {
+    public async getUtxos(pkh: PublicKeyHashString, filter?: { minValue?: bigint, fromSigner?: PublicKeyHashString }): Promise<Array<UtxoMetadata>> {
         return this
-            .callApiMethod<UtxoInfo>(Methods.GetUtxoInfo, [pkh, ])
-            .then((result: UtxoInfo) => {
-                const inversor = smallFirst ? 1 : -1
-                return result.utxos.sort((a, b) => {
-                    if (a.value > b.value) return inversor;
-                    else if (a.value < b.value) return - inversor;
-                    else return 0;
-                }).map((utxo: UtxoMetadata) => ({
-                    ...utxo,
-                    value: BigInt(utxo.value),
-                }))
-            })
+            .callApiMethod<UtxoInfo>(Methods.GetUtxoInfo, [pkh, filter])
+            .then((result: UtxoInfo) => result.utxos.map((utxo: UtxoMetadata) => ({ 
+                ...utxo, 
+                value: BigInt(utxo.value)
+            })))
     }
 
     public async getValueTransfer(txHash: Hash, mode?: string, force = false): Promise<any> {
