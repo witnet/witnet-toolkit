@@ -156,8 +156,9 @@ export abstract class Transmitter<Specs, Payload extends ITransactionPayload<Spe
         this._cleanSignatures(target)
         
         // if not yet prepared, try to cover transaction expenses with existing utxos on signers:
+        let change = 0n
         if (!this._payload.prepared) {
-            await this._payload.consumeUtxos(this.ledger, reloadUtxos)
+            change = await this._payload.consumeUtxos(this.ledger, reloadUtxos)
             .catch((err: any) => {
                 throw Error(
                     `${this.constructor.name}: cannot consume UTXOs from ${this.ledger.constructor.name} ${this.ledger.pkh}: ${err}.`
@@ -168,7 +169,7 @@ export abstract class Transmitter<Specs, Payload extends ITransactionPayload<Spe
         if (!this._payload.prepared) {
             // throws exeception if not enough utxos were found to cover transaction expenses:
             throw Error(
-                `${this.constructor.name}: insufficient funds on ${this.ledger.constructor.name} ${this.ledger.pkh}.`
+                `${this.constructor.name}: insufficient funds on ${this.ledger.constructor.name}${this.ledger.pkh}${change < 0 ? `: requires extra ${-change} $nanowits.` : "."}`
             )
         } 
 
