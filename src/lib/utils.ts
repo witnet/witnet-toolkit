@@ -16,6 +16,7 @@ export {
   ecdsaVerify,
   decipherXprv,
   parseXprv,
+  selectUtxos,
   sha256,
   totalCoins,
 } from "./crypto/utils"
