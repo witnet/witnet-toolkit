@@ -96,11 +96,11 @@ module.exports = {
       params: "WIT_ADDRESS",
       options: {
         from: {
-          hint: "Show only UTXOs that previously belong to this other address.",
+          hint: "Show only UTXOs that previously belonged to this other address.",
           param: "WIT_ADDRESS",
         },
         "min-value": {
-          hint: "Filter out UTXOs having lesser value than this amount.",
+          hint: "Filter out UTXOs with a value smaller than this amount.",
           param: "WITS"
         },
         strategy: {
