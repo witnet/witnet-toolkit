@@ -353,7 +353,10 @@ export class JsonRpcProvider implements IJsonRpcProvider {
     }
     
     /// Get utxos
-    public async getUtxos(pkh: PublicKeyHashString, filter?: { minValue?: bigint, fromSigner?: PublicKeyHashString }): Promise<Array<UtxoMetadata>> {
+    public async getUtxos(pkh: PublicKeyHashString, filter?: { minValue?: bigint | string, fromSigner?: PublicKeyHashString }): Promise<Array<UtxoMetadata>> {
+        if (filter) {
+            filter.minValue = filter?.minValue?.toString() ?? "0";
+        }
         return this
             .callApiMethod<UtxoInfo>(Methods.GetUtxoInfo, [pkh, filter])
             .then((result: UtxoInfo) => result.utxos.map((utxo: UtxoMetadata) => ({ 
