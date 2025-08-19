@@ -95,8 +95,17 @@ module.exports = {
       hint: "List UTXOs available to the specified address.",
       params: "WIT_ADDRESS",
       options: {
-        "small-first": {
-          hint: "Outputs smallest UTXOs first (default: false).",
+        from: {
+          hint: "Show only UTXOs that previously belong to this other address.",
+          param: "WIT_ADDRESS",
+        },
+        "min-value": {
+          hint: "Filter out UTXOs having lesser value than this amount.",
+          param: "WITS"
+        },
+        strategy: {
+          hint: "UTXOs listing order: `big-first`, `random`, `small-first` (default: `big-first`).",
+          param: "STRATEGY",
         },
       },
     },
@@ -227,10 +236,13 @@ async function utxos (options = {}, args = []) {
   }
   const now = Math.floor(Date.now() / 1000)
   const provider = new Witnet.JsonRpcProvider(options?.provider)
-  let utxos = await provider.getUtxos(args[0], options["small-first"] || false)
+  let utxos = await provider.getUtxos(args[0], { 
+    minValue: options["min-value"] ? Witnet.Coins.fromWits(Number(options["min-value"])).pedros : undefined, 
+    fromSigner: options["from"],
+  })
   let totalBalance = 0n
   if (!options?.verbose) {
-    utxos = utxos
+    utxos = utils.selectUtxos({ utxos, strategy: options?.strategy || "big-first"})
       .filter(utxo => utxo.timelock <= now)
       .map(utxo => {
         totalBalance += utxo.value
