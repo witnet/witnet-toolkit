@@ -358,7 +358,7 @@ export class JsonRpcProvider implements IJsonRpcProvider {
             filter.minValue = filter?.minValue?.toString() ?? "0";
         }
         return this
-            .callApiMethod<UtxoInfo>(Methods.GetUtxoInfo, [pkh, filter])
+            .callApiMethod<UtxoInfo>(Methods.GetUtxoInfo, [pkh, ...(filter ? [filter]: [])])
             .then((result: UtxoInfo) => result.utxos.map((utxo: UtxoMetadata) => ({ 
                 ...utxo, 
                 value: BigInt(utxo.value)
