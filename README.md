@@ -6,7 +6,7 @@
 
 Users of the Witnet SDK library or the embedded CLI tools, will be able to:
 
-- 👛 Create HD-wallets to hold and transact with $WIT coins.
+- 👛 Create self-custody HD-wallets to hold and transact with $WIT coins.
 - 🌱 Stake and withdraw $WIT coins into and from Witnet validators.
 - 🧮 Build oracle queries adapted to all sorts of data sources and use cases.
 - 🩺 Simulate resolution of oracle queries, locally and at no cost.
