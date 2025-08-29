@@ -29,6 +29,8 @@ type DataRequestOutputSLA = {
     witnessReward?: number,
 }
 
+const COLLATERAL_RATIO = 100n;
+
 const DR_COMMIT_TX_WEIGHT = 400
 const DR_REVEAL_TX_WEIGHT = 200
 const DR_TALLY_TX_WEIGHT = 100
@@ -388,10 +390,10 @@ export class DataRequestPayload extends TransactionPayloadMultiSig<DataRequestPa
         return fees / BigInt(witnesses) || 1n
     }
 
-    protected _fees2UnitaryReward(fees: bigint, witnesses: number): bigint {
+    protected _fees2UnitaryReward(fees: bigint, _witnesses: number): bigint {
         return BigMath.max(
             fees,
-            1n + DataRequestPayload.MIN_COLLATERAL / BigInt(witnesses)
+            1n + DataRequestPayload.MIN_COLLATERAL / COLLATERAL_RATIO
         );
     }
     protected _fees2Value(fees: bigint, witnesses: number): bigint {
