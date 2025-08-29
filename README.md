@@ -67,22 +67,22 @@ You can optionally:
 ### CLI modules
 
 ---
-#### `$ npx witsdk network`
+#### `npx witsdk network`
 Retrieve dynamic information from the Witnet's P2P network:
 ![Snapshot showing Witnet SDK's network commands](https://raw.githubusercontent.com/witnet/witnet-toolkit/main/docs/network.png)
 
 ---
-#### `$ npx witsdk wallet`
+#### `npx witsdk wallet`
 Self-custody local wallet for spending and staking at will your own $WIT coins:
 ![Snapshot showing Witnet SDK's wallet commands](https://raw.githubusercontent.com/witnet/witnet-toolkit/main/docs/wallet.png)
 
 ---
-#### `$ npx witsdk inspect`
+#### `npx witsdk inspect`
 Inspect public data from the Witnet blockchain:
 ![Snapshot showing Witnet SDK's inspection commands](https://raw.githubusercontent.com/witnet/witnet-toolkit/main/docs/inspect.png)
 
 ---
-#### `$ npx witsdk radon`
+#### `npx witsdk radon`
 - Manage pre-built Witnet-compliant data requests and templates (aka. Radon assets):
 ![Snapshot showing Witnet SDK's radon commands](https://raw.githubusercontent.com/witnet/witnet-toolkit/main/docs/radon.png)
 
@@ -92,7 +92,7 @@ Inspect public data from the Witnet blockchain:
   ```
 
 ---
-#### `$ npx witsdk nodes`
+#### `npx witsdk nodes`
 Interact with your own private Witnet nodes, if reachable:
 ![Snapshot showing Witnet SDK's nodes farming commands](https://raw.githubusercontent.com/witnet/witnet-toolkit/main/docs/nodes.png)
 
