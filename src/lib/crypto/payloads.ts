@@ -174,6 +174,8 @@ export abstract class TransactionPayloadMultiSig<Specs>
                         }
                     }
                 }
+            } else {
+                return 0n;
             }
         }
         // prepare outputs, only if value and fees got fully covered for the first time:
