@@ -160,6 +160,17 @@ export class RadonRequest extends RadonArtifact {
     return (await execRadonBytecode(this.toBytecode(), '--json')).trim()
   }
 
+  public get dataType(): string  {
+    return (
+      this.sources[0].method === retrievals.Methods.RNG 
+        ? "RadonBytes"
+        : (this.sources && this.sources[0] && this.sources[0].script && this.sources[0].script.outputType
+          ? this.sources[0].script.outputType.constructor.name 
+          : "RadonAny"
+        )
+    )
+  }
+
   public get radHash(): string {
     return toHexString(sha256(this._encode()), false)
   }
@@ -861,6 +872,7 @@ export namespace types {
   export const RadonMap = _RadonMap;
   export const RadonScript = _RadonScript;
   export const RadonString = _RadonString;
+  export const RadonEncodings = _RadonEncodings;
 }
 
 function proxyHandler<T>(t: { new(specs: any): T; }) {
