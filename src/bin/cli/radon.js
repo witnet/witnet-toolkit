@@ -750,7 +750,7 @@ async function traceWitnetRadonRequestDryRun (request, options) {
   console.info(`${indent}│ Result size:    ${helpers.colors.cyan("xxx bytes")}${" ".repeat(flexbar.length + 13 - 9)} │`)
   console.info(`${indent}└────┬─────────────────────────${flexbar}─┘`)
   const printMapItem = (indent, width, key, value, indent2 = "") => {
-    if (key) key = `${indent2}"${key}": `
+    if (key) key = `${indent2}${key}: `
     else key = `${indent2}`
     let type = extractTypeName(Object.keys(value)[0])
     value = Object.values(value)[0]
@@ -774,13 +774,13 @@ async function traceWitnetRadonRequestDryRun (request, options) {
           }`
         )
       }
-      Object.entries(value).forEach(([key, value]) => printMapItem(indent, width, type === "Map" ? key : null, value, indent2 + " "))
+      Object.entries(value).forEach(([key, value]) => printMapItem(indent, width, type === "Map" ? key : null, helpers.unescapeSlashes(value), indent2 + " "))
     } else {
       if (key.length > width - 12) {
         console.info(`${indent}        ${helpers.colors.yellow(type)} ${" ".repeat(width - 15)}${helpers.colors.green("...")}`)
       } else {
         if (["String", "Error"].includes(type)) {
-          value = JSON.stringify(value)
+          // value = JSON.stringify(value)
         }
         type = `[ ${type}${" ".repeat(7 - type.length)} ]`
         const result = key + value
@@ -789,7 +789,7 @@ async function traceWitnetRadonRequestDryRun (request, options) {
           value = value.slice(0, width - 15 - key.length) + "..."
           // spaces = 0
         }
-        console.info(`${indent}        ${helpers.colors.yellow(type)} ${helpers.colors.green(key)}${helpers.colors.mcyan(value)}`)
+        console.info(`${indent}        ${helpers.colors.yellow(type)} ${helpers.colors.green(key)}"${helpers.colors.mcyan(value)}"`)
       }
     }
   }
