@@ -11,6 +11,9 @@ module.exports = {
             script: RadonScript(types.RadonMap).getString("etag").length().greaterThan(0)
         }),
     }),
-    WitOracleIpfsFileSha256: {},
-    WitOracleIpfsFileSha256Sealed: {},
+    WitOracleIpfsFileSha256: new RadonModal({
+        retrieval: retrievals.HttpGet({
+            script: RadonScript(types.RadonBytes).hash()
+        })
+    })
 }
