@@ -92,13 +92,13 @@ export class DataRequestPayload extends TransactionPayloadMultiSig<DataRequestPa
             );
             const commitAndRevealFee = this._fees2UnitaryCommitRevealReward(this._fees, witnesses)
             const witnessReward = this._fees2UnitaryReward(this._fees, witnesses) 
-            const collateral = witnessReward * BigInt(witnesses)
+            const collateral = witnessReward * COLLATERAL_RATIO //BigInt(witnesses)
             if (collateral > Number.MAX_SAFE_INTEGER) 
-                throw new TypeError(`${this.constructor.name}: too much witness collateral: ${collateral.toString()} > ${Number.MAX_SAFE_INTEGER}`);
+                throw new TypeError(`${this.constructor.name}: excessive witness collateral: ${collateral.toString()} > ${Number.MAX_SAFE_INTEGER}`);
             else if (witnessReward > Number.MAX_SAFE_INTEGER)
-                throw new TypeError(`${this.constructor.name}: too much witness reward: ${witnessReward.toString()} > ${Number.MAX_SAFE_INTEGER}`);
+                throw new TypeError(`${this.constructor.name}: excessive witness reward: ${witnessReward.toString()} > ${Number.MAX_SAFE_INTEGER}`);
             else if (commitAndRevealFee > Number.MAX_SAFE_INTEGER)
-                throw new TypeError(`${this.constructor.name}: too much commit/reveal fee: ${commitAndRevealFee.toString()} > ${Number.MAX_SAFE_INTEGER}`);
+                throw new TypeError(`${this.constructor.name}: excessive commit/reveal fee: ${commitAndRevealFee.toString()} > ${Number.MAX_SAFE_INTEGER}`);
             return {
                 collateral: Number(collateral),
                 commitAndRevealFee: Number(commitAndRevealFee),
@@ -387,13 +387,13 @@ export class DataRequestPayload extends TransactionPayloadMultiSig<DataRequestPa
     }
 
     protected _fees2UnitaryCommitRevealReward(fees: bigint, witnesses: number): bigint {
-        return fees / BigInt(witnesses) || 1n
+        return (fees / BigInt(witnesses)) || 1n
     }
 
     protected _fees2UnitaryReward(fees: bigint, _witnesses: number): bigint {
         return BigMath.max(
             fees,
-            1n + DataRequestPayload.MIN_COLLATERAL / COLLATERAL_RATIO
+            BigInt(Math.ceil(Number(DataRequestPayload.MIN_COLLATERAL / COLLATERAL_RATIO))),
         );
     }
     protected _fees2Value(fees: bigint, witnesses: number): bigint {

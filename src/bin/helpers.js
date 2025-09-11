@@ -716,7 +716,7 @@ function traceTransactionReceipt (receipt) {
       mblue(receipt.recipients.filter((pkh, index, array) => index === array.indexOf(pkh)))
     }`)
   }
-  if (receipt?.fees) console.info(` > Fee:          ${yellow(receipt.fees.toString(2))}`)
+  if (receipt?.fees) console.info(` > Network fee:  ${yellow(receipt.fees.toString(2))}`)
   if (receipt?.value) console.info(` > Value:        ${myellow(receipt.value.toString(2))}`)
   if (receipt?.weight) console.info(` > Weight:       ${mgreen(commas(receipt.weight))}`)
   if (receipt?.witnesses) {
