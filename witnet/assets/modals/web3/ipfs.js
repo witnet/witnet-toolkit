@@ -1,8 +1,6 @@
 const {
   RadonModal,
   RadonScript,
-  // filters,
-  // reducers,
   retrievals,
   types,
 } = require("../../../../src/lib/radon")
@@ -10,8 +8,7 @@ const {
 module.exports = {
     WitOracleIpfsFileExists: new RadonModal({
         retrieval: retrievals.HttpHead({
-            headers: {},
-            script: RadonScript(types.RadonString),
+            script: RadonScript(types.RadonMap).getString("etag").length().greaterThan(0)
         }),
     }),
     WitOracleIpfsFileSha256: {},
