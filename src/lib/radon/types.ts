@@ -9,12 +9,34 @@ export { HexString as RadonBytecode } from "../types"
 export enum RadonEncodings {
     HexString = 0,
     Base64 = 1,
+    Utf8 = 2,
+}
+
+enum RadonHashFunctions {
+    // Blake256 = 0x00,
+    // Blake512 = 0x01,
+    // Blake2s256 = 0x02,
+    // Blake2b512 = 0x03,
+    // MD5_128 = 0x04,
+    // Ripemd128 = 0x05,
+    // Ripemd160 = 0x06,
+    // Ripemd320 = 0x07,
+    // SHA1_160 = 0x08,
+    // SHA2_224 = 0x09,
+    SHA2_256 = 0x0A,
+    // SHA2_384 = 0x0B,
+    // SHA2_512 = 0x0C,
+    // SHA3_224 = 0x0D,
+    // SHA3_256 = 0x0E,
+    // SHA3_384 = 0x0F,
+    // SHA3_512 = 0x10,
+    // Whirlpool512 = 0x11,
 }
 
 export enum RadonOperators {
     ArrayLength = 0x10,
     ArrayFilter = 0x11,
-    ArrayJoin = 0x12,
+    // ArrayJoin = 0x12,
     ArrayGetArray = 0x13,
     ArrayGetBoolean = 0x14,
     ArrayGetBytes = 0x15,
@@ -25,16 +47,16 @@ export enum RadonOperators {
     ArrayMap = 0x1a,
     ArrayReduce = 0x1b,
     ArraySort = 0x1d,
-    ArrayPick = 0x1e,
-    BooleanStringify = 0x20,
+    // ArrayPick = 0x1e,
+    BooleanToString = 0x20,
     BooleanNegate = 0x22,
-    BytesStringify = 0x30,
+    BytesToString = 0x30,
     BytesHash = 0x31,
     BytesAsInteger = 0x32,
     BytesLength = 0x34,
     BytesSlice = 0x3c,
     FloatAbsolute = 0x50,
-    FloatStringify = 0x51,
+    FloatToString = 0x51,
     FloatCeiling = 0x52,
     FloatGreaterThan = 0x53,
     FloatFloor = 0x54,
@@ -47,7 +69,7 @@ export enum RadonOperators {
     FloatTruncate = 0x5d,
     IntegerAbsolute = 0x40,
     IntegerToFloat = 0x41,
-    IntegerStringify = 0x42,
+    IntegerToString = 0x42,
     IntegerGreaterThan = 0x43,
     IntegerLessThan = 0x44,
     IntegerModulo = 0x46,
@@ -55,7 +77,7 @@ export enum RadonOperators {
     IntegerNegate = 0x48,
     IntegerPower = 0x49,
     IntegerToBytes = 0x4a,
-    MapStringify = 0x60,
+    MapToString = 0x60,
     MapGetArray = 0x61,
     MapGetBoolean = 0x62,
     MapGetFloat = 0x64,
@@ -69,6 +91,7 @@ export enum RadonOperators {
     StringAsBoolean = 0x70,
     StringAsBytes = 0x71,
     StringAsFloat = 0x72,
+    StringAsInteger = 0x73,
     StringLength = 0x74,
     StringMatch = 0x75,
     StringParseJSONArray = 0x76,
@@ -76,9 +99,9 @@ export enum RadonOperators {
     StringParseXMLMap = 0x78,
     StringToLowerCase = 0x79,
     StringToUppserCase = 0x7a,
-    StringParseReplace = 0x7b,
-    StringParseSlice = 0x7c,
-    StringParseSplit = 0x7d,
+    StringReplace = 0x7b,
+    StringSlice = 0x7c,
+    StringSplit = 0x7d,
 }
 
 abstract class RadonClass {
@@ -400,10 +423,10 @@ export class RadonArray<ItemsType extends RadonAny = RadonAny> extends RadonAny 
      * @param separator Separator to be used when joining strings. When joining RadonMaps, it can be used to settle base schema on resulting object.
      * @param outputType Radon type of the output value. 
      */
-    public join<OutputType extends RadonAny = RadonAny>(separator = "", outputType?: { new(): ItemsType; }) {
-        if (outputType) this._pushOperator(RadonArray<OutputType>, [separator])
-        else this._pushOperator(RadonArray<ItemsType>, [separator])
-    }
+    // public join<OutputType extends RadonAny = RadonAny>(separator = "", outputType?: { new(): ItemsType; }) {
+    //     if (outputType) this._pushOperator(RadonArray<OutputType>, [separator])
+    //     else this._pushOperator(RadonArray<ItemsType>, [separator])
+    // }
     /**
      * Count the number of items. 
      * @returns A `RadonInteger` object.
@@ -440,21 +463,20 @@ export class RadonArray<ItemsType extends RadonAny = RadonAny> extends RadonAny 
      * @param innerScript (Optional) Sorting script returning either a `RadonInteger` or a `RadonString` object.
      * @returns A `RadonArray` object.
      */
-    // TODO
-    // public sort(innerScript?: RadonOperator<RadonString | RadonInteger>) {
-    //     return this._pushOperator(RadonArray<ItemsType>, [innerScript])
-    // }
+    public sort(innerScript?: RadonOperator) {
+        return this._pushOperator(RadonArray<ItemsType>, [innerScript])
+    }
     /**
      * Take a selection of items from the input array.
      * @param indexes Indexes of the input items to take into the output array. 
      * @return A `RadonArray` object.
      */
-    public pick(...indexes: number[]) {
-        if (Array(indexes).length == 0) {
-            throw new EvalError(`\x1b[1;33mRadonArray::pick: a non-empty array of numbers must be provided\x1b[0m`)
-        }
-        return this._pushOperator(RadonArray<ItemsType>, [...indexes])
-    }
+    // public pick(...indexes: number[]) {
+    //     if (Array(indexes).length == 0) {
+    //         throw new EvalError(`\x1b[1;33mRadonArray::pick: a non-empty array of numbers must be provided\x1b[0m`)
+    //     }
+    //     return this._pushOperator(RadonArray<ItemsType>, [...indexes])
+    // }
 }
 
 export class RadonBoolean extends RadonAny {
@@ -469,16 +491,17 @@ export class RadonBoolean extends RadonAny {
      * Cast value into a string. 
      * @returns A `RadonString` object.
      */
-    public stringify() {
+    public toString() {
         return this._pushOperator(RadonString, [])
     }
 }
 
 export class RadonBytes extends RadonAny {
     static readonly Encodings = RadonEncodings;
+    static readonly Hashers = RadonHashFunctions;
     /**
      * Convert buffer into (big-endian) integer.
-     * @returns A `RadonBytes` object.
+     * @returns A `RadonInteger` object.
      */
     public asInteger() {
         return this._pushOperator(RadonInteger, [])
@@ -488,7 +511,7 @@ export class RadonBytes extends RadonAny {
      * @returns A `RadonBytes` object.
      */
     public hash() {
-        return this._pushOperator(RadonBytes, [])
+        return this._pushOperator(RadonBytes, [RadonBytes.Hashers.SHA2_256])
     }
     /**
      * Count the number of bytes. 
@@ -513,9 +536,10 @@ export class RadonBytes extends RadonAny {
      * @param encoding Enum integer value specifying the encoding schema on the output string, standing:
      *   0 -> Hex string (default, if none was specified)
      *   1 -> Base64 string
+     *   2 -> Utf-8 string
      * @returns A `RadonString` object.
      */
-    public stringify(encoding = RadonEncodings.HexString) {
+    public toString(encoding = RadonEncodings.HexString) {
         return this._pushOperator(RadonString, [encoding])
     }
 }
@@ -601,7 +625,7 @@ export class RadonFloat extends RadonAny {
      * Stringify the float value.
      * @returns A `RadonString` object.
      */
-    public stringify() {
+    public toString() {
         return this._pushOperator(RadonString, [])
     }
     /**
@@ -672,7 +696,7 @@ export class RadonInteger extends RadonAny {
      * Stringify the value.
      * @returns A `RadonString` object.
      */
-    public stringify() {
+    public toString() {
         return this._pushOperator(RadonString, [])
     }
     /**
@@ -694,15 +718,14 @@ export class RadonInteger extends RadonAny {
 export class RadonMap extends RadonAny {
     /**
      * Alter the value of the item(s) identified by `keys`, applying the given `innerScript` to each one of them.
-     * @param key 
+     * @param keys  
      * @param innerScript 
      * @returns The same RadonMap upon which this operator is executed, with the specified item(s) altered
      * by the given `innerScript`.
      */
-    // TODO
-    // public alter<AlteredOutputType extends RadonAny>(innerScript: RadonOperator<AlteredOutputType>, ...keys: string[]) {
-    //     return this._pushOperator(RadonMap, [innerScript, ...keys])
-    // }
+    public alter(innerScript: RadonOperator, ...keys: string[]) {
+        return this._pushOperator(RadonMap, [[...keys], innerScript])
+    }
     /**
      * Fetch the array within the specified `key` field.
      * @param key 
@@ -781,7 +804,7 @@ export class RadonMap extends RadonAny {
      * Stringify input `RadonMap` object into a JSON string.
      * @return A `RadonString` object.
      */
-    public stringify() {
+    public toString() {
         return this._pushOperator(RadonString, [])
     }
 }
@@ -810,6 +833,13 @@ export class RadonString extends RadonAny {
      */
     public asFloat() {
         return this._pushOperator(RadonFloat, [])
+    }
+    /**
+     * Cast into an integer number.
+     * @returns A `RadonInteger` object.
+     */
+    public asInteger() {
+        return this._pushOperator(RadonInteger, [])
     }
     /**
      * Count the number of chars. 

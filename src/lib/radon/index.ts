@@ -35,6 +35,7 @@ import {
   RadonMap as _RadonMap,
   RadonString as _RadonString,
   RadonScript as _RadonScript,
+  RadonEncodings as _RadonEncodings,
 } from './types'
 
 type Args = string[] | string[][];
