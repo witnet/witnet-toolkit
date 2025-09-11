@@ -347,7 +347,8 @@ export class RadonModal extends RadonTemplate {
   }
 
   public get argsCount(): number {
-    return this._argsCount - 1;
+    const _providersArgsCount = Math.max(...this.providers.map(url => getWildcardsCountFromString(url)))
+    return _providersArgsCount > 0 ? Math.max(this._argsCount, _providersArgsCount) : this._argsCount - 1;
   }
 
   public get providers(): Array<string> {
@@ -359,16 +360,15 @@ export class RadonModal extends RadonTemplate {
   }
 
   public buildRadonRequest(args?: any | string[]): RadonRequest {
-    if (this.argsCount > 0) {
-      return this.buildRadonTemplate(this.providers).buildRadonRequest(args)
-    } else if (this.providers.length === 0) {
+    if (this.providers.length === 0) {
       throw new TypeError(`RadonModal: no providers were previously settled.`)
     }
-    return new RadonRequest({
-      sources: this.sources[0].spawnRetrievals(...this.providers),
-      sourcesReducer: this.sourcesReducer,
-      witnessReducer: this.witnessReducer,
-    })
+    const template = this.buildRadonTemplate(this.providers)
+    return (
+      template.homogeneous
+        ? template.buildRadonRequest(args)
+        : template.buildRadonRequest(template.sources.map(source => args.slice(0, source.argsCount)))
+    )
   }
 
   public buildRadonTemplate(providers?: Array<string>): RadonTemplate {
@@ -481,7 +481,7 @@ export class RadonRetrieval {
   }
 
   public isModal(): boolean {
-    return !this.url || this.url === "\\0\\"
+    return !this.url || this.url === "\\0\\" || this.url.indexOf("\\0\\") >= 0
   }
 
   public isParameterized(): boolean {
@@ -494,7 +494,7 @@ export class RadonRetrieval {
    */
   public foldArgs(args: any | string[]): RadonRetrieval {
     if (this.argsCount === 0) {
-      throw new TypeError(`RadonRetrieval: cannot fold unparameterized retrieval`)
+      return this//throw new TypeError(`RadonRetrieval: cannot fold unparameterized retrieval`)
     } 
     const params: string[] = []
     if (Array.isArray(args)) {
