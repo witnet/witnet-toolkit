@@ -1,3 +1,4 @@
+const cbor = require("cbor")
 const fs = require("fs")
 const inquirer = require("inquirer")
 const merge = require("lodash.merge")
@@ -244,11 +245,12 @@ async function decode (options = {}, args = []) {
       if (artifact instanceof Witnet.Radon.RadonRequest) {
         prefix = "RadonRequest::"
       } else if (artifact instanceof Witnet.Radon.RadonModal) {
-        artifact.providers = ["https://dummy"]
+        artifact.providers = [...args[0].split(";") || "https://dummy"]
         const modalArgs = []
-        let argIndex = 0
+        let argIndex = 1
         while (modalArgs.length < artifact.argsCount) {
-          modalArgs.push(`{:${++argIndex}}`)
+          modalArgs.push(args[argIndex] || `{:${argIndex}}`)
+          argIndex += 1
         }
         artifact = artifact.buildRadonRequest(modalArgs)
         prefix = "RadonModal::"
@@ -309,33 +311,48 @@ async function dryrun (options = {}, args = []) {
       if (artifact instanceof Witnet.Radon.RadonRequest) {
         prefix = "RadonRequest::"
       } else {
-        if (!artifact?.samples) {
-          console.error(`${artifact.constructor.name}::${key}: cannot dry-run if no sample parameters are declared.\n`)
-          continue
-        }
         let artifactArgs = []
-        if (options?.default) {
-          artifactArgs = Object.values(artifact.samples)[0]
-        } else {
-          const prompt = inquirer.createPromptModule()
-          const sample = await prompt([{
-            choices: Object.keys(artifact.samples),
-            message: `${artifact.constructor.name}::${key} args:`,
-            name: "key",
-            type: "list",
-          }])
-          artifactArgs = artifact.samples[sample.key]
-        }
         if (artifact instanceof Witnet.Radon.RadonModal) {
-          artifact.providers = artifactArgs.shift().split(";")
-          artifact = artifact.buildRadonRequest(artifactArgs)
+          if (args.length < artifact.argsCount) {
+            throw new Error(`missing parameters for Radon Modal.`)
+          } 
+          artifact.providers = [...args[0].split(";")]
+          const modalArgs = []
+          let argIndex = 1
+          while (modalArgs.length < artifact.argsCount) {
+            modalArgs.push(args[argIndex])
+            argIndex += 1
+          }
+          artifact = (
+            artifact.homogeneous 
+              ? artifact.buildRadonRequest(modalArgs)
+              : artifact.buildRadonRequest([ ...artifact.sources.map(source => modalArgs.slice(0, source.argsCount)) ])
+          )
           prefix = "RadonModal::"
-        } else if (artifact instanceof Witnet.Radon.RadonTemplate) {
-          artifact = artifact.buildRadonRequest(artifactArgs)
-          prefix = "RadonTemplate::"
-        } else if (artifact instanceof Witnet.Radon.RadonRetrieval) {
-          artifact = new Witnet.Radon.RadonRequest({ sources: artifact.foldArgs(artifactArgs) })
-          prefix = "RadonRetrieval::"
+        } else {
+          if (!artifact?.samples) {
+            console.error(`${artifact.constructor.name}::${key}: cannot dry-run if no sample parameters are declared.\n`)
+            continue
+          }
+          if (options?.default) {
+            artifactArgs = Object.values(artifact.samples)[0]
+          } else {
+            const prompt = inquirer.createPromptModule()
+            const sample = await prompt([{
+              choices: Object.keys(artifact.samples),
+              message: `${artifact.constructor.name}::${key} args:`,
+              name: "key",
+              type: "list",
+            }])
+            artifactArgs = artifact.samples[sample.key]
+          }
+          if (artifact instanceof Witnet.Radon.RadonTemplate) {
+            artifact = artifact.buildRadonRequest(artifactArgs)
+            prefix = "RadonTemplate::"
+          } else if (artifact instanceof Witnet.Radon.RadonRetrieval) {
+            artifact = new Witnet.Radon.RadonRequest({ sources: artifact.foldArgs(artifactArgs) })
+            prefix = "RadonRetrieval::"
+          }
         }
       }
       if (!headline) {
@@ -617,6 +634,12 @@ async function traceWitnetRadonRequestDryRun (request, options) {
   const result = report?.aggregate.result
   const resultType = Object.keys(result)[0]
   const resultValue = Object.values(result)[0]
+  let resultSize 
+  switch (resultType) {
+    case "RadonBytes": resultSize = cbor.encode(Uint8Array.from(resultValue)).byteLength - 2; break;
+    case "RadonInteger": case "RadonFloat": resultSize = cbor.encode(resultValue).byteLength; break;
+    case "RadonArray": case "RadonMap": resultSize = cbor.encode(JSON.parse(resultValue)).byteLength; break;
+  }
   if (options?.json) {
     if (options?.verbose) {
       console.info(JSON.stringify(report, null, options?.indent ? " ".repeat(options.indent) : ""))
@@ -747,10 +770,15 @@ async function traceWitnetRadonRequestDryRun (request, options) {
       } │`
     )
   }
-  console.info(`${indent}│ Result size:    ${helpers.colors.cyan("xxx bytes")}${" ".repeat(flexbar.length + 13 - 9)} │`)
+  if (resultSize) {
+    console.info(`${indent}│ CBOR size:      ${
+      helpers.colors.cyan(`${resultSize} bytes`)
+      }${" ".repeat(flexbar.length + 7 - resultSize.toString().length)
+      } │`)
+  }
   console.info(`${indent}└────┬─────────────────────────${flexbar}─┘`)
   const printMapItem = (indent, width, key, value, indent2 = "") => {
-    if (key) key = `${indent2}"${key}": `
+    if (key) key = `${indent2}${key}: `
     else key = `${indent2}`
     let type = extractTypeName(Object.keys(value)[0])
     value = Object.values(value)[0]
@@ -774,13 +802,13 @@ async function traceWitnetRadonRequestDryRun (request, options) {
           }`
         )
       }
-      Object.entries(value).forEach(([key, value]) => printMapItem(indent, width, type === "Map" ? key : null, value, indent2 + " "))
+      Object.entries(value).forEach(([key, value]) => printMapItem(indent, width, type === "Map" ? key : null, helpers.unescapeSlashes(value), indent2 + " "))
     } else {
       if (key.length > width - 12) {
         console.info(`${indent}        ${helpers.colors.yellow(type)} ${" ".repeat(width - 15)}${helpers.colors.green("...")}`)
       } else {
         if (["String", "Error"].includes(type)) {
-          value = JSON.stringify(value)
+          // value = JSON.stringify(value)
         }
         type = `[ ${type}${" ".repeat(7 - type.length)} ]`
         const result = key + value
@@ -789,7 +817,7 @@ async function traceWitnetRadonRequestDryRun (request, options) {
           value = value.slice(0, width - 15 - key.length) + "..."
           // spaces = 0
         }
-        console.info(`${indent}        ${helpers.colors.yellow(type)} ${helpers.colors.green(key)}${helpers.colors.mcyan(value)}`)
+        console.info(`${indent}        ${helpers.colors.yellow(type)} ${helpers.colors.green(key)}"${helpers.colors.mcyan(value)}"`)
       }
     }
   }

@@ -1,9 +1,12 @@
+const cbor = require("cbor")
 const moment = require("moment")
 
 const helpers = require("../helpers")
 const { utils, Witnet } = require("../../../dist/src")
 
 const { cyan, gray, green, lyellow, magenta, mgreen, mmagenta, myellow, yellow } = helpers.colors
+
+const DEFAULT_LIMIT = 100
 
 /// ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /// CLI SUBMODULE CONSTANTS ===========================================================================================
@@ -15,7 +18,10 @@ module.exports = {
   flags: {
     provider: {
       hint: "Public Wit/Oracle JSON-RPC provider, other than default.",
-      param: ":http-url",
+      param: "URL",
+    },
+    reverse: {
+      hint: "List most recent data requests first (default: true).",
     },
     verbose: {
       hint: "Outputs validators' nonce and last validation epochs.",
@@ -43,22 +49,22 @@ module.exports = {
         },
       },
     },
-    "dataRequests*": {
+    dataRequests: {
       hint: "Search for in-flight or recently solved data request transactions.",
-      params: "BYTECODE | RAD_HASH | DDR_HASH",
+      params: "RAD_BYTECODE | RAD_HASH",
       options: {
         limit: { hint: "Limit output records (default: 100).", param: "LIMIT" },
+        offset: {
+          hint: "Skips first records as found on server side (default: 0).",
+          param: "SKIP",
+        },
+        mode: {
+          hint: "Possible report formats (default: `ethereal`).",
+          param: "`ethereal` | `full``",
+        },
         since: {
-          hint: "Number of past epochs to search for (default: 256; max: 2048).",
+          hint: "Number of past epochs to search for (default: -30240).",
           param: "EPOCH|MINUS_EPOCHS",
-        },
-        "min-unitary-reward": {
-          hint: "Filters out those providing less unitary reward than specified.",
-          param: "NANOWITS",
-        },
-        "min-witnesses": {
-          hint: "Filters out those solved with less than specified witnesses.",
-          param: "NUM_WITNESSES",
         },
       },
     },
@@ -111,7 +117,7 @@ module.exports = {
     },
   },
   subcommands: {
-    balance, block, dataRequest, superblock, transaction, validators, withdrawers, utxos, valueTransfer,
+    balance, block, dataRequest, dataRequests, superblock, transaction, validators, withdrawers, utxos, valueTransfer,
   },
 }
 
@@ -165,6 +171,69 @@ async function block (options = {}, args = []) {
         return value
     }
   }, 2)))
+}
+async function dataRequests(options = {}, [arg]) {
+  if (!arg) {
+    throw new Error("No RAD_HASH or RAD_RAD_BYTECODE was specified.")
+  }
+  const provider = new Witnet.JsonRpcProvider(options?.provider)
+    if (!helpers.isHexString(arg)) {
+      throw new Error(`Invalid hex string was provided: '${arg}'`)
+    }
+    let radHash
+    if (helpers.isHexStringOfLength(arg, 32)) {
+      radHash = arg
+    } else {
+      const request = Witnet.Radon.RadonRequest.fromBytecode(arg)
+      radHash = request.radHash
+  const results = await helpers.prompter(
+    provider.searchDataRequests(radHash, {
+      limit: options?.limit ? parseInt(options.limit) : undefined,
+      offset: options?.offset ? parseInt(options.offset) : undefined,
+      mode: options?.mode,
+      reverse: options?.reverse, 
+    })
+  )
+  helpers.traceTable(
+    results.map(record => {
+      let result = record?.result.cbor_bytes ? cbor.decode(record?.result.cbor_bytes, { encoding: "hex" }) : ""
+      const request = Witnet.Radon.RadonRequest.fromBytecode(record.query.rad_bytecode)
+      const dataType = result.constructor.name === "Tagged" ? "RadonError" : request.dataType
+      if (dataType !== "RadonError") result = Buffer.from(utils.fromHexString(record?.result.cbor_bytes)).toString('base64');
+      else if (result.constructor.name === "Buffer") result = result.toString('base64');
+      return [
+        record.block_epoch,
+        record.hash,
+        record.query.witnesses,
+        Witnet.Coins.fromPedros(record.query.unitary_reward).toString(2),
+        record?.result.timestamp ? moment.unix(record.result.timestamp).fromNow() : "",
+        dataType === "RadonError" ? helpers.colors.mred("RadonError") : helpers.colors.myellow(dataType),
+        record?.result ? record.result.cbor_bytes.length / 2 + " bytes" : "",
+        dataType === "RadonError" ? helpers.colors.red(result) : (
+          record?.result.finalized ? helpers.colors.mcyan(result) : helpers.colors.cyan(result)
+        ),
+      ]
+    }), {
+      headlines: [ 
+        "EPOCH:", 
+        "DATA REQUEST TRANSACION HASH", 
+        "witnesses", 
+        "total fees",
+        "DATA FRESHNESS:", 
+        ":DATA TYPE",
+        "CBOR SIZE:",
+        ":RESULT CBOR BYTES" 
+      ],
+      humanizers: [ helpers.commas ],
+      colors: [
+        , helpers.colors.gray,
+        helpers.colors.green,
+        helpers.colors.green,
+        helpers.colors.yellow,,
+        helpers.colors.gray,
+      ]
+    }
+  )
 }
 
 async function dataRequest (options = {}, args = []) {

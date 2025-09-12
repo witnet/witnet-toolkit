@@ -42,6 +42,13 @@ export interface IJsonRpcProvider {
     getTransactionReceipt(txHash: Hash): Promise<TransactionReceipt>;
     getUtxos(pkh: PublicKeyHashString, filter?: { minValue?: bigint, signer?: PublicKeyHashString }): Promise<Array<UtxoMetadata>>;
     getValueTransfer(txHash: Hash, mode?: string): Promise<any>;
+
+    searchDataRequests(radHash: Hash, options?: { 
+        limit?: number, 
+        offset?: number, 
+        mode?: GetDataRequestMode, 
+        reverse?: boolean 
+    }): Promise<Array<GetDataRequestFullReport | GetDataRequestEtherealReport>>;
         
     sendRawTransaction(tx: any): Promise<boolean>;
 }
@@ -371,6 +378,26 @@ export class JsonRpcProvider implements IJsonRpcProvider {
             mode: mode,
             force
         })
+    }
+
+    public async searchDataRequests(
+        radHash: Hash, 
+        options?: { 
+            limit?: number, 
+            offset?: number,
+            mode?: GetDataRequestMode, 
+            reverse?: boolean 
+    }): Promise<Array<GetDataRequestEtherealReport | GetDataRequestFullReport>> {
+        return this
+            .callApiMethod<Array<any[]>>(Methods.SearchDataRequests, {
+                radHash,
+                limit: options?.limit,
+                offset: options?.offset,
+                reverse: options?.reverse
+            })
+            .then(async entries => Promise.all(
+                entries.map((entry: any[]) => this.getDataRequest(entry[1], options?.mode || "ethereal", true))
+            ))
     }
     
     /// ---------------------------------------------------------------------------------------------------------------

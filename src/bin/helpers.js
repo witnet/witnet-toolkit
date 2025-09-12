@@ -716,7 +716,7 @@ function traceTransactionReceipt (receipt) {
       mblue(receipt.recipients.filter((pkh, index, array) => index === array.indexOf(pkh)))
     }`)
   }
-  if (receipt?.fees) console.info(` > Fee:          ${yellow(receipt.fees.toString(2))}`)
+  if (receipt?.fees) console.info(` > Network fee:  ${yellow(receipt.fees.toString(2))}`)
   if (receipt?.value) console.info(` > Value:        ${myellow(receipt.value.toString(2))}`)
   if (receipt?.weight) console.info(` > Weight:       ${mgreen(commas(receipt.weight))}`)
   if (receipt?.witnesses) {
@@ -769,6 +769,23 @@ async function traceTransaction (transmitter, options) {
     throw err
   }
   return receipt
+}
+
+function unescapeSlashes(str) {
+  // add another escaped slash if the string ends with an odd
+  // number of escaped slashes which will crash JSON.parse
+  let parsedStr = str.replace(/(^|[^\\])(\\\\)*\\$/, "$&\\");
+
+  // escape unescaped double quotes to prevent error with
+  // added double quotes in json string
+  parsedStr = parsedStr.replace(/(^|[^\\])((\\\\)*")/g, "$1\\$2");
+
+  try {
+    parsedStr = JSON.parse(`"${parsedStr}"`);
+  } catch(e) {
+    return str;
+  }
+  return parsedStr ;
 }
 
 module.exports = {
@@ -837,4 +854,5 @@ module.exports = {
   replaceWildcards,
   spliceWildcard,
   txJsonReplacer,
+  unescapeSlashes,
 }

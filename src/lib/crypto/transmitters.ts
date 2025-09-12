@@ -169,7 +169,7 @@ export abstract class Transmitter<Specs, Payload extends ITransactionPayload<Spe
         if (!this._payload.prepared) {
             // throws exeception if not enough utxos were found to cover transaction expenses:
             throw Error(
-                `${this.constructor.name}: insufficient funds on ${this.ledger.constructor.name}${this.ledger.pkh}${change < 0 ? `: requires extra ${-change} $nanowits.` : "."}`
+                `${this.constructor.name}: insufficient funds on ${this.ledger.constructor.name} ${this.ledger.pkh}${change < 0 ? `: requires extra ${-change} $nanowits.` : "."}`
             )
         } 
 
