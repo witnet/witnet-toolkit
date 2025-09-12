@@ -1,3 +1,4 @@
+const cbor = require("cbor")
 const fs = require("fs")
 const inquirer = require("inquirer")
 const merge = require("lodash.merge")
@@ -633,6 +634,12 @@ async function traceWitnetRadonRequestDryRun (request, options) {
   const result = report?.aggregate.result
   const resultType = Object.keys(result)[0]
   const resultValue = Object.values(result)[0]
+  let resultSize 
+  switch (resultType) {
+    case "RadonBytes": resultSize = cbor.encode(Uint8Array.from(resultValue)).byteLength - 2; break;
+    case "RadonInteger": case "RadonFloat": resultSize = cbor.encode(resultValue).byteLength; break;
+    case "RadonArray": case "RadonMap": resultSize = cbor.encode(JSON.parse(resultValue)).byteLength; break;
+  }
   if (options?.json) {
     if (options?.verbose) {
       console.info(JSON.stringify(report, null, options?.indent ? " ".repeat(options.indent) : ""))
@@ -763,7 +770,12 @@ async function traceWitnetRadonRequestDryRun (request, options) {
       } │`
     )
   }
-  console.info(`${indent}│ Result size:    ${helpers.colors.cyan("xxx bytes")}${" ".repeat(flexbar.length + 13 - 9)} │`)
+  if (resultSize) {
+    console.info(`${indent}│ CBOR size:      ${
+      helpers.colors.cyan(`${resultSize} bytes`)
+      }${" ".repeat(flexbar.length + 7 - resultSize.toString().length)
+      } │`)
+  }
   console.info(`${indent}└────┬─────────────────────────${flexbar}─┘`)
   const printMapItem = (indent, width, key, value, indent2 = "") => {
     if (key) key = `${indent2}${key}: `
