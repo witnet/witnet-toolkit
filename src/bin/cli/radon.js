@@ -475,7 +475,7 @@ function traceWitnetArtifacts (assets, args, indent = "", filter = false) {
     const color = found ? helpers.colors.mcyan : helpers.colors.cyan
     if (assets[key] instanceof Witnet.Radon.RadonRequest) {
       if (!filter || found) {
-        console.info(`${prefix}${color(key)}`)
+        console.info(`${prefix}${color(key)} ${assets[key].sources.length > 1 ? helpers.colors.yellow(`(${assets[key].sources.length} sources)`) : ""}`)
         if (isLast) {
           console.info(`${prefix}`)
         }

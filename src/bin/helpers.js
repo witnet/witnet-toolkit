@@ -369,8 +369,8 @@ function checkRpcWildcards (wildcards) {
   } else if (typeof wildcards === "string") {
     if (isWildcard(wildcards)) {
       const char = wildcards.charAt(1)
-      if (char < "1" || char > "9") {
-        throw Error("RPC: wildcards not in range [1 .. 9]")
+      if (char < "0" || char > "9") {
+        throw Error("RPC: wildcards not in range [0 .. 9]")
       }
     }
   }

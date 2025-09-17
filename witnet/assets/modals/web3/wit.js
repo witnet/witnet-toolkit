@@ -8,14 +8,14 @@ const {
 module.exports = {
   WitOracleWitGetBalance: new RadonModal({
     retrieval: retrievals.JsonRPC({
-      rpc: retrievals.rpc.wit.getBalance("\\1\\"),
+      rpc: retrievals.rpc.wit.getBalance("\\0\\"),
       script: RadonScript(types.RadonString).parseJSONMap().getMap("result").values(),
     }),
   }),
   WitOracleWitGetValueTransfer: new RadonModal({
     retrieval: retrievals.JsonRPC({
-      rpc: retrievals.rpc.wit.getValueTransfer("\\1\\", "\\2\\"),
-      script: RadonScript(types.RadonString).parseJSONMap().getMap("result").getMap("\\2\\").values(),
+      rpc: retrievals.rpc.wit.getValueTransfer("\\0\\", "\\1\\"),
+      script: RadonScript(types.RadonString).parseJSONMap().getMap("result").getMap("\\1\\").values(),
     }),
   }),
 }

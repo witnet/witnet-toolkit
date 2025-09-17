@@ -16,13 +16,13 @@ module.exports = {
   }),
   WitOracleEthGetBalance: new RadonModal({
     retrieval: retrievals.JsonRPC({
-      rpc: retrievals.rpc.eth.getBalance("\\1\\"),
+      rpc: retrievals.rpc.eth.getBalance("\\0\\"),
       script: RadonScript(types.RadonString).asFloat().floor(),
     }),
   }),
   WitOracleEthGetTransactionReceipt: new RadonModal({
     retrieval: retrievals.JsonRPC({
-      rpc: retrievals.rpc.eth.getTransactionByHash("\\1\\"),
+      rpc: retrievals.rpc.eth.getTransactionByHash("\\0\\"),
       script: RadonScript(types.RadonString).parseJSONMap(),
     }),
   }),

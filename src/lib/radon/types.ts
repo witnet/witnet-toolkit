@@ -273,6 +273,22 @@ export class RadonScript {
     public argsCount(): number {
         return this.ops?.argsCount() || 0;
     }
+    public clone(): RadonAny {
+        const OutputType = [
+            RadonArray,
+            RadonBoolean,
+            RadonBytes,
+            RadonFloat,
+            RadonInteger,
+            RadonMap,
+            RadonString,
+        ].find(OutputType => this.outputType instanceof OutputType);
+        if (OutputType) {
+            return new OutputType(this.ops?.prev)
+        } else {
+            throw EvalError(`Cannot clone from empty script`)
+        }
+    }
     public disect(level = 0): [number, string, string][] {
         return this.ops?.disect(level) || [[level, "RadonAny", ""]]
     }
