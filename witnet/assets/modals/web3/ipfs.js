@@ -8,7 +8,10 @@ const {
 module.exports = {
     WitOracleIpfsFileExists: new RadonModal({
         retrieval: retrievals.HttpHead({
-            script: RadonScript(types.RadonMap).getString("etag").length().greaterThan(0)
+            script: RadonScript(types.RadonMap)
+                .getString("etag")
+                .slice(1, -1)
+                .match(types.RadonBoolean, { "\\0\\": true }, false)
         }),
     }),
     WitOracleIpfsFileSha256: new RadonModal({

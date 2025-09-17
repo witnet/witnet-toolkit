@@ -636,6 +636,7 @@ async function traceWitnetRadonRequestDryRun (request, options) {
   const resultValue = Object.values(result)[0]
   let resultSize 
   switch (resultType) {
+    case "RadonBoolean": resultSize = 1; break;
     case "RadonBytes": resultSize = cbor.encode(Uint8Array.from(resultValue)).byteLength - 2; break;
     case "RadonInteger": case "RadonFloat": resultSize = cbor.encode(resultValue).byteLength; break;
     case "RadonArray": case "RadonMap": resultSize = cbor.encode(JSON.parse(resultValue)).byteLength; break;
@@ -710,8 +711,8 @@ async function traceWitnetRadonRequestDryRun (request, options) {
       }
       const printData = (headline, data, color) => {
         const type = Object.keys(data)[0]
-        data = typeof data[type] === "object" || Array.isArray(data[type]) ? JSON.stringify(data[type]) : data[type]
-        const lines = data.match(/.{1,96}/g).slice(0, 256)
+        data = (typeof data[type] === "object" || typeof data[type] === "boolean" || Array.isArray(data[type]) ? JSON.stringify(data[type]) : data[type]) || ""
+        const lines = data.match(/.{1,96}/g)?.slice(0, 256) || [""]
         if (lines.length === 256) lines[255] += "..."
         const typeColor = (type === "RadonError") ? helpers.colors.red : helpers.colors.yellow
         const lineColor = (type === "RadonError") ? helpers.colors.gray : color
@@ -831,10 +832,12 @@ async function traceWitnetRadonRequestDryRun (request, options) {
     } else {
       if (resultType === "Bytes") {
         resultValue = JSON.parse(resultValue).map(char => ("00" + char.toString(16)).slice(-2)).join("")
+      } else if (resultType === "Boolean") {
+        resultValue = JSON.stringify(resultValue)
       }
       const color = resultType.indexOf("Error") > -1 ? helpers.colors.gray : helpers.colors.lcyan
       const typeText = resultType.indexOf("Error") > -1 ? "\x1b[1;98;41m  Error  \x1b[0m" : helpers.colors.lyellow(`[ ${resultType} ]`)
-      const lines = resultValue.match(/.{1,96}/g).slice(0, 256)
+      const lines = resultValue.match(/.{1,96}/g)?.slice(0, 256) || [""]
       console.info(`${indent}     └─ ${typeText} ${color(lines[0])}`)
       lines.slice(1).forEach(line => {
         console.info(`${indent}             ${" ".repeat(resultType.length)}${color(line)}`)
