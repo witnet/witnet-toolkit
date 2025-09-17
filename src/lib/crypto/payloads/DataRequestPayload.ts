@@ -90,9 +90,9 @@ export class DataRequestPayload extends TransactionPayloadMultiSig<DataRequestPa
                     ? Object.keys(this._target.witnesses).length 
                     : this._target.witnesses || 0
             );
-            const commitAndRevealFee = this._fees2UnitaryCommitRevealReward(this._fees, witnesses)
             const witnessReward = this._fees2UnitaryReward(this._fees, witnesses) 
-            const collateral = witnessReward * COLLATERAL_RATIO //BigInt(witnesses)
+            const commitAndRevealFee = this._fees2UnitaryCommitRevealReward(this._fees, witnesses) //Math.floor(Number(witnessReward / BigInt(witnesses))) // TODO: zerofy if protocol >= V2_1
+            const collateral = witnessReward * COLLATERAL_RATIO // TODO: zerofy if protocol >= V2_1
             if (collateral > Number.MAX_SAFE_INTEGER) 
                 throw new TypeError(`${this.constructor.name}: excessive witness collateral: ${collateral.toString()} > ${Number.MAX_SAFE_INTEGER}`);
             else if (witnessReward > Number.MAX_SAFE_INTEGER)
@@ -204,13 +204,13 @@ export class DataRequestPayload extends TransactionPayloadMultiSig<DataRequestPa
                     this._target.witnesses -= Math.ceil(delta / (DR_COMMIT_TX_WEIGHT + DR_REVEAL_TX_WEIGHT * TX_WEIGHT_OUTPUT_SIZE))
                     if (this._target.witnesses < 3) {
                         delete this._target.witnesses
-                        throw new Error(`${this.constructor.name}: cannot estimate witnesses: radon request too complex: ${this.weight} weight units`)
+                        throw new Error(`${this.constructor.name}: cannot estimate witnesses: radon request too heavy: ${this.weight} weight units`)
                     }
                 }
             }
             const priority = (this._target as any)?.fees as TransactionPriority || TransactionPriority.Opulent
             let estimatedFees = await this._estimateNetworkFees(ledger.provider, priority);
-            while (this._fees < estimatedFees) {
+            while (this._fees < estimatedFees && this._change >= 0) {
                 this._fees = estimatedFees
                 this._outputs = []
                 this._inputs = []
@@ -228,9 +228,6 @@ export class DataRequestPayload extends TransactionPayloadMultiSig<DataRequestPa
                 if (this._change >= 0) {
                     this.prepareOutputs({ value: this._change })
                     estimatedFees = await this._estimateNetworkFees(ledger.provider, priority)
-                } else {
-                    // insufficient funds ...
-                    break
                 }
             }
         }
