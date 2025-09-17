@@ -290,7 +290,7 @@ export class RadonScript {
             RadonString,
         ].find(OutputType => this.outputType instanceof OutputType);
         if (OutputType) {
-            return new OutputType(this.ops?.prev)
+            return new OutputType(this.ops)
         } else {
             throw EvalError(`Cannot clone from empty script`)
         }

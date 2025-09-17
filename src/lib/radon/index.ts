@@ -360,7 +360,7 @@ export class RadonModal extends RadonTemplate {
 
   public get argsCount(): number {
     const _providersArgsCount = Math.max(...this.providers.map(url => getWildcardsCountFromString(url)))
-    return _providersArgsCount > 0 ? Math.max(this._argsCount, _providersArgsCount) : this._argsCount - 1;
+    return _providersArgsCount > 0 ? Math.max(this._argsCount, _providersArgsCount) : this._argsCount;
   }
 
   public get providers(): Array<string> {
@@ -493,7 +493,7 @@ export class RadonRetrieval {
   }
 
   public isModal(): boolean {
-    return !this.url || this.url === "\\0\\" || this.url.indexOf("\\0\\") >= 0
+    return this.method !== retrievals.Methods.RNG && (!this.url || this.url === "\\0\\")
   }
 
   public isParameterized(): boolean {
@@ -548,22 +548,35 @@ export class RadonRetrieval {
    */
   public spawnRetrievals(...values: string[]): RadonRetrieval[] {
     const _spawned: RadonRetrieval[] = []
-    if (this.argsCount == 0) {
-      throw new TypeError(`RadonRetrieval: cannot spawn from unparameterized retrieval`);
+    if (this.isModal()) {
+      values.forEach(url => {
+        _spawned.push(new RadonRetrieval({
+          argsKeys: this.argsKeys,
+          body: this.body,
+          headers: this.headers,
+          method: this.method,
+          script: this.script?.clone(),
+          url,
+        }))
+      })
+    } else {
+      if (this.argsCount == 0) {
+        throw new TypeError(`RadonRetrieval: cannot spawn from unparameterized retrieval`);
+      }
+      values.forEach(value => {
+        _spawned.push(new RadonRetrieval({
+          method: this.method,
+          url: spliceWildcard(this.url, 0, value, this.argsCount),
+          body: spliceWildcard(this.body, 0, value, this.argsCount),
+          headers: Object.fromEntries(Object.entries(this.headers || {}).map(([headerKey, headerValue]) => [
+            spliceWildcard(headerKey, 0, value, this.argsCount),
+            spliceWildcard(headerValue, 0, value, this.argsCount),
+          ])),
+          script: this.script?.spliceWildcard(0, value),
+          argsKeys: this.argsKeys?.slice(1),
+        }))
+      })
     }
-    values.forEach(value => {
-      _spawned.push(new RadonRetrieval({
-        method: this.method,
-        url: spliceWildcard(this.url, 0, value, this.argsCount),
-        body: spliceWildcard(this.body, 0, value, this.argsCount),
-        headers: Object.fromEntries(Object.entries(this.headers || {}).map(([headerKey, headerValue]) => [
-          spliceWildcard(headerKey, 0, value, this.argsCount),
-          spliceWildcard(headerValue, 0, value, this.argsCount),
-        ])),
-        script: this.script?.spliceWildcard(0, value),
-        argsKeys: this.argsKeys?.slice(1),
-      }))
-    })
     return _spawned
   }
 
@@ -848,7 +861,6 @@ export namespace retrievals {
     return new RadonRetrieval(
       {
         method: retrievals.Methods.HttpPost,
-        url: "\\0\\",
         body: JSON.stringify({
             jsonrpc: "2.0",
             method: specs.rpc.method,
