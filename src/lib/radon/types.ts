@@ -146,7 +146,7 @@ export class RadonOperator extends RadonClass {
         if (this.params && this.params[0] !== undefined) {
             this.params.map(param => {
                 if (typeof param !== 'object' || !(param instanceof RadonScript)) {
-                    args += (typeof param === 'string' ?  `"${param}"` : param.toString()) + ", "
+                    args += (typeof param === 'string' ?  `"${param}"` : JSON.stringify(param)) + ", "
                 } else {
                     script = param
                 }
@@ -177,6 +177,8 @@ export class RadonOperator extends RadonClass {
                         return param.encode()
                     } else if (param instanceof RadonScript) {
                         return param.encode()
+                    } else {
+                        return param
                     }
                 } else {
                     return param
@@ -201,8 +203,12 @@ export class RadonOperator extends RadonClass {
             this.params?.map(param => {
                 if (typeof param === 'string') {
                     return helpers.replaceWildcards(param, args)
-                } else if (typeof param === 'object' && param instanceof RadonScript) {
-                    return param.replaceWildcards(...args)
+                } else if (typeof param === 'object') {
+                    if (param instanceof RadonScript) {
+                        return param.replaceWildcards(...args)
+                    } else {
+                        return helpers.replaceWildcards(param, args)
+                    }
                 } else {
                     return param
                 }

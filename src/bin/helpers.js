@@ -392,8 +392,23 @@ function replaceWildcards (obj, args) {
       ? replaceWildcards(value, args)
       : value
     )
+  } else if (obj && typeof obj === "object") {
+    obj = replaceObjectWildcards(obj, args)
   }
   return obj
+}
+
+function replaceObjectWildcards(obj, args) {
+  return Object.fromEntries(
+    Object.entries(obj).map(([key, value]) => {
+      for (let argIndex = 0; argIndex < args.length; argIndex ++) {
+        const wildcard = `\\${argIndex}\\`
+        key = key.replaceAll(wildcard, args[argIndex])
+        value = replaceWildcards(value, args)
+      }
+      return [key, value]
+    })
+  )
 }
 
 function spliceWildcard (obj, argIndex, argValue, argsCount) {
