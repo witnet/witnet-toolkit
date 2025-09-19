@@ -635,11 +635,23 @@ async function traceWitnetRadonRequestDryRun (request, options) {
   const resultType = Object.keys(result)[0]
   const resultValue = Object.values(result)[0]
   let resultSize 
+  const parseRadonResult = (value) => {
+    if (Array.isArray(value)) {
+      return value.map(item => parseRadonResult(item))
+    } if (typeof value === 'object') {
+      return parseRadonResult(Object.values(value)[0])
+    } else {
+      return JSON.parse(value);
+    }
+  }
   switch (resultType) {
     case "RadonBoolean": resultSize = 1; break;
     case "RadonBytes": resultSize = cbor.encode(Uint8Array.from(resultValue)).byteLength - 2; break;
     case "RadonInteger": case "RadonFloat": resultSize = cbor.encode(resultValue).byteLength; break;
-    case "RadonArray": case "RadonMap": resultSize = cbor.encode(JSON.parse(resultValue)).byteLength; break;
+    case "RadonArray": case "RadonMap": 
+      const parsed = parseRadonResult(resultValue)
+      resultSize = cbor.encode(parsed).byteLength;
+      break;
   }
   if (options?.json) {
     if (options?.verbose) {
@@ -694,9 +706,6 @@ async function traceWitnetRadonRequestDryRun (request, options) {
       console.info(`${indent}   │ ${corner}─ [ ${color(authority)} ]`)
     }
     if (source.method !== Witnet.Radon.retrievals.Methods.RNG && options?.verbose) {
-      // const result = report.retrieve[sourceIndex].result
-      // const resultType = Object.keys(result)[0]
-      // const resultValue = JSON.stringify(Object.values(result)[0])
       console.info(
         `${indent}   │ ${sep}    > Request:        ${
           helpers.colors.mgreen(Witnet.Radon.retrievals.Methods[source.method].split(/(?=[A-Z])/).join("-").toUpperCase())
@@ -808,9 +817,6 @@ async function traceWitnetRadonRequestDryRun (request, options) {
       if (key.length > width - 12) {
         console.info(`${indent}        ${helpers.colors.yellow(type)} ${" ".repeat(width - 15)}${helpers.colors.green("...")}`)
       } else {
-        if (["String", "Error"].includes(type)) {
-          // value = JSON.stringify(value)
-        }
         type = `[ ${type}${" ".repeat(7 - type.length)} ]`
         const result = key + value
         // let spaces = width - 12 - result.length
@@ -818,7 +824,11 @@ async function traceWitnetRadonRequestDryRun (request, options) {
           value = value.slice(0, width - 15 - key.length) + "..."
           // spaces = 0
         }
-        console.info(`${indent}        ${helpers.colors.yellow(type)} ${helpers.colors.green(key)}"${helpers.colors.mcyan(value)}"`)
+        if (["String", "Error"].includes(type)) {
+          console.info(`${indent}        ${helpers.colors.yellow(type)} ${helpers.colors.green(key)}"${helpers.colors.mcyan(value)}"`)
+        } else {
+          console.info(`${indent}        ${helpers.colors.yellow(type)} ${helpers.colors.green(key)}${helpers.colors.mcyan(value)}`)
+        }
       }
     }
   }

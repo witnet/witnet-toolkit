@@ -934,9 +934,9 @@ async function validators (options = {}) {
 async function _loadRadonRequest (options = {}) {
   const args = options?.args || []
   if (options?.pattern && typeof options.pattern === 'string' && utils.isHexString(options.pattern)) {
-  // if (options?.pattern && typeof options.pattern === 'string' && utils.isHexString(options.pattern)) {
-  //     if (utils.isHexStringOfLength(options.pattern, 32)) {
-  //         throw `Searching RADON_BYTECODE by RAD_HASH not yet supported.`
+      // if (utils.isHexStringOfLength(options.pattern, 32)) {
+      //     throw `Searching RADON_BYTECODE by RAD_HASH not yet supported.`
+      // } else 
       try {
           return Witnet.Radon.RadonRequest.fromBytecode(options.pattern)
       } catch (e) {
