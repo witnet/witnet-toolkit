@@ -1,6 +1,6 @@
-const ethers = require('ethers')
-const keccak256 = require('keccak256')
-const secp256k1 = require('secp256k1')
+import { default as ethers } from "ethers"
+import { default as keccak256 } from "keccak256"
+import { default as secp256k1 } from "secp256k1"
 
 import * as utils from "../utils"
 

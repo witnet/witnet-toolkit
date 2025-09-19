@@ -206,12 +206,15 @@ async function dataRequests(options = {}, [arg]) {
         record.hash,
         record.query.witnesses,
         Witnet.Coins.fromPedros(record.query.unitary_reward).toString(2),
-        record?.result.timestamp ? moment.unix(record.result.timestamp).fromNow() : "",
-        dataType === "RadonError" ? helpers.colors.mred("RadonError") : helpers.colors.myellow(dataType),
-        record?.result ? record.result.cbor_bytes.length / 2 + " bytes" : "",
-        dataType === "RadonError" ? helpers.colors.red(result) : (
-          record?.result.finalized ? helpers.colors.mcyan(result) : helpers.colors.cyan(result)
-        ),
+        dataType === "RadonError" ? helpers.colors.mred("RadonError") : helpers.colors.mgreen(dataType),
+        ...(options?.verbose ? [
+          dataType === "RadonError" ? helpers.colors.red(result) : (
+            record?.result.finalized ? helpers.colors.mcyan(result) : helpers.colors.cyan(result)
+          ),
+        ] : [
+          record?.result ? record.result.cbor_bytes.length / 2 + " bytes" : "",
+          record?.result.timestamp ? moment.unix(record.result.timestamp).fromNow() : "",
+        ]),
       ]
     }), {
       headlines: [ 
@@ -219,18 +222,16 @@ async function dataRequests(options = {}, [arg]) {
         "DATA REQUEST TRANSACION HASH", 
         "witnesses", 
         "total fees",
-        "DATA FRESHNESS:", 
-        ":DATA TYPE",
-        "CBOR SIZE:",
-        ":RESULT CBOR BYTES" 
+        ":data type",
+        ...(options?.verbose ? [":DATA REQUEST RESULT"] : ["CBOR SIZE:", "DATA FRESHNESS:"])
       ],
       humanizers: [ helpers.commas ],
       colors: [
         , helpers.colors.gray,
         helpers.colors.green,
-        helpers.colors.green,
-        helpers.colors.yellow,,
-        helpers.colors.gray,
+        helpers.colors.green,,
+        helpers.colors.cyan,
+        helpers.colors.mcyan,
       ]
     }
   )
