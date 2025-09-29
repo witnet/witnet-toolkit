@@ -945,13 +945,12 @@ async function _loadRadonRequest (options = {}) {
   }
 
   // load Radon assets from environment
-  let assets = utils.searchRadonAssets(
-    {
-      assets: loadAssets(options),
+  const assets = utils.searchRadonAssets({ 
+      assets: options?.module ? require(options.module) : loadAssets(options),
       pattern: options?.pattern,
-    },
+    }, 
     (key, pattern) => key.toLowerCase().indexOf(pattern.toLowerCase()) >= 0
-  )
+  );
 
   if (args.length > 0) {
     // ignore RadonRequests if args were passed from the CLI

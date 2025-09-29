@@ -27,12 +27,21 @@ module.exports = {
         hint: "List available Witnet Radon assets.",
         params: "[RADON_ASSETS ...]",
         options: {
-          legacy: {
-            hint: "List only those declared in witnet/assets folder.",
-          },
           filter: {
             hint: "Restrict output to name-matching assets.",
           },
+          legacy: {
+            hint: "List only those declared in witnet/assets folder.",
+          },
+          modals: {
+            hint: "Restrict output to Radon modals.",
+          },
+          requests: {
+            hint: "Restrict output to Radon requests.",
+          },
+          templates: {
+            hint: "Restrict output to Radon templates.",
+          },          
         },
       },
       check: {
@@ -169,21 +178,25 @@ async function assets (options = {}, [...patterns]) {
     `${options?.module ? options.module.toUpperCase() : path.basename(process.cwd()).toUpperCase()} RADON ASSETS`,
     helpers.colors.white
   )
-  const assets = clearEmptyBranches(loadAssets(options), patterns, options?.filter)
+  const assets = clearEmptyBranches(
+    options?.module ? require(options.module) : loadAssets(options), 
+    patterns, 
+    options
+  );
   if (assets && Object.keys(assets).length > 0) {
-    traceWitnetArtifacts(assets, patterns, "  ", options?.filter)
+    traceWitnetArtifacts(assets, patterns, "  ", options)
   } else {
     console.info("> No custom Radon assets declared just yet.")
   }
 }
 /// -------------------------------------------------------------------------------------------------------------------
 
-async function check (options = {}) {
+async function check () {
   if (!isModuleInitialized) {
     throw new Error(`No Witnet Radon workspace has been initialized. Please, run ${white("npx witsdk radon init")} if willing to declare your own Radon assets.`)
   }
   try {
-    const assets = loadAssets({ ...options, legacy: true })
+    const assets = loadAssets({ legacy: true })
     const [
       modals,
       requests,
@@ -234,7 +247,7 @@ async function decode (options = {}, args = []) {
   } else {
     args = args.slice(1)
 
-    const assets = loadAssets(options)
+    const assets = options?.module ? require(options.module) : loadAssets(options)
     const headline = options?.headline
     const crafts = flattenRadonArtifacts(assets).filter(craft => craft.key.toLowerCase().indexOf(asset.toLowerCase()) >= 0)
     if (crafts.length === 0) {
@@ -300,7 +313,7 @@ async function dryrun (options = {}, args = []) {
     }
   } else {
     args = args.slice(1)
-    const assets = loadAssets(options)
+    const assets = options?.module ? require(options.module) : loadAssets(options)
     const headline = options?.headline
     const crafts = flattenRadonArtifacts(assets).filter(craft => craft.key.toLowerCase().indexOf(asset.toLowerCase()) >= 0)
     if (crafts.length === 0) {
@@ -384,8 +397,12 @@ const stringifyReducer = (x, c) => {
 }
 
 function loadAssets (options) {
-  const { assets } = options?.module ? require(options.module) : (options?.legacy ? {} : require("@witnet/sdk"))
-  return isModuleInitialized && fs.existsSync(`${WITNET_ASSETS_PATH}`) ? merge(assets, require(`${WITNET_ASSETS_PATH}`)) : assets
+  const { assets } = options?.legacy ? {} : require("@witnet/sdk")
+  return (
+    isModuleInitialized && fs.existsSync(`${WITNET_ASSETS_PATH}`)
+      ? merge(assets, require(`${WITNET_ASSETS_PATH}`)) 
+      : assets
+  );
 }
 
 function flattenRadonArtifacts (tree, headers) {
@@ -412,44 +429,64 @@ function flattenRadonArtifacts (tree, headers) {
   return matches
 };
 
-function countWitnetArtifacts (assets, args, filter = false) {
+function countWitnetArtifacts (assets, args, options) {
   let counter = 0
   Object.entries(assets).forEach(([key, value]) => {
-    if ((
-      value instanceof Witnet.Radon.RadonModal ||
-                value instanceof Witnet.Radon.RadonRequest ||
-                value instanceof Witnet.Radon.RadonTemplate ||
-                value instanceof Witnet.Radon.RadonRetrieval
-    ) && (
-      !filter ||
-                !args ||
-                args.length === 0 ||
-                args.find(arg => key.toLowerCase().indexOf(arg.toLowerCase()) >= 0)
+    let include = (
+      (options?.modals && value instanceof Witnet.Radon.RadonModal)
+        || (options?.templates && value instanceof Witnet.Radon.RadonTemplate)
+        || (options?.retrievals && value instanceof Witnet.Radon.RadonRetrieval)
+        || (options?.requests && value instanceof Witnet.Radon.RadonRequest)
+    );
+    if (!(options?.modals || options?.templates || options?.retrievals || options?.requests)) {
+      include = (
+        value instanceof Witnet.Radon.RadonModal ||
+                  value instanceof Witnet.Radon.RadonRequest ||
+                  value instanceof Witnet.Radon.RadonTemplate ||
+                  value instanceof Witnet.Radon.RadonRetrieval
+      );
+    }
+    if (include && (
+      !options?.filter
+        || !args 
+        || args.length === 0 
+        || args.find(arg => key.toLowerCase().indexOf(arg.toLowerCase()) >= 0)
     )) {
       counter++
     } else if (typeof value === "object") {
-      counter += countWitnetArtifacts(value, args)
+      counter += countWitnetArtifacts(value, args, options)
     }
   })
   return counter
 }
 
-function clearEmptyBranches (node, args, filter) {
+function clearEmptyBranches (node, args, options) {
   if (node) {
     const assets = Object.fromEntries(
       Object.entries(node).map(([key, value]) => {
+        let include = (
+          (options?.modals && value instanceof Witnet.Radon.RadonModal)
+            || (options?.templates && value instanceof Witnet.Radon.RadonTemplate)
+            || (options?.retrievals && value instanceof Witnet.Radon.RadonRetrieval)
+            || (options?.requests && value instanceof Witnet.Radon.RadonRequest)
+        );
+        if (!(options?.modals || options?.templates || options?.retrievals || options?.requests)) {
+          include = (
+            value instanceof Witnet.Radon.RadonModal ||
+                      value instanceof Witnet.Radon.RadonRequest ||
+                      value instanceof Witnet.Radon.RadonTemplate ||
+                      value instanceof Witnet.Radon.RadonRetrieval
+          );
+        }
         if (
-          (!filter || args.find(arg => key.toLowerCase().indexOf(arg.toLowerCase()) >= 0)) && (
-            value instanceof Witnet.Radon.RadonRetrieval ||
-                        value instanceof Witnet.Radon.RadonModal ||
-                        value instanceof Witnet.Radon.RadonRequest ||
-                        value instanceof Witnet.Radon.RadonTemplate
+          include && (
+            !options?.filter || args.find(arg => key.toLowerCase().indexOf(arg.toLowerCase()) >= 0)
           )
         ) {
           return [key, value]
         } else if (typeof value === "object") {
-          if (countWitnetArtifacts(value, args, filter) > 0) {
-            return [key, clearEmptyBranches(value, args, filter)]
+          if (countWitnetArtifacts(value, args, options) > 0) {
+            return [key, clearEmptyBranches(value, args, options)]
           } else {
             return [key, undefined]
           }
@@ -467,25 +504,25 @@ function clearEmptyBranches (node, args, filter) {
   }
 }
 
-function traceWitnetArtifacts (assets, args, indent = "", filter = false) {
+function traceWitnetArtifacts (assets, args, indent = "", options) {
   const prefix = `${indent}`
   Object.keys(assets).forEach((key, index) => {
     const isLast = index === Object.keys(assets).length - 1
     const found = args.find(arg => key.toLowerCase().indexOf(arg.toLowerCase()) >= 0)
     const color = found ? helpers.colors.mcyan : helpers.colors.cyan
     if (assets[key] instanceof Witnet.Radon.RadonRequest) {
-      if (!filter || found) {
+      if (!options?.filter || found) {
         console.info(`${prefix}${color(key)} ${assets[key].sources.length > 1 ? helpers.colors.yellow(`(${assets[key].sources.length} sources)`) : ""}`)
         if (isLast) {
           console.info(`${prefix}`)
         }
       }
-    } else if (
+    } else if ((
       assets[key] instanceof Witnet.Radon.RadonTemplate ||
             assets[key] instanceof Witnet.Radon.RadonModal
-    ) {
+    )) {
       const argsCount = assets[key].argsCount
-      if (!filter || found) {
+      if (!options?.filter || found) {
         console.info(`${prefix}${color(key)} ${argsCount > 0 ? helpers.colors.green(`(${argsCount} args)`) : ""}`)
         if (isLast) {
           console.info(`${prefix}`)
@@ -493,15 +530,15 @@ function traceWitnetArtifacts (assets, args, indent = "", filter = false) {
       }
     } else if (assets[key] instanceof Witnet.Radon.RadonRetrieval) {
       const argsCount = assets[key].argsCount
-      if (!filter || found) {
+      if (!options?.filter || found) {
         console.info(`${prefix}${color(key)} ${argsCount > 0 ? helpers.colors.green(`(${argsCount} args)`) : ""}`)
         if (isLast) {
           console.info(`${prefix}`)
         }
       }
-    } else if (typeof assets[key] === "object" && countWitnetArtifacts(assets[key], args, filter) > 0) {
+    } else if (typeof assets[key] === "object" && countWitnetArtifacts(assets[key], args, options) > 0) {
       console.info(`${indent}${isLast ? "└─ " : "├─ "}${key}`)
-      traceWitnetArtifacts(assets[key], args, !isLast ? `${indent}│  ` : `${indent}   `, filter)
+      traceWitnetArtifacts(assets[key], args, !isLast ? `${indent}│  ` : `${indent}   `, options)
     }
   })
 }

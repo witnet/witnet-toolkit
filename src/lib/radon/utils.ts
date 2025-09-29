@@ -85,8 +85,8 @@ export function requireRadonAsset<T extends RadonRequest | RadonTemplate | Radon
       : loadModuleAssets({ flattened: true, type: specs?.type })
   );
   const found = stuff.find((entry: { key: string, artifact: any }) => entry.key === specs.artifact)
-  if (found) {
-    return found[0].artifact
+  if (found?.artifact) {
+    return found.artifact
   } else {
     throw Error(`Radon asset "${specs.artifact}" not available.`)
   }
