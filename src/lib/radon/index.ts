@@ -156,8 +156,8 @@ export class RadonRequest extends RadonArtifact {
     }
   }
 
-  public async execDryRun(): Promise<string> {
-    return (await execRadonBytecode(this.toBytecode(), '--json')).trim()
+  public async execDryRun(verbose = false): Promise<string> {
+    return (await execRadonBytecode(this.toBytecode(), '--json', verbose ? '--verbose' : '')).trim()
   }
 
   public get dataType(): string  {
