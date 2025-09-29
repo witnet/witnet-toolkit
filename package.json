@@ -19,15 +19,15 @@
   ],
   "exports": {
     ".": {
+      "types": "./dist/src/*.d.ts",
       "require": "./dist/src/index.js",
-      "default": "./dist/src/index.js",
-      "types": "./dist/src/*.d.ts"
+      "default": "./dist/src/index.js"
     },
     "./assets": "./dist/witnet/assets/index.js",
     "./utils": {
+      "types": "./dist/src/lib/*.d.ts",
       "require": "./dist/src/lib/utils.js",
-      "default": "./dist/src/lib/utils.js",
-      "types": "./dist/src/lib/*.d.ts"
+      "default": "./dist/src/lib/utils.js"
     }
   },
   "types": "./dist",
