@@ -143,8 +143,8 @@ export class Signer implements ISigner {
         const addr = utils.fromHexString(evmAddress)
         const hash = keccak256(Buffer.from(addr))
         if (this.node.privateKey) {
-            const signingKey = new ethers.utils.SigningKey(this.node.privateKey)
-            const signature = signingKey.signDigest(hash)
+            const signingKey = new ethers.SigningKey(this.node.privateKey)
+            const signature = signingKey.sign(hash)
             const sig = `0x${signature.r.slice(2)}${signature.s.slice(2)}${signature.v.toString(16)}`
             return sig
         }

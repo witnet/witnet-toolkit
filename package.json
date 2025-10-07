@@ -40,6 +40,7 @@
     "test": "cross-env-shell WITNET_SDK_RADON_ASSETS_PATH='../../../witnet/assets' node ./src/bin/toolkit.js"
   },
   "dependencies": {
+    "@bitcoinerlab/secp256k1": "^1.2.0",
     "axios": "^1.12.2",
     "bech32": "~2.0.0",
     "bip32": "^4.0.0",
@@ -56,8 +57,7 @@
     "promise-poller": "~1.9.1",
     "protobufjs": "^7.5.4",
     "qrcode-terminal": "^0.12.0",
-    "secp256k1": "^5.0.1",
-    "tiny-secp256k1": "~2.2.4"
+    "secp256k1": "^5.0.1"
   },
   "devDependencies": {
     "@types/node": "^22.18.5",
