@@ -213,17 +213,18 @@ export class DataRequestPayload extends TransactionPayloadMultiSig<DataRequestPa
             while (this._fees < estimatedFees && this._change >= 0) {
                 this._fees = estimatedFees
                 this._outputs = []
-                this._inputs = []
-                this._covered = 0n
                 // consume utxos as to cover for estimated value and estimated fees 
                 const value = this._fees2Value(this._fees, this._target.witnesses)
-                const utxos = await ledger.selectUtxos({ 
-                    value: Coins.fromPedros(value + this._fees - this._covered), 
-                    reload,
-                })
-                this._covered += utxos.map(utxo => BigInt(utxo.value)).reduce((prev, curr) => prev + curr, 0n)
-                this._inputs.push(...utxos)
-                ledger.consumeUtxos(...utxos)
+                if (this._covered < this.value.pedros + this._fees) {
+                    const utxos = await ledger.selectUtxos({ 
+                        value: Coins.fromPedros(value + this._fees - this._covered), 
+                        reload,
+                    })
+                    const extra = utxos.map(utxo => BigInt(utxo.value)).reduce((prev, curr) => prev + curr, 0n)
+                    this._covered += extra
+                    this._inputs.push(...utxos)
+                    ledger.consumeUtxos(...utxos)
+                }
                 this._change = this._covered - (value + this._fees)
                 if (this._change >= 0) {
                     this.prepareOutputs({ value: this._change })
