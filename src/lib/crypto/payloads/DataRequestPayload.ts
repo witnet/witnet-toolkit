@@ -370,9 +370,7 @@ export class DataRequestPayload extends TransactionPayloadMultiSig<DataRequestPa
     }
 
     protected async _estimateNetworkFees(provider: IJsonRpcProvider, priority = TransactionPriority.Medium): Promise<bigint> {
-        if (!this._priorities) {
-            this._priorities = await provider.priorities()
-        }
+        this._priorities = await provider.priorities()
         return BigInt(Math.floor(
             this._priorities[`drt_${priority}`].priority * (
                 this.covered ? this.weight : (
