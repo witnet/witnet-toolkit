@@ -229,11 +229,11 @@ export abstract class Transmitter<Specs, Payload extends ITransactionPayload<Spe
                 .catch((reason: any) => { throw new TimeoutError(globalTimeout, receipt, reason) }),
             
             promisePoller({
-                taskFn: () => this.provider.getTransaction(hash),
+                taskFn: () => this.provider.getTransaction(hash).catch(err => err),
                 shouldContinue: (error: any, report: TransactionReport) => {
                     const status = receipt.status
                     receipt.error = error
-                    if (error instanceof Error && error.message.indexOf("not found") >= 0) {
+                    if (error instanceof Error && error.message.indexOf("ItemNotFound") >= 0) {
                         receipt.status = "removed"
                     
                     } else switch (receipt.status) {
@@ -286,78 +286,77 @@ export abstract class Transmitter<Specs, Payload extends ITransactionPayload<Spe
                 },
                 interval, timeout, 
             
-            }).then(async () => {
-                if (receipt.status === "removed" && receipt.type !== "Unstake") {
-                    // TRANSACTION REMOVED FROM MEMPOOL //
-                    // 1. Try to recover input utxos belonging to ledger's addresses:
-                    try {
-                        const inputs: Array<UtxoMetadata> = receipt.tx[receipt.type].body.inputs
-                        const signatures: Array<KeyedSignature> = receipt.tx[receipt.type].signatures
-                        const utxos: Array<Utxo> = []
-                        if (inputs.length === signatures.length) {
-                            inputs.forEach((metadata, index) => ({
-                                ...metadata,
-                                signer: PublicKey.fromProtobuf(signatures[index].public_key).hash().toBech32(this.network),
-                            }))
+            })
+                .then(async () => {
+                    if (receipt.status === "removed" && receipt.type !== "Unstake") {
+                        // TRANSACTION REMOVED FROM MEMPOOL //
+                        // 1. Try to recover input utxos belonging to ledger's addresses:
+                        try {
+                            const inputs: Array<UtxoMetadata> = receipt.tx[receipt.type].body.inputs
+                            const signatures: Array<KeyedSignature> = receipt.tx[receipt.type].signatures
+                            const utxos: Array<Utxo> = []
+                            if (inputs.length === signatures.length) {
+                                inputs.forEach((metadata, index) => ({
+                                    ...metadata,
+                                    signer: PublicKey.fromProtobuf(signatures[index].public_key).hash().toBech32(this.network),
+                                }))
+                            }
+                            this.ledger.addUtxos(...utxos)
+                        } catch (err) {
+                            console.error(`${this.constructor.name}: warning: cannot recover input UTXOS from tx ${hash}: ${err}`)
                         }
-                        this.ledger.addUtxos(...utxos)
-                    } catch (err) {
-                        console.error(`${this.constructor.name}: warning: cannot recover input UTXOS from tx ${hash}: ${err}`)
-                    }
-                    // 2. Throw MempoolError
-                    throw new MempoolError(receipt, `${this.constructor.name}: transaction removed from mempool: ${hash}`);
-                
-                } else {
-                    // TRANSACTION EITHER CONFIRMED OR FINALIZED //
-                    // 1. Try to load value transfer outputs into the ledger's local cache: 
-                    try {
-                        const utxos: Array<Utxo> = []
-                        if (["Stake", "Unstake"].includes(receipt.type)) {
-                            let vto: ValueTransferOutput = (
-                                receipt.type === "Stake"
-                                    ? receipt.tx[receipt.type].body?.output
-                                    : receipt.tx[receipt.type].body?.withdrawal
-                            );
-                            if (vto) {
-                                utxos.push({
-                                    output_pointer: `${receipt.hash}:0`,
+                        // 2. Throw MempoolError
+                        throw new MempoolError(receipt, `${this.constructor.name}: transaction removed from mempool: ${hash}`);
+                    
+                    } else {
+                        // TRANSACTION EITHER CONFIRMED OR FINALIZED //
+                        // 1. Try to load value transfer outputs into the ledger's local cache: 
+                        try {
+                            const utxos: Array<Utxo> = []
+                            if (["Stake", "Unstake"].includes(receipt.type)) {
+                                let vto: ValueTransferOutput = (
+                                    receipt.type === "Stake"
+                                        ? receipt.tx[receipt.type].body?.output
+                                        : receipt.tx[receipt.type].body?.withdrawal
+                                );
+                                if (vto) {
+                                    utxos.push({
+                                        output_pointer: `${receipt.hash}:0`,
+                                        timelock: vto.time_lock,
+                                        utxo_mature: true,
+                                        value: BigInt(vto.value),
+                                        signer: vto.pkh,
+                                    })
+                                }
+                            } else {
+                                const outputs: Array<ValueTransferOutput> = receipt.tx[receipt.type].body?.outputs || []
+                                outputs.forEach((vto, index) => utxos.push({
+                                    output_pointer: `${receipt.hash}:${index}`,
                                     timelock: vto.time_lock,
                                     utxo_mature: true,
                                     value: BigInt(vto.value),
                                     signer: vto.pkh,
-                                })
+                                }))
                             }
-                        } else {
-                            const outputs: Array<ValueTransferOutput> = receipt.tx[receipt.type].body?.outputs || []
-                            outputs.forEach((vto, index) => utxos.push({
-                                output_pointer: `${receipt.hash}:${index}`,
-                                timelock: vto.time_lock,
-                                utxo_mature: true,
-                                value: BigInt(vto.value),
-                                signer: vto.pkh,
-                            }))
+                            this.ledger.addUtxos(...utxos)
+                        } catch (err) {
+                            console.error(`${this.constructor.name}: warning: cannot recover output UTXOs from ${hash}: ${err}`)
                         }
-                        // console.log("output utxos before =>", utxos)
-                        // console.log("output utxos after  =>", this.ledger.addUtxos(...utxos))
-                        this.ledger.addUtxos(...utxos)
-                    } catch (err) {
-                        console.error(`${this.constructor.name}: warning: cannot recover output UTXOs from ${hash}: ${err}`)
+                        // 2. Add blockMiner address to the transaction receipt: 
+                        if (receipt?.blockHash && isHexString(receipt.blockHash)) {
+                            const block = await this.provider.getBlock(receipt.blockHash || "")
+                            JsonRpcProvider.receipts[hash].blockMiner = PublicKey
+                                .fromProtobuf(block.block_sig.public_key)
+                                .hash()
+                                .toBech32(this.network);
+                        }
+                        if (options?.onStatusChange) try {
+                            options.onStatusChange(receipt)
+                        } catch {};
+                        // 3. Return transaction receipt:
+                        return JsonRpcProvider.receipts[hash]
                     }
-                    // 2. Add blockMiner address to the transaction receipt: 
-                    if (receipt?.blockHash && isHexString(receipt.blockHash)) {
-                        const block = await this.provider.getBlock(receipt.blockHash || "")
-                        JsonRpcProvider.receipts[hash].blockMiner = PublicKey
-                            .fromProtobuf(block.block_sig.public_key)
-                            .hash()
-                            .toBech32(this.network);
-                    }
-                    if (options?.onStatusChange) try {
-                        options.onStatusChange(receipt)
-                    } catch {};
-                    // 3. Return transaction receipt:
-                    return JsonRpcProvider.receipts[hash]
-                }
-            })
+                })
         ])
     }
 
