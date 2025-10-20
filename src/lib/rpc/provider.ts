@@ -391,12 +391,14 @@ export class JsonRpcProvider implements IJsonRpcProvider {
         return this
             .callApiMethod<Array<any[]>>(Methods.SearchDataRequests, {
                 radHash,
-                limit: options?.limit,
-                offset: options?.offset,
-                reverse: options?.reverse
+                limit: options?.limit || 1,
+                offset: options?.offset || 0,
+                reverse: options?.reverse || true
             })
             .then(async entries => Promise.all(
-                entries.map((entry: any[]) => this.getDataRequest(entry[1], options?.mode || "ethereal", true))
+                entries.map((entry: any[]) => {
+                    return this.getDataRequest(entry[1], options?.mode || "ethereal", true)
+                })
             ))
     }
     
