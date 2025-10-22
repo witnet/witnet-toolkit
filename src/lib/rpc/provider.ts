@@ -393,7 +393,7 @@ export class JsonRpcProvider implements IJsonRpcProvider {
                 radHash,
                 limit: options?.limit || 1,
                 offset: options?.offset || 0,
-                reverse: options?.reverse || true
+                reverse: !(options?.reverse === false),
             })
             .then(async entries => Promise.all(
                 entries.map((entry: any[]) => {
