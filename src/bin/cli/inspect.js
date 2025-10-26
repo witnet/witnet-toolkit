@@ -1,8 +1,7 @@
-const cbor = require("cbor")
-const moment = require("moment")
+import moment from "moment"
+import * as helpers from "../helpers.js"
 
-const helpers = require("../helpers")
-const { utils, Witnet } = require("../../../dist/src")
+import { utils, Witnet } from "../../../dist/src/index.js"
 
 const { cyan, gray, green, lyellow, magenta, mgreen, mmagenta, myellow, yellow } = helpers.colors
 
@@ -11,11 +10,11 @@ const DEFAULT_LIMIT = 100
 /// ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /// CLI SUBMODULE CONSTANTS ===========================================================================================
 
-module.exports = {
-  envars: {
+export const envars = {
     WITNET_SDK_PROVIDER_URL: "=> Wit/Oracle RPC provider(s) to connect to, if no otherwise specified.",
-  },
-  flags: {
+}
+
+export const flags = {
     provider: {
       hint: "Public Wit/Oracle JSON-RPC provider, other than default.",
       param: "URL",
@@ -26,8 +25,9 @@ module.exports = {
     verbose: {
       hint: "Outputs validators' nonce and last validation epochs.",
     },
-  },
-  router: {
+}
+
+export const router = {
     balance: {
       hint: "Show available Wits on given address.",
       params: "WIT_ADDRESS",
@@ -115,11 +115,12 @@ module.exports = {
         },
       },
     },
-  },
-  subcommands: {
-    balance, block, dataRequest, dataRequests, superblock, transaction, validators, withdrawers, utxos, valueTransfer,
-  },
 }
+
+export const subcommands = {
+  balance, block, dataRequest, dataRequests, superblock, transaction, validators, withdrawers, utxos, valueTransfer,
+}
+
 
 /// ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /// CLI SUBMODULE COMMANDS ============================================================================================
@@ -172,11 +173,14 @@ async function block (options = {}, args = []) {
     }
   }, 2)))
 }
+
 async function dataRequests(options = {}, [arg]) {
+  // if (!args || args.length === 0) {
   if (!arg) {
     throw new Error("No RAD_HASH or RAD_RAD_BYTECODE was specified.")
   }
   const provider = new Witnet.JsonRpcProvider(options?.provider)
+  // const radHashes = args.map(arg => {
     if (!helpers.isHexString(arg)) {
       throw new Error(`Invalid hex string was provided: '${arg}'`)
     }
@@ -186,6 +190,23 @@ async function dataRequests(options = {}, [arg]) {
     } else {
       const request = Witnet.Radon.RadonRequest.fromBytecode(arg)
       radHash = request.radHash
+    }
+    // return radHash
+  // })
+  // let results = await helpers.prompter(
+  //   Promise.all(
+  //     [...new Set(radHashes)].map(radHash => provider.searchDataRequests(radHash, {
+  //       limit: options?.limit ? parseInt(options.limit) : undefined,
+  //       offset: options?.offset ? parseInt(options.offset) : undefined,
+  //       reverse: options?.reverse, 
+  //     }))
+  //   ).then(results => results
+  //     .flat()
+  //     .sort((a, b) => options?.reverse ? b.block_epoch - a.block_epoch : a.block_epoch - b.block_epoch)
+  //     .slice(options?.offset)
+  //     .slice(0, options?.limit || DEFAULT_LIMIT)
+  //   )
+  // )
   const results = await helpers.prompter(
     provider.searchDataRequests(radHash, {
       limit: options?.limit ? parseInt(options.limit) : undefined,
@@ -196,7 +217,7 @@ async function dataRequests(options = {}, [arg]) {
   )
   helpers.traceTable(
     results.map(record => {
-      let result = record?.result.cbor_bytes ? cbor.decode(record?.result.cbor_bytes, { encoding: "hex" }) : ""
+      let result = record?.result.cbor_bytes ? utils.cbor.decode(record?.result.cbor_bytes, { encoding: "hex" }) : ""
       const request = Witnet.Radon.RadonRequest.fromBytecode(record.query.rad_bytecode)
       const dataType = result.constructor.name === "Tagged" ? "RadonError" : request.dataType
       if (dataType !== "RadonError") result = Buffer.from(utils.fromHexString(record?.result.cbor_bytes)).toString('base64');
