@@ -1,9 +1,11 @@
-require('dotenv').config()
-import { decode as cborDecode } from 'cbor'
+import cbor from "cbor"
 
-import { fromHexString, isHexString } from "../../bin/helpers"
+import { createRequire } from "module"
+const require = createRequire(import.meta.url);
 
-import { RadonRequest, RadonModal, RadonTemplate, RadonRetrieval } from "./index"
+import { fromHexString, isHexString } from "../../bin/helpers.js"
+
+import { RadonRequest, RadonModal, RadonTemplate, RadonRetrieval } from "./index.js"
 
 import {
   RadonAny,
@@ -15,11 +17,11 @@ import {
   RadonMap,
   RadonString,
   RadonOperators,
-} from "./types"
+} from "./types.js"
 
 const WITNET_ASSETS_PATH = process.env.WITNET_SDK_RADON_ASSETS_PATH || "../../../../../witnet/assets"
 
-export { execRadonBytecode } from "../../bin/helpers"
+export { execRadonBytecode } from "../../bin/helpers.js"
 
 /**
  * Decodes a Radon script out from a Protobuf-serialized bytecode.
@@ -37,7 +39,7 @@ export function parseRadonScript(bytecode: any): RadonAny {
   } else {
     throw new TypeError(`Unsupported RadonScript bytecode format: ${bytecode}`)
   }
-  const array = cborDecode(buffer)
+  const array = cbor.decode(buffer)
   return parseScript(array)
 }
 

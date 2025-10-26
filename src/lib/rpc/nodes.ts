@@ -1,14 +1,14 @@
 import { default as axios } from "axios"
-import * as utils from "../utils"
+import * as utils from "../utils.js"
 
 import {
     PublicKey, 
     PublicKeyHash, 
     PublicKeyHashString, 
     RecoverableSignature 
-} from "../crypto/types"
+} from "../crypto/types.js"
 
-import { IJsonRpcProvider, JsonRpcProvider, JsonRpcProviderError } from "./provider"
+import { IJsonRpcProvider, JsonRpcProvider, JsonRpcProviderError } from "./provider.js"
 
 import { 
     Balance2, 
@@ -18,13 +18,13 @@ import {
     StakeAuthorization, 
     StakeEntry,
     SyncStatus,
-} from "./types"
+} from "./types.js"
 
 import { 
     Epoch, 
     HexString, 
     Nonce
-} from "../types"
+} from "../types.js"
 
 export interface IJsonRpcNodeFarm extends IJsonRpcProvider {
     addresses(): Promise<Record<string, PublicKeyHashString>>

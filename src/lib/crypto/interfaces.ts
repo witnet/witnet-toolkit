@@ -7,7 +7,7 @@ import {
     Network, 
     StakeEntry, 
     ValueTransferOutput, 
-} from "../types"
+} from "../types.js"
 
 import { 
     Coins,
@@ -16,10 +16,10 @@ import {
     PublicKeyHashString,
     TransactionReceipt,
     Utxo, UtxoCacheInfo, UtxoSelectionStrategy,
-} from "./types"
+} from "./types.js"
 
 export { BIP32Interface as IBIP32 } from 'bip32'
-export { IJsonRpcProvider } from "../rpc"
+export { IJsonRpcProvider } from "../rpc/index.js"
 
 export interface IAccount extends ILedger {
     index: number
@@ -35,7 +35,10 @@ export interface ILedger {
     pkh: PublicKeyHashString
     provider: IJsonRpcProvider
     publicKey: PublicKey
+    privateKey: HexString
     strategy: UtxoSelectionStrategy
+
+    authorizeEvmAddress(evmAddress: HexString): any;
     
     addUtxos(...utxos: Array<Utxo>): { excluded: Array<Utxo>, included: Array<Utxo> }
     consumeUtxos(...utxos: Array<Utxo>): any
@@ -90,7 +93,7 @@ export interface ITransmitter {
     provider: IJsonRpcProvider
     transactions: Array<Hash>,
     type: string
-    confirmTransaction(params?: any): Promise<TransactionReceipt>
+    confirmTransaction(params?: any): Promise<TransactionReceipt | unknown>
     sendTransaction(params?: any): Promise<TransactionReceipt>
     signTransaction(params?: any, reload?: boolean): Promise<TransactionReceipt>
 }

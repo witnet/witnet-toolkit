@@ -1,9 +1,9 @@
-const secp256k1 = require('secp256k1')
+import secp256k1 from "secp256k1"
 import { bech32 } from 'bech32'
-import { Balance, Epoch, Hash, HexString, UtxoMetadata } from "../types"
+import { Balance, Epoch, Hash, HexString, UtxoMetadata } from "../types.js"
 
-import { fromHexString, isHexString, toHexString, whole_wits } from "../../bin/helpers"
-import { sha256 } from "./utils"
+import { fromHexString, isHexString, toHexString, whole_wits } from "../../bin/helpers.js"
+import { sha256 } from "./utils.js"
 
 export class Coins {
     protected coins: bigint;

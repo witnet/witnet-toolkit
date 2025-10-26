@@ -10,7 +10,7 @@ export {
   toUtf8Array, 
   utf8ArrayToStr,
   toUtf16Bytes,
-} from "../bin/helpers"
+} from "../bin/helpers.js"
 
 export {
   ecdsaVerify,
@@ -19,18 +19,18 @@ export {
   selectUtxos,
   sha256,
   totalCoins,
-} from "./crypto/utils"
+} from "./crypto/utils.js"
 
 export {
   execRadonBytecode,
   parseRadonScript,
   searchRadonAssets,
-} from "./radon/utils"
+} from "./radon/utils.js"
 
-import { toHexString, toUtf16Bytes } from "../bin/helpers"
-import { sha256 } from "./crypto/utils"
-import { RadonModal, RadonRequest, RadonTemplate } from "./radon"
-import { flattenRadonAssets, requireRadonAsset } from "./radon/utils"
+import { toHexString, toUtf16Bytes } from "../bin/helpers.js"
+import { sha256 } from "./crypto/utils.js"
+import { RadonModal, RadonRequest, RadonTemplate } from "./radon/index.js"
+import { flattenRadonAssets, requireRadonAsset } from "./radon/utils.js"
 
 export function digestMessage(text: string): Buffer<ArrayBufferLike> {
   return sha256(

@@ -1,13 +1,22 @@
-import { default as ethers } from "ethers"
+import { ethers } from "ethers"
 import { default as keccak256 } from "keccak256"
 import { default as secp256k1 } from "secp256k1"
 
-import * as utils from "../utils"
+import * as utils from "../utils.js"
 
-import { Balance, HexString, Network, QueryStakesOrder, StakeEntry } from "../types"
-import { IBIP32, IJsonRpcProvider, ISigner } from "./interfaces"
-import { Coins, KeyedSignature, PublicKey, PublicKeyHashString, RecoverableSignature, Utxo, UtxoCacheInfo, UtxoSelectionStrategy } from "./types"
-import { selectUtxos } from "./utils"
+import { Balance, HexString, Network, QueryStakesOrder, StakeEntry } from "../types.js"
+import { IBIP32, IJsonRpcProvider, ISigner } from "./interfaces.js"
+import {
+    Coins, 
+    KeyedSignature, 
+    PublicKey, 
+    PublicKeyHashString, 
+    RecoverableSignature, 
+    Utxo, 
+    UtxoCacheInfo, 
+    UtxoSelectionStrategy 
+} from "./types.js"
+import { selectUtxos } from "./utils.js"
 
 export class Signer implements ISigner {
     
@@ -66,6 +75,10 @@ export class Signer implements ISigner {
 
     public get publicKey(): PublicKey {
         return PublicKey.fromUint8Array(this.node.publicKey)
+    }
+
+    public get privateKey(): HexString {
+        return utils.toHexString(this.node?.privateKey, true)
     }
 
     public addUtxos(...utxos: Array<Utxo>): { excluded: Array<Utxo>, included: Array<Utxo> } {

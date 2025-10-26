@@ -1,5 +1,5 @@
-import { checkRpcWildcards, isHexStringOfLength, isWildcard } from "../../../bin/helpers"
-import { Bytes32, Wildcard } from ".";
+import { checkRpcWildcards, isHexStringOfLength, isWildcard } from "../../../bin/helpers.js"
+import { Bytes32, Wildcard } from "./index.js";
 
 export type WitAddress = string & {
     readonly WitAddress: unique symbol

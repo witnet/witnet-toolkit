@@ -1,15 +1,15 @@
-import * as utils from "./utils"
+import * as utils from "./utils.js"
 
-import BIP32Factory from 'bip32';
+import { BIP32Factory } from 'bip32';
 import * as ecc from '@bitcoinerlab/secp256k1';
 const bip32 = BIP32Factory(ecc);
 
-import { JsonRpcProvider } from "../rpc"
-import { Balance, Network, QueryStakesOrder, StakeEntry, StakesOrderBy } from "../types"
-import { Account } from "./account"
-import { Coinbase } from "./coinbase"
-import { IAccount, IBIP32, ICoinbase, IJsonRpcProvider, ISigner, IWallet } from "./interfaces"
-import { Coins, PublicKey, PublicKeyHashString, Utxo, UtxoCacheInfo, UtxoSelectionStrategy } from "./types"
+import { JsonRpcProvider } from "../rpc/index.js"
+import { Balance, HexString, Network, QueryStakesOrder, StakeEntry, StakesOrderBy } from "../types.js"
+import { Account } from "./account.js"
+import { Coinbase } from "./coinbase.js"
+import { IAccount, IBIP32, ICoinbase, IJsonRpcProvider, ISigner, IWallet } from "./interfaces.js"
+import { Coins, PublicKey, PublicKeyHashString, Utxo, UtxoCacheInfo, UtxoSelectionStrategy } from "./types.js"
 
 const DEFAULT_GAP = 20;
 
@@ -182,6 +182,14 @@ export class Wallet implements IWallet {
 
     public get publicKey(): PublicKey {
         return this.accounts.length > 0 ? this.accounts[0].publicKey : this.coinbase.publicKey
+    }
+
+    public get privateKey(): HexString {
+        return this.accounts.length > 0 ? this.accounts[0].privateKey : this.coinbase.privateKey
+    }
+
+    public authorizeEvmAddress(evmAddress: HexString): any {
+        return this.accounts.length > 0 ? this.accounts[0].authorizeEvmAddress(evmAddress) : this.coinbase.authorizeEvmAddress(evmAddress)
     }
 
     public addUtxos(...utxos: Array<Utxo>): { excluded: Array<Utxo>, included: Array<Utxo> } {

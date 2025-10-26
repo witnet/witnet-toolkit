@@ -1,9 +1,9 @@
-const Long = require("long")
+import Long from "long"
 
-import { Epoch, ValueTransferOutput } from "../../types"
-import { ILedger, IJsonRpcProvider } from "../interfaces"
-import { TransactionPayload } from "../payloads"
-import { Coins, PublicKeyHash, PublicKeyHashString, TransactionParams, TransactionPriority } from "../types"
+import { Epoch, ValueTransferOutput } from "../../types.js"
+import { ILedger, IJsonRpcProvider } from "../interfaces.js"
+import { TransactionPayload } from "../payloads.js"
+import { Coins, PublicKeyHash, PublicKeyHashString, TransactionParams, TransactionPriority } from "../types.js"
 
 export type StakeWithdrawalParams = TransactionParams & {
     nonce?: Epoch,

@@ -1,9 +1,9 @@
-import { Balance, Network, QueryStakesOrder, StakeEntry } from "../types"
-import { IAccount, IBIP32, IJsonRpcProvider, ISigner } from "./interfaces"
-import { Coins, PublicKey, PublicKeyHashString, Utxo, UtxoCacheInfo, UtxoSelectionStrategy } from "./types"
-import { selectUtxos } from "./utils"
+import { Balance, HexString, Network, QueryStakesOrder, StakeEntry } from "../types.js"
+import { IAccount, IBIP32, IJsonRpcProvider, ISigner } from "./interfaces.js"
+import { Coins, PublicKey, PublicKeyHashString, Utxo, UtxoCacheInfo, UtxoSelectionStrategy } from "./types.js"
+import { selectUtxos } from "./utils.js"
 
-import { Signer } from "./signer"
+import { Signer } from "./signer.js"
 
 export class Account implements IAccount {
     
@@ -48,8 +48,16 @@ export class Account implements IAccount {
         return this.external.publicKey
     }
 
+    public get privateKey(): HexString {
+        return this.external.privateKey;
+    }
+
     public get network(): Network | undefined {
         return this.provider.network
+    }
+
+    public authorizeEvmAddress(evmAddress: HexString): any {
+        return this.external.authorizeEvmAddress(evmAddress)
     }
 
     public addUtxos(...utxos: Array<Utxo>): { excluded: Array<Utxo>, included: Array<Utxo> } {

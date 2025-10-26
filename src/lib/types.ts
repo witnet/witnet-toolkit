@@ -1,5 +1,7 @@
-export { IJsonRpcNodeFarm } from "./rpc/nodes"
-export { IJsonRpcProvider } from "./rpc/provider"
+export { DataPushReport } from "./rest/types.js"
+export { IJsonRpcNodeFarm } from "./rpc/nodes.js"
+export { IJsonRpcProvider } from "./rpc/provider.js"
+export { TimeoutError } from "./crypto/types.js"
 
 export { 
     Balance2 as Balance, 
@@ -20,11 +22,7 @@ export {
     TransactionReport,
     UtxoMetadata,
     ValueTransferOutput,
-} from "./rpc/types"
-
-export {
-    TimeoutError,
-} from "./crypto/types"
+} from "./rpc/types.js"
 
 export type f64 = number;
 export type i32 = number;

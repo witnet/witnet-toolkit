@@ -1,4 +1,4 @@
-import { encode as cborEncode } from "cbor"
+import cbor from "cbor"
 
 export enum Opcodes {
     Mode = 0x08,
@@ -26,7 +26,7 @@ export class RadonFilter {
             op: humanize ? Opcodes[this.opcode] : this.opcode,
         }
         if (this.args) {
-            json.args = humanize ? this.args : Array.from(cborEncode(this.args))
+            json.args = humanize ? this.args : Array.from(cbor.encode(this.args))
         }
         return json;
     }
@@ -36,7 +36,7 @@ export class RadonFilter {
             op: this.opcode,
         }
         if (this.args) {
-            protobuf.args = Array.from(cborEncode(this.args))
+            protobuf.args = Array.from(cbor.encode(this.args))
         }
         return protobuf
     }

@@ -1,9 +1,9 @@
-import { ValueTransferPayload, ValueTransferParams } from "../payloads/ValueTransferPayload"
-export { ValueTransferParams } from "../payloads/ValueTransferPayload"
+import { ValueTransferPayload, ValueTransferParams } from "../payloads/ValueTransferPayload.js"
+export { ValueTransferParams } from "../payloads/ValueTransferPayload.js"
 
-import { ILedger } from "../interfaces"
-import { TransmitterMultiSig } from "../transmitters"
-import { PublicKeyHashString } from "../types"
+import { ILedger } from "../interfaces.js"
+import { TransmitterMultiSig } from "../transmitters.js"
+import { PublicKeyHashString } from "../types.js"
 
 export class ValueTransfers extends TransmitterMultiSig<ValueTransferParams, ValueTransferPayload> {
     

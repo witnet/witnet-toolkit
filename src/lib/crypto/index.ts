@@ -1,4 +1,4 @@
-export { ICoinbase } from "./interfaces"
+export { ICoinbase } from "./interfaces.js"
 
 export {
   Coins,
@@ -10,11 +10,11 @@ export {
   TransmissionError,
   TransactionPriority,
   UtxoSelectionStrategy,
-} from "./types"
+} from "./types.js"
 
-export * from "./transmitters/DataRequests"
-export * from "./transmitters/ValueTransfers"
-export * from "./transmitters/StakeDeposits"
-export * from "./transmitters/StakeWithdrawals"
+export * from "./transmitters/DataRequests.js"
+export * from "./transmitters/ValueTransfers.js"
+export * from "./transmitters/StakeDeposits.js"
+export * from "./transmitters/StakeWithdrawals.js"
 
-export * from "./wallet"
+export * from "./wallet.js"

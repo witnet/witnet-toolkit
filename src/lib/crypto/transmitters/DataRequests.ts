@@ -1,11 +1,11 @@
-import { RadonRequest, RadonTemplate } from "../../radon"
+import { RadonRequest, RadonTemplate } from "../../radon/index.js"
 
-import { DataRequestPayload, DataRequestParams } from "../payloads/DataRequestPayload"
-import { ILedger } from "../interfaces"
-import { TransmitterMultiSig } from "../transmitters"
-import { PublicKeyHashString } from "../types"
+import { DataRequestPayload, DataRequestParams } from "../payloads/DataRequestPayload.js"
+import { ILedger } from "../interfaces.js"
+import { TransmitterMultiSig } from "../transmitters.js"
+import { PublicKeyHashString } from "../types.js"
 
-export { DataRequestParams } from "../payloads/DataRequestPayload"
+export { DataRequestParams } from "../payloads/DataRequestPayload.js"
 
 export class DataRequests extends TransmitterMultiSig<DataRequestParams, DataRequestPayload> {
     

@@ -1,12 +1,16 @@
-import { Type as ProtoType, Root as ProtoRoot } from "protobufjs"
+import { createRequire } from "module"
+const require = createRequire(import.meta.url);
+
+import protobuf from "protobufjs"
+const { Root: ProtoRoot } = protobuf
 const protoRoot = ProtoRoot.fromJSON(require("../../../witnet/witnet.proto.json"))
 
-import { Hash, NetworkPriorities, ValueTransferOutput } from "../types"
-import { toHexString } from "../utils"
+import { Hash, NetworkPriorities, ValueTransferOutput } from "../types.js"
+import { toHexString } from "../utils.js"
 
-import { ILedger, IJsonRpcProvider, ITransactionPayload, ITransactionPayloadMultiSig } from "./interfaces"
-import { sha256 } from "./utils"
-import { Coins, PublicKeyHashString, TransactionPriority, Utxo } from "./types";
+import { ILedger, IJsonRpcProvider, ITransactionPayload, ITransactionPayloadMultiSig } from "./interfaces.js"
+import { sha256 } from "./utils.js"
+import { Coins, PublicKeyHashString, TransactionPriority, Utxo } from "./types.js";
 
 export abstract class TransactionPayload<Specs> implements ITransactionPayload<Specs> {
  
@@ -14,7 +18,7 @@ export abstract class TransactionPayload<Specs> implements ITransactionPayload<S
     protected _covered: bigint;
     protected _fees: bigint;
     protected _priorities?: NetworkPriorities;
-    protected _protoType: ProtoType;
+    protected _protoType: protobuf.Type;
     protected _target?: Specs;
     
     constructor(protoTypeName: string, initialTarget?: Specs) {
@@ -28,9 +32,7 @@ export abstract class TransactionPayload<Specs> implements ITransactionPayload<S
     public get bytecode(): Uint8Array | undefined {
         // make toProtobuf return Protobuf's deserialized message
         const obj = this.toProtobuf()
-        
         if (!obj) return undefined
-        
         const err = this._protoType.verify(obj)
         if (err) {
             throw TypeError(err)

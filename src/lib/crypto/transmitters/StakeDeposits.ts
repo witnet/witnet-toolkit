@@ -1,10 +1,10 @@
-import { StakePayload, StakeDepositParams } from "../payloads/StakePayload"
+import { StakePayload, StakeDepositParams } from "../payloads/StakePayload.js"
 
-import { ILedger } from "../interfaces"
-import { TransmitterMultiSig } from "../transmitters"
-import { PublicKeyHashString } from "../types"
+import { ILedger } from "../interfaces.js"
+import { TransmitterMultiSig } from "../transmitters.js"
+import { PublicKeyHashString } from "../types.js"
 
-export { StakeDepositParams } from "../payloads/StakePayload"
+export { StakeDepositParams } from "../payloads/StakePayload.js"
 
 export class StakeDeposits extends TransmitterMultiSig<StakeDepositParams, StakePayload> {
     

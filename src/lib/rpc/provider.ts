@@ -1,12 +1,17 @@
 import { default as axios, AxiosHeaders } from "axios"
-const jsonBig = require('json-bigint');
-import { Root as ProtoRoot } from "protobufjs"
-const protoRoot = ProtoRoot.fromJSON(require("../../../witnet/witnet.proto.json")) 
+import jsonBig from 'json-bigint';
+
+import { createRequire } from "module"
+const require = createRequire(import.meta.url);
+
+import protobuf from "protobufjs"
+const { Root: ProtoRoot } = protobuf
+const protoRoot = ProtoRoot.fromJSON(require("../../../witnet/witnet.proto.json"))
 const protoBuf = protoRoot.lookupType("ConsensusConstants")
 
-import { PublicKey, PublicKeyHashString, TransactionReceipt } from "../crypto/types"
-import { Epoch, Hash, Network, UtxoMetadata } from "../types"
-import * as utils from "../utils"
+import { PublicKey, PublicKeyHashString, TransactionReceipt } from "../crypto/types.js"
+import { Epoch, Hash, Network, UtxoMetadata } from "../types.js"
+import * as utils from "../utils.js"
 
 import {
     Balance, Balance2, Block, ConsensusConstants, 
@@ -15,7 +20,7 @@ import {
     QueryStakes, QueryStakingPowers,
     TransactionReport, SignalingInfo, StakeEntry, StakingPower, 
     SuperblockReport, SupplyInfo, SyncStatus, UtxoInfo,
-} from "./types"
+} from "./types.js"
 
 export interface IJsonRpcProvider {
     network?: Network;

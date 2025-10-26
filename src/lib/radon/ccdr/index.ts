@@ -1,5 +1,5 @@
-export * as eth from "./eth"
-export * as wit from "./wit"
+export * as eth from "./eth.js"
+export * as wit from "./wit.js"
 
 export type HexStringOfLength<Max> = string & {
     max: Max;
