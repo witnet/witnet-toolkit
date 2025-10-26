@@ -1,8 +1,8 @@
-import { HexString, QueryStakesOrder, StakeEntry } from "../types"
-import { IBIP32, ICoinbase, IJsonRpcProvider } from "./interfaces"
-import { PublicKeyHash, PublicKeyHashString, RecoverableSignature, UtxoSelectionStrategy } from "./types"
+import { HexString, QueryStakesOrder, StakeEntry } from "../types.js"
+import { IBIP32, ICoinbase, IJsonRpcProvider } from "./interfaces.js"
+import { PublicKeyHash, PublicKeyHashString, RecoverableSignature, UtxoSelectionStrategy } from "./types.js"
 
-import { Signer } from "./signer"
+import { Signer } from "./signer.js"
 
 export class Coinbase extends Signer implements ICoinbase {
 

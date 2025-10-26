@@ -1,10 +1,10 @@
-const Long = require("long")
+import Long from "long"
 
-import { fromHexString } from "../../../bin/helpers"
-import { IJsonRpcProvider } from "../../types"
+import { fromHexString } from "../../../bin/helpers.js"
+import { IJsonRpcProvider } from "../../types.js"
 
-import { TransactionPayloadMultiSig } from "../payloads"
-import { Coins, PublicKeyHash, PublicKeyHashString, TransactionParams, TransactionPriority } from "../types"
+import { TransactionPayloadMultiSig } from "../payloads.js"
+import { Coins, PublicKeyHash, PublicKeyHashString, TransactionParams, TransactionPriority } from "../types.js"
 
 export type ValueTransferParams = TransactionParams & {
     recipients: Array<[pkh: PublicKeyHashString, value: Coins]>,

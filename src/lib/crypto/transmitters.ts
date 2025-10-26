@@ -1,12 +1,17 @@
-const promisePoller = require('promise-poller').default;
+import { default as PromisePoller } from "promise-poller"
+const promisePoller = PromisePoller.default
 
-import { Root as ProtoRoot, Type as ProtoType } from "protobufjs"
-const protoRoot = ProtoRoot.fromJSON(require("../../../witnet/witnet.proto.json")) 
+import { createRequire } from "module"
+const require = createRequire(import.meta.url);
 
-import { TransactionReport, UtxoMetadata, ValueTransferOutput } from "../rpc/types"
-import { JsonRpcProvider } from "../rpc"
-import { Hash, Network } from "../types"
-import { isHexString } from "../utils";
+import protobuf from "protobufjs"
+const { Root: ProtoRoot } = protobuf
+const protoRoot = ProtoRoot.fromJSON(require("../../../witnet/witnet.proto.json"))
+
+import { TransactionReport, UtxoMetadata, ValueTransferOutput } from "../rpc/types.js"
+import { JsonRpcProvider } from "../rpc/index.js"
+import { Hash, Network } from "../types.js"
+import { isHexString } from "../utils.js";
 
 import { 
     ILedger,
@@ -14,7 +19,7 @@ import {
     ITransmitter, 
     ITransactionPayload, 
     ITransactionPayloadMultiSig, 
-} from "./interfaces"
+} from "./interfaces.js"
 
 import { 
     KeyedSignature, 
@@ -28,7 +33,7 @@ import {
     Transmission,
     TransmissionError,
     Utxo,
-} from "./types"
+} from "./types.js"
 
 export abstract class Transmitter<Specs, Payload extends ITransactionPayload<Specs>> implements ITransmitter {
     
@@ -36,7 +41,7 @@ export abstract class Transmitter<Specs, Payload extends ITransactionPayload<Spe
     public readonly changePkh: PublicKeyHashString;
     
     protected _payload: Payload;
-    protected _protoBuf: ProtoType;
+    protected _protoBuf: protobuf.Type;
     protected _signatures: Array<KeyedSignature> = []
     protected _transactions: Array<Hash> = []
 
@@ -192,7 +197,7 @@ export abstract class Transmitter<Specs, Payload extends ITransactionPayload<Spe
             onCheckpoint?: TransactionCallback,
             onStatusChange?: TransactionCallback,
         }
-    ): Promise<TransactionReceipt> {
+    ): Promise<TransactionReceipt | unknown> {
 
         let receipt = JsonRpcProvider.receipts[hash]
         if (!receipt || receipt.hash !== hash) {

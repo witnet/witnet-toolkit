@@ -1,10 +1,11 @@
-import { encode as cborEncode } from "cbor"
-import * as helpers from "../../bin/helpers"
+import cbor from "cbor"
 
-import { Opcodes as RadonReducerOpcodes } from './reducers'
-import * as Utils from '../utils'
+import * as helpers from "../../bin/helpers.js"
+import { toHexString } from '../utils.js'
 
-export { HexString as RadonBytecode } from "../types"
+import { Opcodes as RadonReducerOpcodes } from './reducers.js'
+
+export { HexString as RadonBytecode } from "../types.js"
 
 export enum RadonEncodings {
     HexString = 0,
@@ -334,7 +335,7 @@ export class RadonScript {
         }
     }
     public toBytecode(): string {
-        return Utils.toHexString(Object.values(Uint8Array.from(cborEncode(this.encode()))), true)
+        return toHexString(Object.values(Uint8Array.from(cbor.encode(this.encode()))), true)
     }
     public toString(left = "", indent = 0, level = 0): string {
         const lf = left !== "" ? "\n" : ""

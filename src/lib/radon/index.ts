@@ -1,11 +1,13 @@
-import {
-  decode as cborDecode,
-  encode as cborEncode,
-} from 'cbor'
+import cbor from "cbor"
 import graphQlCompress from 'graphql-query-compress'
 
-const protoBuf = require("protobufjs").Root.fromJSON(require("../../../witnet/witnet.proto.json"))
-const RADRequest = protoBuf.lookupType("RADRequest")
+import { createRequire } from "module"
+const require = createRequire(import.meta.url);
+
+import protobuf from "protobufjs"
+const { Root: ProtoRoot } = protobuf
+const protoRoot = ProtoRoot.fromJSON(require("../../../witnet/witnet.proto.json"))
+const RADRequest = protoRoot.lookupType("RADRequest")
 
 import {
   execRadonBytecode,
@@ -19,13 +21,13 @@ import {
   toHexString,
   toUtf8Array,
   utf8ArrayToStr,
-} from "../../bin/helpers"
+} from "../../bin/helpers.js"
 
-import { sha256 } from "../crypto/utils"
-import { parseRadonScript } from "./utils"
-import { Opcodes as Filters, RadonFilter } from './filters'
-import { Opcodes as Reducers, RadonReducer } from './reducers'
-import { RadonAny, RadonString, RadonOperator } from './types'
+import { sha256 } from "../crypto/utils.js"
+import { parseRadonScript } from "./utils.js"
+import { Opcodes as Filters, RadonFilter } from './filters.js'
+import { Opcodes as Reducers, RadonReducer } from './reducers.js'
+import { RadonAny, RadonString, RadonOperator } from './types.js'
 import {
   RadonArray as _RadonArray,
   RadonBoolean as _RadonBoolean,
@@ -36,7 +38,7 @@ import {
   RadonString as _RadonString,
   RadonScript as _RadonScript,
   RadonEncodings as _RadonEncodings,
-} from './types'
+} from './types.js'
 
 type Args = string[] | string[][];
 
@@ -118,7 +120,7 @@ export class RadonRequest extends RadonArtifact {
       return new RadonRetrieval(specs)
     })
     const decodeFilter = (f: any) => {
-      if (f?.args && f.args.length > 0) return new RadonFilter(f.op, cborDecode(Uint8Array.from(f.args)))
+      if (f?.args && f.args.length > 0) return new RadonFilter(f.op, cbor.decode(Uint8Array.from(f.args)))
       else return new RadonFilter(f.op);
     }
     return new RadonRequest({
@@ -152,7 +154,7 @@ export class RadonRequest extends RadonArtifact {
       throw Error(errMsg);
     } else {
       const message = RADRequest.fromObject(payload);
-      return RADRequest.encode(message).finish()
+      return Buffer.from(RADRequest.encode(message).finish())
     }
   }
 
@@ -617,7 +619,7 @@ export class RadonRetrieval {
       const utf8Array = toUtf8Array(this.body)
       protobuf.body = utf8Array
     }
-    protobuf.script = Object.values(Uint8Array.from(cborEncode(this.script?.encode() || [])))
+    protobuf.script = Object.values(Uint8Array.from(cbor.encode(this.script?.encode() || [])))
     return protobuf
   }
 
@@ -650,7 +652,7 @@ export namespace reducers {
   export function PriceTally() { return new RadonReducer(Reducers.MeanAverage, [filters.Stdev(2.5)]); }
 }
 
-import * as ccdr from './ccdr'
+import * as ccdr from './ccdr/index.js'
 export namespace retrievals {
 
   export const rpc = ccdr;

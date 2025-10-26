@@ -1,13 +1,13 @@
-import { UnstakePayload, StakeWithdrawalParams } from "../payloads/UnstakePayload"
+import { UnstakePayload, StakeWithdrawalParams } from "../payloads/UnstakePayload.js"
 
-import { TransactionReceipt } from "../types"
-import { ILedger } from "../interfaces"
-import { Transmitter } from "../transmitters"
-import { PublicKeyHashString } from "../types"
+import { TransactionReceipt } from "../types.js"
+import { ILedger } from "../interfaces.js"
+import { Transmitter } from "../transmitters.js"
+import { PublicKeyHashString } from "../types.js"
 
-import { Hash } from "../../types"
+import { Hash } from "../../types.js"
 
-export { StakeWithdrawalParams } from "../payloads/UnstakePayload"
+export { StakeWithdrawalParams } from "../payloads/UnstakePayload.js"
 
 export class StakeWithdrawals extends Transmitter<StakeWithdrawalParams, UnstakePayload> {
     

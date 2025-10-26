@@ -1,5 +1,5 @@
-import { RadonScript } from "./types"
-import { RadonFilter, Stdev as StdevFilter } from "./filters"
+import { RadonScript } from "./types.js"
+import { RadonFilter, Stdev as StdevFilter } from "./filters.js"
 
 export enum Opcodes {
     Mode = 0x02,
