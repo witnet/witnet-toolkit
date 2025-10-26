@@ -3,7 +3,7 @@ const {
   RadonScript,
   retrievals,
   types,
-} = require("../../../../src/lib/radon")
+} = require("../../../../dist/src/lib/radon/index.js")
 
 module.exports = {
     WitOracleIpfsFileExists: new RadonModal({
