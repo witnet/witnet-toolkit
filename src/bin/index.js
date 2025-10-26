@@ -2,21 +2,27 @@
 
 /// IMPORTS ===========================================================================================================
 
-const axios = require("axios")
-require("dotenv").config()
-const fs = require("fs")
-const os = require("os")
-const path = require("path")
+import axios from "axios"
+import dotenv from "dotenv"
+import fs from "fs"
+import { createRequire } from "module"
+import os from "os"
+import path from "path"
 
-const {
+dotenv.config({ quiet: true })
+const require = createRequire(import.meta.url);
+
+import {
   colors,
   deleteExtraFlags, extractFromArgs,
   showUsage, showUsageError, showUsageSubcommand, showVersion,
   toolkitRun,
-  prompt,
-} = require("./helpers")
+  prompt
+} from "./helpers.js"
 
 /// CONSTANTS =======================================================================================================
+
+const __dirname = import.meta.dirname;
 
 const version = "2.0.21"
 const toolkitDownloadUrlBase = `https://github.com/witnet/witnet-rust/releases/download/${version}/`
@@ -233,7 +239,7 @@ async function main () {
     for (let index = 1; index < args.length; index ++) {
       if (!args[index].startsWith('--')) {
         try {
-          const module = require(`./cli/${args[index]}`)
+          await import(`./cli/${args[index]}.js`)
           args = [ args[index], ...args.slice(0, index).concat(args.slice(index + 1)) ]
           break;
         } catch {}
@@ -249,7 +255,7 @@ async function main () {
   } else if (args[0] && !args[0].startsWith("--")) {
     try {
       const cmd = args[0]
-      const module = require(`./cli/${cmd}`);
+      const module = await import(`./cli/${cmd}.js`);
       [args, flags] = extractFromArgs(args.slice(1), module?.flags)
       if (args && args[0] && module.subcommands && module?.router[args[0]]) {
         const subcmd = args[0]

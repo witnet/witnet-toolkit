@@ -1,157 +1,158 @@
-const cbor = require("cbor")
-const fs = require("fs")
-const inquirer = require("inquirer")
-const merge = require("lodash.merge")
-const path = require("path")
+import fs from "fs"
+import inquirer from "inquirer"
+import merge from "lodash.merge"
+import path from "path"
 
-const helpers = require("../helpers")
-const { Witnet } = require("../../../dist/src")
+import { createRequire } from "module"
+const require = createRequire(import.meta.url);
+
+import * as helpers from "../helpers.js"
+import { utils, Witnet } from "../../../dist/src/index.js"
 
 const WITNET_ASSETS_PATH = process.env.WITNET_SDK_RADON_ASSETS_PATH || "../../../../../witnet/assets"
 
 /// ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /// CLI SUBMODULE CONSTANTS ===========================================================================================
 
-const isModuleInitialized = fs.existsSync("./witnet/assets/index.js")
+const isModuleInitialized = fs.existsSync("./witnet/assets/index.cjs")
 
-module.exports = {
-  flags: {
-    module: {
-      hint: "Package where to fetch Radon assets from (supersedes --legacy).",
-      param: "NPM_PACKAGE",
-    },
+export const flags = {
+  module: {
+    hint: "Package where to fetch Radon assets from (supersedes --legacy).",
+    param: "NPM_PACKAGE",
   },
-  router: isModuleInitialized
-    ? {
-      assets: {
-        hint: "List available Witnet Radon assets.",
-        params: "[RADON_ASSETS ...]",
-        options: {
-          filter: {
-            hint: "Restrict output to name-matching assets.",
-          },
-          legacy: {
-            hint: "List only those declared in witnet/assets folder.",
-          },
-          modals: {
-            hint: "Restrict output to Radon modals.",
-          },
-          requests: {
-            hint: "Restrict output to Radon requests.",
-          },
-          templates: {
-            hint: "Restrict output to Radon templates.",
-          },          
+}
+
+export const router = isModuleInitialized
+  ? {
+    assets: {
+      hint: "List available Witnet Radon assets.",
+      params: "[RADON_ASSETS ...]",
+      options: {
+        filter: {
+          hint: "Restrict output to name-matching assets.",
         },
-      },
-      check: {
-        hint: "Check correctness of Witnet Radon artifacts declared in witnet/assets folder.",
-        params: [],
-        options: {},
-      },
-      decode: {
-        hint: "Break down specs of one or more Radon assets.",
-        params: ["RAD_BYTECODE | RAD_HASH | RADON_ASSET"],
-        options: {
-          json: {
-            hint: "Outputs data in JSON format.",
-          },
-          headline: {
-            hint: "Settles output report headline.",
-            param: ":string",
-          },
-          indent: {
-            hint: "Prefixes given number of white spaces for every output line.",
-            param: ":number",
-          },
+        legacy: {
+          hint: "List only those declared in witnet/assets folder.",
         },
-      },
-      "dry-run": {
-        hint: "Simulate resolution of one or more Radon assets, as if solved by the Wit/Oracle.",
-        params: ["RAD_BYTECODE | RAD_HASH | RADON_ASSET"],
-        options: {
-          default: {
-            hint: "Use default sample parameters on parametrized Radon assets.",
-          },
-          json: {
-            hint: "Outputs data in JSON format.",
-          },
-          headline: {
-            hint: "Settles output report headline.",
-            param: ":string",
-          },
-          indent: {
-            hint: "Prefixes given number of white spaces for every output line.",
-            param: ":number",
-          },
-          verbose: {
-            hint: "Outputs detailed dry-run report.",
-          },
+        modals: {
+          hint: "Restrict output to Radon modals.",
         },
-      },
-    }
-    : {
-      assets: {
-        hint: "List available Witnet Radon assets.",
-        params: "[RADON_ASSETS ...]",
-        options: {
-          filter: {
-            hint: "Restrict output to name-matching assets.",
-          },
+        requests: {
+          hint: "Restrict output to Radon requests.",
         },
-      },
-      decode: {
-        hint: "Break down specs of one or more Radon assets.",
-        params: ["RAD_BYTECODE | RAD_HASH | RADON_ASSET"],
-        options: {
-          json: {
-            hint: "Outputs data in JSON format.",
-          },
-          headline: {
-            hint: "Settles output report headline.",
-            param: ":string",
-          },
-          indent: {
-            hint: "Prefixes given number of white spaces for every output line.",
-            param: ":number",
-          },
+        templates: {
+          hint: "Restrict output to Radon templates.",
         },
-      },
-      "dry-run": {
-        hint: "Simulate resolution of one or more Radon assets, as if solved by the Wit/Oracle.",
-        params: ["RAD_BYTECODE | RAD_HASH | RADON_ASSET"],
-        options: {
-          json: {
-            hint: "Outputs data in JSON format.",
-          },
-          headline: {
-            hint: "Settles output report headline.",
-            param: ":string",
-          },
-          indent: {
-            hint: "Prefixes given number of white spaces for every output line.",
-            param: ":number",
-          },
-          verbose: {
-            hint: "Outputs detailed dry-run report.",
-          },
-        },
-      },
-      init: {
-        hint: "Initialize a Witnet Radon workspace in this project.",
       },
     },
-  subcommands: {
-    assets, init, check, decode, "dry-run": dryrun,
-  },
-  loadAssets,
+    check: {
+      hint: "Check correctness of Witnet Radon artifacts declared in witnet/assets folder.",
+      params: [],
+      options: {},
+    },
+    decode: {
+      hint: "Break down specs of one or more Radon assets.",
+      params: ["RAD_BYTECODE | RAD_HASH | RADON_ASSET"],
+      options: {
+        json: {
+          hint: "Outputs data in JSON format.",
+        },
+        headline: {
+          hint: "Settles output report headline.",
+          param: ":string",
+        },
+        indent: {
+          hint: "Prefixes given number of white spaces for every output line.",
+          param: ":number",
+        },
+      },
+    },
+    "dry-run": {
+      hint: "Simulate resolution of one or more Radon assets, as if solved by the Wit/Oracle.",
+      params: ["RAD_BYTECODE | RAD_HASH | RADON_ASSET"],
+      options: {
+        default: {
+          hint: "Use default sample parameters on parametrized Radon assets.",
+        },
+        json: {
+          hint: "Outputs data in JSON format.",
+        },
+        headline: {
+          hint: "Settles output report headline.",
+          param: ":string",
+        },
+        indent: {
+          hint: "Prefixes given number of white spaces for every output line.",
+          param: ":number",
+        },
+        verbose: {
+          hint: "Outputs detailed dry-run report.",
+        },
+      },
+    },
+  }
+  : {
+    assets: {
+      hint: "List available Witnet Radon assets.",
+      params: "[RADON_ASSETS ...]",
+      options: {
+        filter: {
+          hint: "Restrict output to name-matching assets.",
+        },
+      },
+    },
+    decode: {
+      hint: "Break down specs of one or more Radon assets.",
+      params: ["RAD_BYTECODE | RAD_HASH | RADON_ASSET"],
+      options: {
+        json: {
+          hint: "Outputs data in JSON format.",
+        },
+        headline: {
+          hint: "Settles output report headline.",
+          param: ":string",
+        },
+        indent: {
+          hint: "Prefixes given number of white spaces for every output line.",
+          param: ":number",
+        },
+      },
+    },
+    "dry-run": {
+      hint: "Simulate resolution of one or more Radon assets, as if solved by the Wit/Oracle.",
+      params: ["RAD_BYTECODE | RAD_HASH | RADON_ASSET"],
+      options: {
+        json: {
+          hint: "Outputs data in JSON format.",
+        },
+        headline: {
+          hint: "Settles output report headline.",
+          param: ":string",
+        },
+        indent: {
+          hint: "Prefixes given number of white spaces for every output line.",
+          param: ":number",
+        },
+        verbose: {
+          hint: "Outputs detailed dry-run report.",
+        },
+      },
+    },
+    init: {
+      hint: "Initialize a Witnet Radon workspace in this project.",
+    },
+  }
+
+export const subcommands = {
+  assets, init, check, decode, "dry-run": dryrun,
 }
 
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /// CLI SUBMODULE COMMANDS ============================================================================================
 
-async function init () {
+async function init() {
   if (!fs.existsSync("./witnet/assets/")) {
     fs.mkdirSync("./witnet/assets", { recursive: true })
   }
@@ -173,14 +174,14 @@ async function init () {
   console.info(`Initialized Witnet Radon workspace at folder ${process.cwd()}/witnet/assets`)
 }
 
-async function assets (options = {}, [...patterns]) {
+async function assets(options = {}, [...patterns]) {
   helpers.traceHeader(
     `${options?.module ? options.module.toUpperCase() : path.basename(process.cwd()).toUpperCase()} RADON ASSETS`,
     helpers.colors.white
   )
   const assets = clearEmptyBranches(
-    options?.module ? require(options.module) : loadAssets(options), 
-    patterns, 
+    options?.module ? require(options.module) : loadAssets(options),
+    patterns,
     options
   );
   if (assets && Object.keys(assets).length > 0) {
@@ -191,7 +192,7 @@ async function assets (options = {}, [...patterns]) {
 }
 /// -------------------------------------------------------------------------------------------------------------------
 
-async function check () {
+async function check() {
   if (!isModuleInitialized) {
     throw new Error(`No Witnet Radon workspace has been initialized. Please, run ${white("npx witsdk radon init")} if willing to declare your own Radon assets.`)
   }
@@ -203,11 +204,11 @@ async function check () {
       sources,
       templates,
     ] = [
-      helpers.countLeaves(Witnet.Radon.RadonModal, assets),
-      helpers.countLeaves(Witnet.Radon.RadonRequest, assets),
-      helpers.countLeaves(Witnet.Radon.RadonRetrieval, assets?.sources),
-      helpers.countLeaves(Witnet.Radon.RadonTemplate, assets),
-    ]
+        helpers.countLeaves(Witnet.Radon.RadonModal, assets),
+        helpers.countLeaves(Witnet.Radon.RadonRequest, assets),
+        helpers.countLeaves(Witnet.Radon.RadonRetrieval, assets?.sources),
+        helpers.countLeaves(Witnet.Radon.RadonTemplate, assets),
+      ]
     if (modals > 0) console.info("> Radon modals:   ", modals)
     if (sources > 0) console.info("> Radon sources:  ", sources)
     if (requests > 0) console.info("> Radon requests: ", requests)
@@ -228,7 +229,7 @@ async function check () {
 }
 /// -------------------------------------------------------------------------------------------------------------------
 
-async function decode (options = {}, args = []) {
+async function decode(options = {}, args = []) {
   if (args.length === 0) {
     throw Error("No Radon asset was specified")
   }
@@ -297,7 +298,7 @@ async function decode (options = {}, args = []) {
 }
 /// -------------------------------------------------------------------------------------------------------------------
 
-async function dryrun (options = {}, args = []) {
+async function dryrun(options = {}, args = []) {
   if (args.length === 0) {
     throw Error("No Radon asset was specified")
   }
@@ -328,7 +329,7 @@ async function dryrun (options = {}, args = []) {
         if (artifact instanceof Witnet.Radon.RadonModal) {
           if (args.length < artifact.argsCount) {
             throw new Error(`missing parameters for Radon Modal.`)
-          } 
+          }
           artifact.providers = [...args[0].split(";")]
           const modalArgs = []
           let argIndex = 1
@@ -337,9 +338,9 @@ async function dryrun (options = {}, args = []) {
             argIndex += 1
           }
           artifact = (
-            artifact.homogeneous 
+            artifact.homogeneous
               ? artifact.buildRadonRequest(modalArgs)
-              : artifact.buildRadonRequest([ ...artifact.sources.map(source => modalArgs.slice(0, source.argsCount)) ])
+              : artifact.buildRadonRequest([...artifact.sources.map(source => modalArgs.slice(0, source.argsCount))])
           )
           prefix = "RadonModal::"
         } else {
@@ -396,24 +397,24 @@ const stringifyReducer = (x, c) => {
   return color(`${Witnet.Radon.reducers.Opcodes[x.opcode]}()`)
 }
 
-function loadAssets (options) {
+export function loadAssets(options) {
   const { assets } = options?.legacy ? {} : require("@witnet/sdk")
   return (
-    isModuleInitialized && fs.existsSync(`${WITNET_ASSETS_PATH}`)
-      ? merge(assets, require(`${WITNET_ASSETS_PATH}`)) 
+    isModuleInitialized
+      ? merge(assets, require(`${WITNET_ASSETS_PATH}/index.cjs`))
       : assets
   );
 }
 
-function flattenRadonArtifacts (tree, headers) {
+function flattenRadonArtifacts(tree, headers) {
   if (!headers) headers = []
   const matches = []
   for (const key in tree) {
     if (
       tree[key] instanceof Witnet.Radon.RadonRetrieval ||
-            tree[key] instanceof Witnet.Radon.RadonModal ||
-            tree[key] instanceof Witnet.Radon.RadonRequest ||
-            tree[key] instanceof Witnet.Radon.RadonTemplate
+      tree[key] instanceof Witnet.Radon.RadonModal ||
+      tree[key] instanceof Witnet.Radon.RadonRequest ||
+      tree[key] instanceof Witnet.Radon.RadonTemplate
     ) {
       matches.push({
         key,
@@ -429,28 +430,28 @@ function flattenRadonArtifacts (tree, headers) {
   return matches
 };
 
-function countWitnetArtifacts (assets, args, options) {
+function countWitnetArtifacts(assets, args, options) {
   let counter = 0
   Object.entries(assets).forEach(([key, value]) => {
     let include = (
       (options?.modals && value instanceof Witnet.Radon.RadonModal)
-        || (options?.templates && value instanceof Witnet.Radon.RadonTemplate)
-        || (options?.retrievals && value instanceof Witnet.Radon.RadonRetrieval)
-        || (options?.requests && value instanceof Witnet.Radon.RadonRequest)
+      || (options?.templates && value instanceof Witnet.Radon.RadonTemplate)
+      || (options?.retrievals && value instanceof Witnet.Radon.RadonRetrieval)
+      || (options?.requests && value instanceof Witnet.Radon.RadonRequest)
     );
     if (!(options?.modals || options?.templates || options?.retrievals || options?.requests)) {
       include = (
         value instanceof Witnet.Radon.RadonModal ||
-                  value instanceof Witnet.Radon.RadonRequest ||
-                  value instanceof Witnet.Radon.RadonTemplate ||
-                  value instanceof Witnet.Radon.RadonRetrieval
+        value instanceof Witnet.Radon.RadonRequest ||
+        value instanceof Witnet.Radon.RadonTemplate ||
+        value instanceof Witnet.Radon.RadonRetrieval
       );
     }
     if (include && (
       !options?.filter
-        || !args 
-        || args.length === 0 
-        || args.find(arg => key.toLowerCase().indexOf(arg.toLowerCase()) >= 0)
+      || !args
+      || args.length === 0
+      || args.find(arg => key.toLowerCase().indexOf(arg.toLowerCase()) >= 0)
     )) {
       counter++
     } else if (typeof value === "object") {
@@ -460,22 +461,22 @@ function countWitnetArtifacts (assets, args, options) {
   return counter
 }
 
-function clearEmptyBranches (node, args, options) {
+function clearEmptyBranches(node, args, options) {
   if (node) {
     const assets = Object.fromEntries(
       Object.entries(node).map(([key, value]) => {
         let include = (
           (options?.modals && value instanceof Witnet.Radon.RadonModal)
-            || (options?.templates && value instanceof Witnet.Radon.RadonTemplate)
-            || (options?.retrievals && value instanceof Witnet.Radon.RadonRetrieval)
-            || (options?.requests && value instanceof Witnet.Radon.RadonRequest)
+          || (options?.templates && value instanceof Witnet.Radon.RadonTemplate)
+          || (options?.retrievals && value instanceof Witnet.Radon.RadonRetrieval)
+          || (options?.requests && value instanceof Witnet.Radon.RadonRequest)
         );
         if (!(options?.modals || options?.templates || options?.retrievals || options?.requests)) {
           include = (
             value instanceof Witnet.Radon.RadonModal ||
-                      value instanceof Witnet.Radon.RadonRequest ||
-                      value instanceof Witnet.Radon.RadonTemplate ||
-                      value instanceof Witnet.Radon.RadonRetrieval
+            value instanceof Witnet.Radon.RadonRequest ||
+            value instanceof Witnet.Radon.RadonTemplate ||
+            value instanceof Witnet.Radon.RadonRetrieval
           );
         }
         if (
@@ -504,7 +505,7 @@ function clearEmptyBranches (node, args, options) {
   }
 }
 
-function traceWitnetArtifacts (assets, args, indent = "", options) {
+function traceWitnetArtifacts(assets, args, indent = "", options) {
   const prefix = `${indent}`
   Object.keys(assets).forEach((key, index) => {
     const isLast = index === Object.keys(assets).length - 1
@@ -519,7 +520,7 @@ function traceWitnetArtifacts (assets, args, indent = "", options) {
       }
     } else if ((
       assets[key] instanceof Witnet.Radon.RadonTemplate ||
-            assets[key] instanceof Witnet.Radon.RadonModal
+      assets[key] instanceof Witnet.Radon.RadonModal
     )) {
       const argsCount = assets[key].argsCount
       if (!options?.filter || found) {
@@ -543,7 +544,7 @@ function traceWitnetArtifacts (assets, args, indent = "", options) {
   })
 }
 
-function traceWitnetRadonReportHeadline (request, options) {
+function traceWitnetRadonReportHeadline(request, options) {
   const trait = (str) => `${str}${" ".repeat(66 - str.length)}`
   const indent = options?.indent ? " ".repeat(options.indent) : ""
   const resultDataType = `Result<${extractTypeName(request.sources[0]?.script?.outputType.constructor.name)}, RadonError>`
@@ -569,7 +570,7 @@ function traceWitnetRadonReportHeadline (request, options) {
   // }
 }
 
-function traceWitnetRadonRequest (request, options) {
+function traceWitnetRadonRequest(request, options) {
   const indent = options?.indent ? " ".repeat(parseInt(options.indent)) : ""
   if (options?.json) {
     console.info(JSON.stringify(request.toProtobuf(), null, options?.indent || 0))
@@ -593,12 +594,11 @@ function traceWitnetRadonRequest (request, options) {
       )
       if (source.method !== Witnet.Radon.retrievals.Methods.RNG) {
         console.info(
-          `${indent}   │ ${sep}    > Request:        ${
-            helpers.colors.mgreen(Witnet.Radon.retrievals.Methods[source.method].split(/(?=[A-Z])/).join("-").toUpperCase())
+          `${indent}   │ ${sep}    > Request:        ${helpers.colors.mgreen(Witnet.Radon.retrievals.Methods[source.method].split(/(?=[A-Z])/).join("-").toUpperCase())
           }`
         )
         console.info(`${indent}   │ ${sep}    > URL query:      ${helpers.colors.green(source.url)}`)
-        if (source?.headers && Object.keys(source.headers).length > 0) { 
+        if (source?.headers && Object.keys(source.headers).length > 0) {
           console.info(`${indent}   │ ${sep}    > HTTP headers:   ${helpers.colors.green(JSON.stringify(source.headers))}`)
         }
         if (source?.body) {
@@ -650,7 +650,7 @@ function traceWitnetRadonRequest (request, options) {
   }
 }
 
-async function traceWitnetRadonRequestDryRun (request, options) {
+async function traceWitnetRadonRequestDryRun(request, options) {
   const bytecode = request.toBytecode()
   let report = await helpers
     .toolkitRun(options, ["try-data-request", "--hex", bytecode.startsWith("0x") ? bytecode.slice(2) : bytecode])
@@ -671,7 +671,7 @@ async function traceWitnetRadonRequestDryRun (request, options) {
   const result = report?.aggregate.result
   const resultType = Object.keys(result)[0]
   const resultValue = Object.values(result)[0]
-  let resultSize 
+  let resultSize
   const parseRadonResult = (value) => {
     if (Array.isArray(value)) {
       return value.map(item => parseRadonResult(item))
@@ -683,11 +683,11 @@ async function traceWitnetRadonRequestDryRun (request, options) {
   }
   switch (resultType) {
     case "RadonBoolean": resultSize = 1; break;
-    case "RadonBytes": resultSize = cbor.encode(Uint8Array.from(resultValue)).byteLength - 2; break;
-    case "RadonInteger": case "RadonFloat": resultSize = cbor.encode(resultValue).byteLength; break;
-    case "RadonArray": case "RadonMap": 
+    case "RadonBytes": resultSize = utils.cbor.encode(Uint8Array.from(resultValue)).byteLength - 2; break;
+    case "RadonInteger": case "RadonFloat": resultSize = utils.cbor.encode(resultValue).byteLength; break;
+    case "RadonArray": case "RadonMap":
       const parsed = parseRadonResult(resultValue)
-      resultSize = cbor.encode(parsed).byteLength;
+      resultSize = utils.cbor.encode(parsed).byteLength;
       break;
   }
   if (options?.json) {
@@ -727,16 +727,11 @@ async function traceWitnetRadonRequestDryRun (request, options) {
       : (options?.verbose ? helpers.colors.lgreen : helpers.colors.green)
     if (options?.verbose) {
       console.info(
-        `${indent}   │ ${corner}─ ${
-          helpers.colors.white("[ ")
-        }${
-          helpers.colors.white(`Data Source #${sourceIndex + 1}`)
-        }  ${
-          " ".repeat(3 - sourceIndex.toString().length)
-        }${
-          color(authority)
-        } ${
-          helpers.colors.white("]")
+        `${indent}   │ ${corner}─ ${helpers.colors.white("[ ")
+        }${helpers.colors.white(`Data Source #${sourceIndex + 1}`)
+        }  ${" ".repeat(3 - sourceIndex.toString().length)
+        }${color(authority)
+        } ${helpers.colors.white("]")
         }`
       )
     } else {
@@ -744,8 +739,7 @@ async function traceWitnetRadonRequestDryRun (request, options) {
     }
     if (source.method !== Witnet.Radon.retrievals.Methods.RNG && options?.verbose) {
       console.info(
-        `${indent}   │ ${sep}    > Request:        ${
-          helpers.colors.mgreen(Witnet.Radon.retrievals.Methods[source.method].split(/(?=[A-Z])/).join("-").toUpperCase())
+        `${indent}   │ ${sep}    > Request:        ${helpers.colors.mgreen(Witnet.Radon.retrievals.Methods[source.method].split(/(?=[A-Z])/).join("-").toUpperCase())
         }`
       )
       console.info(`${indent}   │ ${sep}    > URL query:      ${helpers.colors.green(source.url)}`)
@@ -763,12 +757,9 @@ async function traceWitnetRadonRequestDryRun (request, options) {
         const typeColor = (type === "RadonError") ? helpers.colors.red : helpers.colors.yellow
         const lineColor = (type === "RadonError") ? helpers.colors.gray : color
         console.info(
-          `${indent}   │ ${sep}    > ${headline}${" ".repeat(15 - headline.length)} \x1b[1;m${
-            typeColor("[ ")
-          }\x1b[0m${typeColor(type)}${
-            " ".repeat(12 - type.length)
-          }\x1b[1;m${typeColor(" ]")}\x1b[0m ${
-            lineColor(lines[0])
+          `${indent}   │ ${sep}    > ${headline}${" ".repeat(15 - headline.length)} \x1b[1;m${typeColor("[ ")
+          }\x1b[0m${typeColor(type)}${" ".repeat(12 - type.length)
+          }\x1b[1;m${typeColor(" ]")}\x1b[0m ${lineColor(lines[0])
           }`)
         lines.slice(1).forEach(line => {
           console.info(`${indent}   │ ${sep}                                       ${lineColor(line)}`)
@@ -799,10 +790,8 @@ async function traceWitnetRadonRequestDryRun (request, options) {
       partial_index += 1
       filter = stringifyFilter(filter, color)
       console.info(
-        `${indent}│ Radon filter:   ${filter}${
-          helpers.colors.cyan(items)
-        }${
-          " ".repeat(flexbar.length + 22 - filter.length - items.length)
+        `${indent}│ Radon filter:   ${filter}${helpers.colors.cyan(items)
+        }${" ".repeat(flexbar.length + 22 - filter.length - items.length)
         } │`
       )
     })
@@ -812,14 +801,12 @@ async function traceWitnetRadonRequestDryRun (request, options) {
       : ""
     const reducer = stringifyReducer(request.sourcesReducer, color)
     console.info(
-      `${indent}│ Radon reducer:  ${reducer}${
-        helpers.colors.cyan(items)}${" ".repeat(flexbar.length + 22 - reducer.length - items.length)
+      `${indent}│ Radon reducer:  ${reducer}${helpers.colors.cyan(items)}${" ".repeat(flexbar.length + 22 - reducer.length - items.length)
       } │`
     )
   }
   if (resultSize) {
-    console.info(`${indent}│ CBOR size:      ${
-      helpers.colors.cyan(`${resultSize} bytes`)
+    console.info(`${indent}│ CBOR size:      ${helpers.colors.cyan(`${resultSize} bytes`)
       }${" ".repeat(flexbar.length + 7 - resultSize.toString().length)
       } │`)
   }
@@ -832,20 +819,15 @@ async function traceWitnetRadonRequestDryRun (request, options) {
     if (["Map", "Array"].includes(type)) {
       if (key.length > width - 12) {
         console.info(
-          `${indent}        ${
-            helpers.colors.myellow(`[ ${type}${" ".repeat(7 - type.length)} ]`)
-          } ${
-            " ".repeat(width - 15)}${helpers.colors.green("...")
+          `${indent}        ${helpers.colors.myellow(`[ ${type}${" ".repeat(7 - type.length)} ]`)
+          } ${" ".repeat(width - 15)}${helpers.colors.green("...")
           }`
         )
       } else {
         console.info(
-          `${indent}        ${
-            helpers.colors.myellow(`[ ${type}${" ".repeat(7 - type.length)} ]`)
-          } ${
-            helpers.colors.green(key)
-          }${
-            " ".repeat(width - 12 - key.length)
+          `${indent}        ${helpers.colors.myellow(`[ ${type}${" ".repeat(7 - type.length)} ]`)
+          } ${helpers.colors.green(key)
+          }${" ".repeat(width - 12 - key.length)
           }`
         )
       }
