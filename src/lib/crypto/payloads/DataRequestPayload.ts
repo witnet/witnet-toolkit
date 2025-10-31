@@ -1,17 +1,21 @@
-const Long = require("long")
+import Long from "long"
 
-import { Root as ProtoRoot } from "protobufjs"
+import { createRequire } from "module"
+const require = createRequire(import.meta.url);
+
+import protobuf from "protobufjs"
+const { Root: ProtoRoot } = protobuf
 const protoRoot = ProtoRoot.fromJSON(require("../../../../witnet/witnet.proto.json"))
 
-import { fromHexString, toHexString } from "../../../bin/helpers"
+import { fromHexString, toHexString } from "../../../bin/helpers.js"
 
-import { RadonRequest, RadonTemplate } from "../../radon"
-import { Hash, HexString, IJsonRpcProvider } from "../../types"
+import { RadonRequest, RadonTemplate } from "../../radon/index.js"
+import { Hash, HexString, IJsonRpcProvider } from "../../types.js"
 
-import { ILedger } from "../interfaces"
-import { TransactionPayloadMultiSig } from "../payloads"
-import { Coins, PublicKeyHash, TransactionParams, TransactionPriority } from "../types"
-import { BigMath, sha256 } from "../utils"
+import { ILedger } from "../interfaces.js"
+import { TransactionPayloadMultiSig } from "../payloads.js"
+import { Coins, PublicKeyHash, TransactionParams, TransactionPriority } from "../types.js"
+import { BigMath, sha256 } from "../utils.js"
 
 export type DataRequestTemplateArgs = any | string | string[] | string[][]
     
@@ -30,6 +34,7 @@ type DataRequestOutputSLA = {
 }
 
 const COLLATERAL_RATIO = 100n;
+// const RADON_ERROR_MAX_BYTES = 9;
 
 const DR_COMMIT_TX_WEIGHT = 400
 const DR_REVEAL_TX_WEIGHT = 200
@@ -43,10 +48,10 @@ const TX_WEIGHT_OUTPUT_SIZE = 36
 
 export class DataRequestPayload extends TransactionPayloadMultiSig<DataRequestParams> {
 
+    public static DEFAULT_MAX_RESULT_SIZE = 256;
     public static DEFAULT_WITNESSES = 12
     public static MAX_WEIGHT = 80_000
     public static MIN_COLLATERAL = 20_000_000_000n
-    public static MIN_CONSENSUS_PERCENTAGE = 51;
 
     protected _request?: RadonRequest 
     public readonly template?: RadonTemplate

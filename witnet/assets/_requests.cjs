@@ -2,8 +2,8 @@ const { assets, Witnet } = require("@witnet/sdk")
 const { RadonRequest, RadonScript } = Witnet.Radon
 const { filters, reducers, retrievals, types } = Witnet.Radon
 
-const sources = require("./sources")
-const templates = require("./templates")
+const sources = require("./sources.cjs")
+const templates = require("./templates.cjs")
 
 module.exports = {
   /// //// REQUESTS FROM RETRIEVALS /////////////////////////////////////////////////

@@ -5,7 +5,7 @@ const {
   // reducers,
   retrievals,
   types,
-} = require("../../../../src/lib/radon")
+} = require("../../../../dist/src/lib/radon/index.js")
 
 module.exports = {
   WitOracleEthBlockNumber: new RadonModal({

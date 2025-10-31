@@ -1,9 +1,9 @@
-import { PublicKeyHashString } from "../crypto/types"
+import { PublicKeyHashString } from "../crypto/types.js"
 import {
     Epoch,
     Hash,
     f64, i64, u8, u16, u32, u64, usize,
-} from "../types"
+} from "../types.js"
 
 export enum Methods {
     AddPeers = "addPeers",

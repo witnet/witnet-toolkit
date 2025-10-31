@@ -1,10 +1,10 @@
-const Long = require("long")
+import Long from "long"
 
-import { fromHexString } from "../../../bin/helpers"
+import { fromHexString } from "../../../bin/helpers.js"
 
-import { HexString, IJsonRpcProvider, Network } from "../../types"
+import { HexString, IJsonRpcProvider, Network } from "../../types.js"
 
-import { TransactionPayloadMultiSig } from "../payloads"
+import { TransactionPayloadMultiSig } from "../payloads.js"
 import { 
     Coins,
     PublicKey, 
@@ -13,7 +13,7 @@ import {
     RecoverableSignature, 
     TransactionParams, 
     TransactionPriority,
-} from "../types"
+} from "../types.js"
 
 export type StakeDepositParams = TransactionParams & {
     authorization: HexString,

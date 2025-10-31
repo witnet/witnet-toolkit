@@ -1,14 +1,14 @@
-const secp256k1 = require("secp256k1")
+import secp256k1 from "secp256k1"
 
 import { bech32 } from 'bech32'
 import { createDecipheriv, createHash, pbkdf2Sync } from 'crypto'
-import { Balance, HexString } from '../types'
-import { Coins, Utxo, UtxoSelectionStrategy } from './types'
-import { fromHexString } from '../utils'
+import { Balance, HexString } from '../types.js'
+import { Coins, Utxo, UtxoSelectionStrategy } from './types.js'
+import { fromHexString } from '../utils.js'
 
 export { bech32 } from 'bech32'
 
-export { PrivateKey, PublicKey, PublicKeyHash, KeyedSignature, RecoverableSignature, Signature } from "./types"
+export { PrivateKey, PublicKey, PublicKeyHash, KeyedSignature, RecoverableSignature, Signature } from "./types.js"
 
 export const BigMath = {
     max(value: bigint, ...values: bigint[]): bigint {

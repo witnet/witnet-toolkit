@@ -3,7 +3,7 @@ import {
     isHexString,
     isHexStringOfLength,
     isWildcard,
-} from "../../../bin/helpers"
+} from "../../../bin/helpers.js"
 
 import { 
     // CrossChainRPC, 
@@ -13,7 +13,7 @@ import {
     HexString,
     HexStringOfLength,
     Wildcard,
-} from ".";
+} from "./index.js";
 
 export type EthAddress = HexStringOfLength<40>;
 export type EthBlockHead = BlockNumber | EthBlockTag | Wildcard;
