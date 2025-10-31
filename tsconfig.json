@@ -37,7 +37,8 @@
     ], /* List of folders to include type definitions from. */
   },
   "files": [
-    "src/index.ts"
+    "src/index.ts",
+    "witnet/assets/index.cjs",
   ],
   "include": [
     "src/lib/**/*.d.ts",
