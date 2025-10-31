@@ -1,4 +1,4 @@
-export * as cbor from 'cbor'
+export { default as cbor } from 'cbor'
 
 export {
   fromHexString,
