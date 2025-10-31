@@ -7,14 +7,14 @@
   "private": false,
   "type": "module",
   "bin": {
-    "witsdk": "src/bin/index.cjs",
-    "witnet": "src/bin/index.cjs"
+    "witsdk": "src/bin/index.js",
+    "witnet-sdk": "src/bin/index.js"
   },
   "files": [
     "dist",
+    "src/assets",
     "src/bin",
-    "witnet/witnet.proto.json",
-    "witnet/assets",
+    "witnet",
     ".env_witnet"
   ],
   "exports": {
@@ -23,7 +23,11 @@
       "require": "./dist/src/index.js",
       "default": "./dist/src/index.js"
     },
-    "./assets": "./dist/witnet/assets/index.cjs",
+    "./assets": {
+      "types": "./dist/witnet/assets/*.d.cts",
+      "require": "./witnet/assets/index.cjs",
+      "default": "./witnet/assets/index.cjs"
+    },
     "./utils": {
       "types": "./dist/src/lib/*.d.ts",
       "require": "./dist/src/lib/utils.js",

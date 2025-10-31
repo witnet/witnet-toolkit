@@ -7,6 +7,7 @@ import { createRequire } from "module"
 const require = createRequire(import.meta.url);
 
 import * as helpers from "../helpers.js"
+import { default as legacy } from "../../../witnet/assets/index.cjs"
 import { utils, Witnet } from "../../../dist/src/index.js"
 
 const WITNET_ASSETS_PATH = process.env.WITNET_SDK_RADON_ASSETS_PATH || "../../../../../witnet/assets"
