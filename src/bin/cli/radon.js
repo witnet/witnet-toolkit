@@ -1,5 +1,7 @@
 import fs from "node:fs";
 import { createRequire } from "node:module";
+import dotenv from "dotenv";
+dotenv.config({ quiet: true })
 import path from "node:path";
 import inquirer from "inquirer";
 import merge from "lodash.merge";
@@ -776,7 +778,6 @@ function traceWitnetRadonRequest(request, options) {
 
 async function traceWitnetRadonRequestDryRun(request, options) {
 	const bytecode = request.toBytecode();
-	console.log("bytecode =>", bytecode);
 	let report = await helpers
 		.toolkitRun(options, [
 			"try-data-request",

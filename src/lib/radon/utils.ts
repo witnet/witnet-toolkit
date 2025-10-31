@@ -1,5 +1,7 @@
 import { createRequire } from "node:module";
 import cbor from "cbor";
+import dotenv from "dotenv";
+dotenv.config({ quiet: true })
 
 const require = createRequire(import.meta.url);
 
@@ -156,16 +158,10 @@ export function searchRadonAssets<
 function loadModuleAssets<
 	T extends RadonRequest | RadonTemplate | RadonModal | RadonRetrieval,
 >(options: {
-	// legacy?: boolean,
 	flattened?: boolean;
 	type?: { new (specs: any): T };
 }): any {
-	// const stuff = options?.legacy ? require(`${WITNET_ASSETS_PATH}`).legacy : {
-	//   requests: require(`${WITNET_ASSETS_PATH}/requests`),
-	//   templates: require(`${WITNET_ASSETS_PATH}/templates`),
-	//   retrievals: require(`${WITNET_ASSETS_PATH}/retrievals`),
-	// };
-	const stuff = require(`${WITNET_ASSETS_PATH}`);
+	const stuff = require(`${WITNET_ASSETS_PATH}/index.cjs`);
 	return options?.flattened ? flattenRadonAssets(stuff, options?.type) : stuff;
 }
 
