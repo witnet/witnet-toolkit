@@ -1,219 +1,259 @@
-import { createRequire } from "module"
+import { createRequire } from "node:module";
+
 const require = createRequire(import.meta.url);
 
-import protobuf from "protobufjs"
-const { Root: ProtoRoot } = protobuf
-const protoRoot = ProtoRoot.fromJSON(require("../../../witnet/witnet.proto.json"))
+import protobuf from "protobufjs";
 
-import { Hash, NetworkPriorities, ValueTransferOutput } from "../types.js"
-import { toHexString } from "../utils.js"
+const { Root: ProtoRoot } = protobuf;
+const protoRoot = ProtoRoot.fromJSON(
+	require("../../../witnet/witnet.proto.json"),
+);
 
-import { ILedger, IJsonRpcProvider, ITransactionPayload, ITransactionPayloadMultiSig } from "./interfaces.js"
-import { sha256 } from "./utils.js"
-import { Coins, PublicKeyHashString, TransactionPriority, Utxo } from "./types.js";
+import type { Hash, NetworkPriorities, ValueTransferOutput } from "../types.js";
+import { toHexString } from "../utils.js";
 
-export abstract class TransactionPayload<Specs> implements ITransactionPayload<Specs> {
- 
-    protected _change: bigint;
-    protected _covered: bigint;
-    protected _fees: bigint;
-    protected _priorities?: NetworkPriorities;
-    protected _protoType: protobuf.Type;
-    protected _target?: Specs;
-    
-    constructor(protoTypeName: string, initialTarget?: Specs) {
-        this._protoType = protoRoot.lookupType(protoTypeName)
-        this._target = this.validateTarget(initialTarget)
-        this._change = 0n
-        this._covered = 0n
-        this._fees = 0n
-    }
+import type {
+	IJsonRpcProvider,
+	ILedger,
+	ITransactionPayload,
+	ITransactionPayloadMultiSig,
+} from "./interfaces.js";
+import {
+	Coins,
+	type PublicKeyHashString,
+	TransactionPriority,
+	type Utxo,
+} from "./types.js";
+import { sha256 } from "./utils.js";
 
-    public get bytecode(): Uint8Array | undefined {
-        // make toProtobuf return Protobuf's deserialized message
-        const obj = this.toProtobuf()
-        if (!obj) return undefined
-        const err = this._protoType.verify(obj)
-        if (err) {
-            throw TypeError(err)
-        } else {
-            // console.log("\nobj =>", JSON.stringify(obj))
-            const message = this._protoType.fromObject(obj)
-            // console.log("\nmessage =>", JSON.stringify(message))
-            const bytecode = this._protoType.encode(message).finish()
-            // console.log("\nbytecode =>", toHexString(bytecode))
-            return bytecode
-        }
-    }
+export abstract class TransactionPayload<Specs>
+	implements ITransactionPayload<Specs>
+{
+	protected _change: bigint;
+	protected _covered: bigint;
+	protected _fees: bigint;
+	protected _priorities?: NetworkPriorities;
+	protected _protoType: protobuf.Type;
+	protected _target?: Specs;
 
-    public get change(): Coins | undefined {
-        return this._change > 0 ? Coins.fromPedros(this._change) : undefined
-    }
+	constructor(protoTypeName: string, initialTarget?: Specs) {
+		this._protoType = protoRoot.lookupType(protoTypeName);
+		this._target = this.validateTarget(initialTarget);
+		this._change = 0n;
+		this._covered = 0n;
+		this._fees = 0n;
+	}
 
-    public get covered(): boolean {
-        return (
-            !!this.fees
-                && this._covered >= this.value.pedros + this.fees.pedros
-        )
-    }
+	public get bytecode(): Uint8Array | undefined {
+		// make toProtobuf return Protobuf's deserialized message
+		const obj = this.toProtobuf();
+		if (!obj) return undefined;
+		const err = this._protoType.verify(obj);
+		if (err) {
+			throw TypeError(err);
+		} else {
+			const message = this._protoType.fromObject(obj);
+			const bytecode = this._protoType.encode(message).finish();
+			return bytecode;
+		}
+	}
 
-    public get fees(): Coins | undefined {
-        return this._fees > 0 ? Coins.fromPedros(this._fees) : undefined
-    }
+	public get change(): Coins | undefined {
+		return this._change > 0 ? Coins.fromPedros(this._change) : undefined;
+	}
 
-    public get hash(): Hash | undefined {
-        const _bytecode = this.bytecode
-        if (_bytecode instanceof Uint8Array) {
-            return toHexString(sha256(_bytecode))
-        } else {
-            return undefined
-        }
-    }
+	public get covered(): boolean {
+		return !!this.fees && this._covered >= this.value.pedros + this.fees.pedros;
+	}
 
-    public intoReceipt(target: Specs): any {
-        return {
-            ...target
-        }
-    }
+	public get fees(): Coins | undefined {
+		return this._fees > 0 ? Coins.fromPedros(this._fees) : undefined;
+	}
 
-    abstract consumeUtxos(ledger: ILedger): Promise<bigint>;
-    abstract prepareOutputs(change?: { value: bigint, pkh: PublicKeyHashString }, params?: any): any;
-    abstract resetTarget(target: Specs): any;
-    abstract toJSON(humanize: boolean): any;
-    abstract toProtobuf(): any;
-    abstract validateTarget(target?: any): Specs | undefined;
+	public get hash(): Hash | undefined {
+		const _bytecode = this.bytecode;
+		if (_bytecode instanceof Uint8Array) {
+			return toHexString(sha256(_bytecode));
+		} else {
+			return undefined;
+		}
+	}
 
-    abstract get outputs(): Array<ValueTransferOutput>;
-    abstract get maxWeight(): number;
-    abstract get prepared(): boolean;
-    abstract get value(): Coins;
-    abstract get weight(): number;
+	public intoReceipt(target: Specs): any {
+		return {
+			...target,
+		};
+	}
 
-    protected abstract _cleanTargetExtras(params?: any): any;
-    protected abstract _estimateNetworkFees(provider: IJsonRpcProvider, priority?: TransactionPriority): Promise<bigint>;
+	abstract consumeUtxos(ledger: ILedger): Promise<bigint>;
+	abstract prepareOutputs(
+		change?: { value: bigint; pkh: PublicKeyHashString },
+		params?: any,
+	): any;
+	abstract resetTarget(target: Specs): any;
+	abstract toJSON(humanize: boolean): any;
+	abstract toProtobuf(): any;
+	abstract validateTarget(target?: any): Specs | undefined;
+
+	abstract get outputs(): Array<ValueTransferOutput>;
+	abstract get maxWeight(): number;
+	abstract get prepared(): boolean;
+	abstract get value(): Coins;
+	abstract get weight(): number;
+
+	protected abstract _cleanTargetExtras(params?: any): any;
+	protected abstract _estimateNetworkFees(
+		provider: IJsonRpcProvider,
+		priority?: TransactionPriority,
+	): Promise<bigint>;
 }
 
-export abstract class TransactionPayloadMultiSig<Specs> 
-    extends TransactionPayload<Specs>
-    implements ITransactionPayloadMultiSig<Specs>
+export abstract class TransactionPayloadMultiSig<Specs>
+	extends TransactionPayload<Specs>
+	implements ITransactionPayloadMultiSig<Specs>
 {
-    protected _inputs: Array<Utxo>
-    protected _outputs: Array<ValueTransferOutput>
-    
-    constructor(protoTypeName: string, initialTarget?: Specs) {
-        super(protoTypeName, initialTarget)
-        this._inputs = []
-        this._outputs = []
-    }
+	protected _inputs: Array<Utxo>;
+	protected _outputs: Array<ValueTransferOutput>;
 
-    public get inputs(): Array<Utxo> {
-        return this._inputs
-    }
+	constructor(protoTypeName: string, initialTarget?: Specs) {
+		super(protoTypeName, initialTarget);
+		this._inputs = [];
+		this._outputs = [];
+	}
 
-    public get outputs(): Array<ValueTransferOutput> {
-        return this._outputs
-    }
+	public get inputs(): Array<Utxo> {
+		return this._inputs;
+	}
 
-    public get prepared(): boolean {
-        return (
-            this._inputs.length > 0 
-                && this._outputs.length > 0
-        )
-    }
+	public get outputs(): Array<ValueTransferOutput> {
+		return this._outputs;
+	}
 
-    public async consumeUtxos(ledger: ILedger, reload?: boolean): Promise<bigint> {
-        if (!this._target) {
-            throw new Error(`${this.constructor.name}: internal error: no in-flight params.`)
-        } 
-        const prepared = this.prepared
-        if (!this.covered) {
-            
-            // consume utxos as to cover this.value, at least
-            const utxos = await ledger.selectUtxos({ 
-                value: Coins.fromPedros(this.value.pedros - this._covered), 
-                reload,
-            })
-            this._covered += utxos.map(utxo => utxo.value).reduce((prev, curr) => prev + curr, 0n)
-            this._inputs.push(...utxos)
-            ledger.consumeUtxos(...utxos)
+	public get prepared(): boolean {
+		return this._inputs.length > 0 && this._outputs.length > 0;
+	}
 
-            // try to cover fees only if this.value is covered first
-            if (this._covered >= this.value.pedros) {
-                if ((this._target as any)?.fees instanceof Coins) {
-                    this._fees = (this._target as any).fees.pedros;
-                    if (this._covered < this.value.pedros + this._fees) {
-                        const extras = await ledger.selectUtxos({ 
-                            value: Coins.fromPedros(this.value.pedros + this._fees  - this._covered),
-                        })
-                        ledger.consumeUtxos(...extras)
-                        this._covered += extras.map(utxo => utxo.value).reduce((prev, curr) => prev + curr, 0n)
-                        this._inputs.push(...extras)
-                    }
-                    this._change = this._covered - (this.value.pedros + this._fees)
-                } else {
-                    const priority = (this._target as any)?.fees as TransactionPriority || TransactionPriority.Opulent
-                    let estimatedFees = await this._estimateNetworkFees(ledger.provider, priority);
-                    while (this._fees < estimatedFees) {
-                        this._fees = estimatedFees
-                        this._outputs = []
-                        // add more utxos only if the ones selected for covering the value and the estimate fees don't suffice:
-                        if (this._covered < this.value.pedros + this._fees) {
-                            const extras = await ledger.selectUtxos({ 
-                                value: Coins.fromPedros(this.value.pedros + this._fees - this._covered)
-                            })
-                            ledger.consumeUtxos(...extras)
-                            this._covered += extras.map(utxo => utxo.value).reduce((prev, curr) => prev + curr, 0n)
-                            this._inputs.push(...extras)
-                        }
-                        this._change = this._covered - (this.value.pedros + this._fees)
-                        if (this._change < 0) {
-                            // insufficient funds ...
-                            break
-                        } else {
-                            this.prepareOutputs({ value: this._change, pkh: ledger.changePkh })
-                            // iterate until actual fees match estimated fees
-                            estimatedFees = await this._estimateNetworkFees(ledger.provider, priority)
-                        }
-                    }
-                }
-            } else {
-                return 0n;
-            }
-        }
-        // prepare outputs, only if value and fees got fully covered for the first time:
-        if (this._change >= 0 && !prepared) {
-            this.prepareOutputs({ value: this._change, pkh: ledger.changePkh })
-        }
-        return this._change
-    }
+	public async consumeUtxos(
+		ledger: ILedger,
+		reload?: boolean,
+	): Promise<bigint> {
+		if (!this._target) {
+			throw new Error(
+				`${this.constructor.name}: internal error: no in-flight params.`,
+			);
+		}
+		const prepared = this.prepared;
+		if (!this.covered) {
+			// consume utxos as to cover this.value, at least
+			const utxos = await ledger.selectUtxos({
+				value: Coins.fromPedros(this.value.pedros - this._covered),
+				reload,
+			});
+			this._covered += utxos
+				.map((utxo) => utxo.value)
+				.reduce((prev, curr) => prev + curr, 0n);
+			this._inputs.push(...utxos);
+			ledger.consumeUtxos(...utxos);
 
-    public prepareOutputs(change?: { value: bigint, pkh: PublicKeyHashString }): any {
-        if (change?.value) {
-            this._outputs.push({
-                pkh: change.pkh,
-                value: change.value,
-                time_lock: 0,
-            })
-        }
-    }
+			// try to cover fees only if this.value is covered first
+			if (this._covered >= this.value.pedros) {
+				if ((this._target as any)?.fees instanceof Coins) {
+					this._fees = (this._target as any).fees.pedros;
+					if (this._covered < this.value.pedros + this._fees) {
+						const extras = await ledger.selectUtxos({
+							value: Coins.fromPedros(
+								this.value.pedros + this._fees - this._covered,
+							),
+						});
+						ledger.consumeUtxos(...extras);
+						this._covered += extras
+							.map((utxo) => utxo.value)
+							.reduce((prev, curr) => prev + curr, 0n);
+						this._inputs.push(...extras);
+					}
+					this._change = this._covered - (this.value.pedros + this._fees);
+				} else {
+					const priority =
+						((this._target as any)?.fees as TransactionPriority) ||
+						TransactionPriority.Opulent;
+					let estimatedFees = await this._estimateNetworkFees(
+						ledger.provider,
+						priority,
+					);
+					while (this._fees < estimatedFees) {
+						this._fees = estimatedFees;
+						this._outputs = [];
+						// add more utxos only if the ones selected for covering the value and the estimate fees don't suffice:
+						if (this._covered < this.value.pedros + this._fees) {
+							const extras = await ledger.selectUtxos({
+								value: Coins.fromPedros(
+									this.value.pedros + this._fees - this._covered,
+								),
+							});
+							ledger.consumeUtxos(...extras);
+							this._covered += extras
+								.map((utxo) => utxo.value)
+								.reduce((prev, curr) => prev + curr, 0n);
+							this._inputs.push(...extras);
+						}
+						this._change = this._covered - (this.value.pedros + this._fees);
+						if (this._change < 0) {
+							// insufficient funds ...
+							break;
+						} else {
+							this.prepareOutputs({
+								value: this._change,
+								pkh: ledger.changePkh,
+							});
+							// iterate until actual fees match estimated fees
+							estimatedFees = await this._estimateNetworkFees(
+								ledger.provider,
+								priority,
+							);
+						}
+					}
+				}
+			} else {
+				return 0n;
+			}
+		}
+		// prepare outputs, only if value and fees got fully covered for the first time:
+		if (this._change >= 0 && !prepared) {
+			this.prepareOutputs({ value: this._change, pkh: ledger.changePkh });
+		}
+		return this._change;
+	}
 
-    public resetTarget(target: Specs): any {
-        this._change = 0n
-        this._covered = 0n
-        this._fees = 0n
-        this._inputs = []
-        this._outputs = []
-        this._target = target
-        delete this._priorities
-    }
+	public prepareOutputs(change?: {
+		value: bigint;
+		pkh: PublicKeyHashString;
+	}): any {
+		if (change?.value) {
+			this._outputs.push({
+				pkh: change.pkh,
+				value: change.value,
+				time_lock: 0,
+			});
+		}
+	}
 
-    abstract toJSON(humanize: boolean): any;
-    abstract toProtobuf(): any;
-    abstract validateTarget(target?: any): Specs | undefined;
+	public resetTarget(target: Specs): any {
+		this._change = 0n;
+		this._covered = 0n;
+		this._fees = 0n;
+		this._inputs = [];
+		this._outputs = [];
+		this._target = target;
+		delete this._priorities;
+	}
 
-    abstract get maxWeight(): number;
-    abstract get value(): Coins;
-    abstract get weight(): number;
-    
-    protected abstract _cleanTargetExtras(params?: any): any;
+	abstract toJSON(humanize: boolean): any;
+	abstract toProtobuf(): any;
+	abstract validateTarget(target?: any): Specs | undefined;
+
+	abstract get maxWeight(): number;
+	abstract get value(): Coins;
+	abstract get weight(): number;
+
+	protected abstract _cleanTargetExtras(params?: any): any;
 }
