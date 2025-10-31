@@ -1,28 +1,28 @@
-export { DataPushReport } from "./rest/types.js"
-export { IJsonRpcNodeFarm } from "./rpc/nodes.js"
-export { IJsonRpcProvider } from "./rpc/provider.js"
-export { TimeoutError } from "./crypto/types.js"
+export { TimeoutError } from "./crypto/types.js";
+export { DataPushReport } from "./rest/types.js";
+export { IJsonRpcNodeFarm } from "./rpc/nodes.js";
+export { IJsonRpcProvider } from "./rpc/provider.js";
 
-export { 
-    Balance2 as Balance, 
-    Block, 
-    BlockTransactionsHashes,
-    ConsensusConstants,
-    DataRequestStatus,
-    GetDataRequestEtherealReport,
-    GetDataRequestFullReport,
-    GetDataRequestMode,
-    Network,
-    Priorities as NetworkPriorities,
-    QueryStakesOrder,
-    StakeEntry,
-    StakesOrderBy,
-    StakingCapability,
-    SyncStatus, 
-    TransactionReport,
-    UtxoMetadata,
-    ValueTransferOutput,
-} from "./rpc/types.js"
+export {
+	Balance2 as Balance,
+	Block,
+	BlockTransactionsHashes,
+	ConsensusConstants,
+	DataRequestStatus,
+	GetDataRequestEtherealReport,
+	GetDataRequestFullReport,
+	GetDataRequestMode,
+	Network,
+	Priorities as NetworkPriorities,
+	QueryStakesOrder,
+	StakeEntry,
+	StakesOrderBy,
+	StakingCapability,
+	SyncStatus,
+	TransactionReport,
+	UtxoMetadata,
+	ValueTransferOutput,
+} from "./rpc/types.js";
 
 export type f64 = number;
 export type i32 = number;

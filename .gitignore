@@ -8,5 +8,5 @@ witnet/witnet_toolkit-*
 dist/
 
 # Environmental configuration files
-.env
+**/.env
 *.tgz
