@@ -8,7 +8,8 @@
 	"type": "module",
 	"bin": {
 		"witsdk": "src/bin/index.js",
-		"witnet-sdk": "src/bin/index.js"
+		"witnet-sdk": "src/bin/index.js",
+    "watcher": "src/bin/bots/watcher.cjs"
 	},
 	"files": [
 		"dist",
@@ -50,6 +51,7 @@
 		"bech32": "~2.0.0",
 		"bip32": "^5.0.0",
 		"cbor": "^10.0.11",
+    "commander": "^14.0.2",
 		"dotenv": "^17.2.3",
 		"ethers": "^6.15.0",
 		"graphql-query-compress": "1.2.4",
@@ -59,6 +61,7 @@
 		"lodash.merge": "^4.6.2",
 		"long": "^5.3.2",
 		"moment": "^2.30.1",
+    "node-cron": "^4.2.1",
 		"promise-poller": "^1.9.1",
 		"protobufjs": "^7.5.4",
 		"qrcode-terminal": "^0.12.0",
