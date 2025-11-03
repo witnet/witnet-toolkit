@@ -59,6 +59,9 @@ export const router = isModuleInitialized
 				hint: "Break down specs of one or more Radon assets.",
 				params: ["RAD_BYTECODE | RAD_HASH | RADON_ASSET"],
 				options: {
+          bytecode: {
+            hint: "Outputs RAD bytecode as hex string (supersedes --json)."
+          },
 					json: {
 						hint: "Outputs data in JSON format.",
 					},
@@ -671,10 +674,13 @@ function traceWitnetRadonRequest(request, options) {
 	} else {
 		if (!options.headline) options.headline = "WITNET DATA REQUEST DISASSEMBLE";
 		traceWitnetRadonReportHeadline(request, options);
-
 		console.info(
 			`${indent}╚══╤═══════════════════════════════════════════════════════════════════════════╝`,
 		);
+    if (options?.bytecode) {
+      console.info(request.toBytecode())
+      return
+    }
 		console.info(`${indent}┌──┴─────────────────┐`);
 		console.info(`${indent}│  ${helpers.colors.white("RETRIEVE DATA")}     │`); // ├ ┤
 		console.info(`${indent}└──┬─┬───────────────┘`);
