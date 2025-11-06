@@ -5,5 +5,5 @@ const fs = require("node:fs");
 
 if (!fs.existsSync(".no-postinstall")) {
 	// download proper witnet_toolkit binary, according to arch and os
-	exec(`node ./src/bin/toolkit.js --update --version`);
+	exec(`node ./src/bin/index.js --update --version`);
 }
