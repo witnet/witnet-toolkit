@@ -1,11 +1,21 @@
 {
 	"name": "@witnet/sdk",
-	"version": "1.2.0",
+	"version": "1.2.1",
 	"description": "Typescript library and CLI tooling for Web3 buidlers willing to interact with the Witnet blockchain.",
 	"author": "Witnet Foundation",
 	"license": "MIT",
 	"private": false,
 	"type": "module",
+	"keywords": [
+		"witnet",
+		"web3",
+		"wallet",
+		"sdk",
+		"oracle",
+		"don",
+		"crypto",
+		"blockchain"
+	],
 	"bin": {
 		"watcher": "src/bin/bots/watcher.cjs",
 		"witsdk": "src/bin/index.js",
