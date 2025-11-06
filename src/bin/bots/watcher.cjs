@@ -26,11 +26,6 @@ async function main() {
 		.version(version);
 
 	program
-		.option(
-            "--bytecode <hex>", 
-            "The bytecode of the Radon Request used for detecting data updates.", 
-            process.env.WITNET_SDK_WATCHER_WIT_BYTECODE
-        )
         .option(
 			"--cooldown <secs>",
 			"Min. amount of seconds that must elapse before notarizing the next data update in Witnet.",
@@ -73,6 +68,11 @@ async function main() {
 			"Witnet public key hash in charge of notarizing data updates.",
 			process.env.WITNET_SDK_WATCHER_WIT_SIGNER,
 		)
+		.option(
+            "--target <hex>", 
+            "Either the RAD hash or the actual bytecode of the Radon Request used for detecting data updates.", 
+            process.env.WITNET_SDK_WATCHER_WIT_RADON_REQUEST
+        )
         .option(
 			"--witnesses <number>",
 			"Size of the witnessing committee when notarizing data updates in Witnet.",
@@ -127,17 +127,33 @@ async function main() {
 		`Balance threshold: ${Witnet.Coins.fromWits(minBalance).toString(2)}`,
 	);
     
-    if (!bytecode || !utils.isHexString(bytecode)) {
+    if (!target || !utils.isHexString(target)) {
         console.error(
-			`❌ Fatal: a valid Radon Request bytecode must be provided.`,
+			`❌ Fatal: a valid hex string must be provided as --target.`,
 		);
 		process.exit(0);
     }
 
-    const request = Witnet.Radon.RadonRequest.fromBytecode(bytecode)
+	let request
+	try {
+		request = Witnet.Radon.RadonRequest.fromBytecode(target)
+	} catch {
+		const txs = await wallet.provider.searchDataRequests(target, { limit: 1, mode: "ethereal" })
+		if (txs.length > 0 && txs[0]?.query) {
+			const bytecode = txs[0].query.rad_bytecode
+			request = Witnet.Radon.RadonRequest.fromBytecode(bytecode)
+			
+		} else {
+			console.error(
+				`❌ Fatal: provided --target is not a valid Radon Request bytecode nor a known Radon Request hash.`
+			)
+			process.exit(0)
+		}
+	}
+    
     const dataType = request.dataType
-    const authorities = "(todo)"
-    console.info(`Radon bytecode:    ${bytecode}`)
+    const authorities = request.sources.map(source => source.authority.split(".").slice(-2)[0].toUpperCase())
+    console.info(`Radon bytecode:    ${request.toBytecode()}`)
     console.info(`Radon RAD hash:    ${request.radHash}`)
     console.info(`Radon data type:   ${dataType}`)
     console.info(`Data authorities:  ${authorities}`)
@@ -148,8 +164,11 @@ async function main() {
     // validate deviation parameter, only on integer or float data feeds
     if (["RadonInteger", "RadonFloat"].includes(request.dataType)) {
         deviation = parseFloat(deviation || 0.0)
-        console.info(`Deviation thrshld: ${deviation.toFixed(2)} %`)
+        console.info(`Update deviation:  ${deviation.toFixed(2)} %`)
     }
+
+	// create DR transaction factory
+    const DRs = Witnet.DataRequests.from(ledger, request);
     
     // schedule signer's balance check
 	let balance = Witnet.Coins.fromPedros((await ledger.getBalance()).unlocked);
@@ -168,8 +187,8 @@ async function main() {
 			);
 			process.exit(0);
 		}
-		console.info(`> Checking balance schedule: ${CHECK_BALANCE_SCHEDULE}`);
-		cron.schedule(CHECK_BALANCE_SCHEDULE, async () => checkWitnetBalance(), { runOnInit: false });
+		console.info(`Checking balance schedule: ${CHECK_BALANCE_SCHEDULE}`);
+		cron.schedule(CHECK_BALANCE_SCHEDULE, async () => checkWitnetBalance());
 	}
 
     // schedule data feeding dry runs
@@ -179,8 +198,8 @@ async function main() {
         )
         process.exit(0)
     }
-    console.info(`> Dry running schedule: ${DRY_RUN_SCHEDULE}`)
-    cron.schedule(DRY_RUN_SCHEDULE, async () => dryRunRadonRequest(), { recoverMissedExecutions: false, runOnInit: true })
+    console.info(`Dry running schedule: ${DRY_RUN_SCHEDULE}`)
+    cron.schedule(DRY_RUN_SCHEDULE, async () => dryRunRadonRequest(), { noOverlap: true })
 
     // ----------------------------------------------------------------------------------------------------------------
     async function dryRunRadonRequest() {
