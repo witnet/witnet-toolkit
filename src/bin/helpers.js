@@ -22,7 +22,7 @@ export const commas = (number) => {
 	return result;
 };
 
-function _toFixedTrunc(x, n) {
+export function toFixedTrunc(x, n) {
 	const v = (typeof x === "string" ? x : x.toString()).split(".");
 	if (n <= 0) return v[0];
 	let f = v[1] || "";
