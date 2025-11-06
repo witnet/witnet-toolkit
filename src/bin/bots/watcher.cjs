@@ -1,6 +1,7 @@
 const cron = require("node-cron");
 require("dotenv").config({ quiet: true, path: _spliceFromArgs(process.argv, `--config-path`) });
 const { Command } = require("commander");
+const moment = require("moment")
 const program = new Command();
 
 const { utils, Witnet } = require("../../../dist/src/index.js");
@@ -76,18 +77,17 @@ async function main() {
         .option(
 			"--witnesses <number>",
 			"Size of the witnessing committee when notarizing data updates in Witnet.",
-			process.env.WITNET_SDK_WATCHER_WIT_WITNESSES,
+			process.env.WITNET_SDK_WATCHER_WIT_WITNESSES || undefined,
 		)
 		
 	program.parse();
 
-    let { deviation } = program.opts();
+    let { deviation, minBalance } = program.opts();
 	const {
 		debug,
-        bytecode,
+        target,
         cooldown,
         heartbeat,
-		minBalance,
 		network,
         notarizeErrors,
 		priority,
@@ -157,9 +157,8 @@ async function main() {
     console.info(`Radon RAD hash:    ${request.radHash}`)
     console.info(`Radon data type:   ${dataType}`)
     console.info(`Data authorities:  ${authorities}`)
-
-    // create DR transaction factory
-    const DRs = Witnet.DataRequests.from(ledger, request);
+	if (heartbeat) console.info(`Update heartbeat:  ${_commas(heartbeat)} "`);
+	if (cooldown) console.info(`Update cool-down:  ${_commas(cooldown)} "`);
 
     // validate deviation parameter, only on integer or float data feeds
     if (["RadonInteger", "RadonFloat"].includes(request.dataType)) {
@@ -172,6 +171,7 @@ async function main() {
     
     // schedule signer's balance check
 	let balance = Witnet.Coins.fromPedros((await ledger.getBalance()).unlocked);
+	minBalance = Witnet.Coins.fromWits(minBalance)
 	console.info(
 		`Initial balance:   ${balance.toString(2)}`,
 	);
@@ -228,8 +228,8 @@ async function main() {
                 notarize = true
             }
             console.info(`${tag} Dry run result => ${JSON.stringify(dryrun)}`)
-            const clock = Math.floor(Data.now() / 1000)
-            const elapsed = clock - lastUpdate?.timestamp 
+            const clock = Math.floor(Date.now() / 1000)
+            const elapsed = clock - (lastUpdate?.timestamp || (clock - cooldown - 1))
             if (!notarize && heartbeat && elapsed >= heartbeat) {
                 console.info(`${tag} Notarizing data due to heartbeat after ${elapsed} secs ...`)
                 notarize = true
@@ -237,7 +237,7 @@ async function main() {
                 if (!cooldown || elapsed >= cooldown) {
                     console.info(`${tag} Notarizing possible data update as provided by ${authorities} ...`)
                 } else {
-                    throw `Postponing possible data update as only ${elapsed} elapsed since the last notarized update.`
+                    throw `Postponing possible data update as only ${elapsed} out of ${cooldown} secs elapsed since the last notarized update.`
                 }
             }
             if (notarize) {
@@ -299,6 +299,7 @@ async function main() {
 						utils.fromHexString(report.result.cbor_bytes),
 					);
                     console.info(`${tag} DRT result =>`, result);
+					console.info(`${tag} DRT tmstmp =>`, moment.unix(report.result.timestamp));
                     lastUpdate.value = result
 					break;
 				}
