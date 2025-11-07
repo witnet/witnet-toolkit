@@ -1,7 +1,8 @@
 import { createRequire } from "node:module";
 import cbor from "cbor";
 import dotenv from "dotenv";
-dotenv.config({ quiet: true })
+
+dotenv.config({ quiet: true });
 
 const require = createRequire(import.meta.url);
 
@@ -157,10 +158,7 @@ export function searchRadonAssets<
 
 function loadModuleAssets<
 	T extends RadonRequest | RadonTemplate | RadonModal | RadonRetrieval,
->(options: {
-	flattened?: boolean;
-	type?: { new (specs: any): T };
-}): any {
+>(options: { flattened?: boolean; type?: { new (specs: any): T } }): any {
 	const stuff = require(`${WITNET_ASSETS_PATH}/index.cjs`);
 	return options?.flattened ? flattenRadonAssets(stuff, options?.type) : stuff;
 }

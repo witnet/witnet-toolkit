@@ -50,8 +50,8 @@
 	"scripts": {
 		"build": "pbjs --target json witnet/witnet.proto -o witnet/witnet.proto.json && npm run clean && tsc -p tsconfig.json",
 		"clean": "node ./scripts/clean.cjs dist",
-		"fmt": "npx biome check",
-		"fmt!": "npx biome check --write --unsafe",
+		"fmt": "npx biome check ./src ./scripts",
+		"fmt!": "npx biome check --write --unsafe ./src ./scripts",
 		"postinstall": "node scripts/postinstall.cjs",
 		"prepare": "pnpm run build",
 		"watcher": "node ./src/bin/bots/watcher.cjs",

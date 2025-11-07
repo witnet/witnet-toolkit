@@ -35,9 +35,7 @@ export class KermitError extends Error {
 export class KermitClient implements IKermitClient {
 	static async fromEnv(url?: string): Promise<KermitClient> {
 		return new KermitClient(
-			url ||
-				process.env.WITNET_SDK_KERMIT_URL ||
-				"https://kermit.witnet.io",
+			url || process.env.WITNET_SDK_KERMIT_URL || "https://kermit.witnet.io",
 		);
 	}
 

@@ -1,7 +1,9 @@
 import fs from "node:fs";
 import { createRequire } from "node:module";
 import dotenv from "dotenv";
-dotenv.config({ quiet: true })
+
+dotenv.config({ quiet: true });
+
 import path from "node:path";
 import inquirer from "inquirer";
 import merge from "lodash.merge";
@@ -59,9 +61,9 @@ export const router = isModuleInitialized
 				hint: "Break down specs of one or more Radon assets.",
 				params: ["RAD_BYTECODE | RAD_HASH | RADON_ASSET"],
 				options: {
-          bytecode: {
-            hint: "Outputs RAD bytecode as hex string (supersedes --json)."
-          },
+					bytecode: {
+						hint: "Outputs RAD bytecode as hex string (supersedes --json).",
+					},
 					json: {
 						hint: "Outputs data in JSON format.",
 					},
@@ -677,10 +679,10 @@ function traceWitnetRadonRequest(request, options) {
 		console.info(
 			`${indent}╚══╤═══════════════════════════════════════════════════════════════════════════╝`,
 		);
-    if (options?.bytecode) {
-      console.info(request.toBytecode())
-      return
-    }
+		if (options?.bytecode) {
+			console.info(request.toBytecode());
+			return;
+		}
 		console.info(`${indent}┌──┴─────────────────┐`);
 		console.info(`${indent}│  ${helpers.colors.white("RETRIEVE DATA")}     │`); // ├ ┤
 		console.info(`${indent}└──┬─┬───────────────┘`);
