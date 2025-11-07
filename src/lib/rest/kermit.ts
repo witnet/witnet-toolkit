@@ -36,7 +36,7 @@ export class KermitClient implements IKermitClient {
 	static async fromEnv(url?: string): Promise<KermitClient> {
 		return new KermitClient(
 			url ||
-				process.env.WITNET_KERMIT_PROVIDER_URL ||
+				process.env.WITNET_SDK_KERMIT_URL ||
 				"https://kermit.witnet.io",
 		);
 	}

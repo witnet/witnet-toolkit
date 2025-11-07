@@ -5,6 +5,7 @@ const moment = require("moment")
 const program = new Command();
 
 const { utils, Witnet } = require("../../../dist/src/index.js");
+const { colors, traceHeader } = require("../helpers.js")
 const { version } = require("../../../package.json");
 
 const CHECK_BALANCE_SCHEDULE =
@@ -14,16 +15,15 @@ const WIT_WALLET_MASTER_KEY = process.env.WITNET_SDK_WALLET_MASTER_KEY;
 
 const lastUpdate = {}
 
+traceHeader(`@WITNET/SDK WATCHER BOT v${version}`, colors.white);
+
 main();
 
 async function main() {
-	const headline = `WITNET WATCHER BOT v${version}`;
-	console.info("=".repeat(120));
-	console.info(headline);
 
 	program
 		.name("npx --package @witnet/sdk watcher")
-		.description("Watcher bot for polling and notarizing data feed updates in Witnet.")
+		.description("Watcher bot for detecting and notarizing real-world data updates in Witnet.")
 		.version(version);
 
 	program
@@ -48,13 +48,6 @@ async function main() {
 			process.env.WITNET_SDK_WATCHER_WIT_MIN_BALANCE || 1000.0,
 		)
         .option(
-			"--network <mainnet|testnet|url>",
-			"The name of the Witnet network, or the WIT/RPC provider URL, to connect to.",
-			process.env.WITNET_SDK_WATCHER_WIT_NETWORK
-                || process.env.WITNET_SDK_PROVIDER_URL
-                || "mainnet"
-		)
-        .option(
 			"--priority <priority>",
 			"Network priority when notarizing data updates in Witnet.",
 			process.env.WITNET_SDK_WATCHER_WIT_NETWORK_PRIORITY ||
@@ -71,13 +64,20 @@ async function main() {
 		)
 		.option(
             "--target <hex>", 
-            "Either the RAD hash or the actual bytecode of the Radon Request used for detecting data updates.", 
+            "Either an existing Radon hash in Witnet, or the Radon Request bytecode to use for detecting data updates.", 
             process.env.WITNET_SDK_WATCHER_WIT_RADON_REQUEST
         )
         .option(
 			"--witnesses <number>",
 			"Size of the witnessing committee when notarizing data updates in Witnet.",
 			process.env.WITNET_SDK_WATCHER_WIT_WITNESSES || undefined,
+		)
+		.option(
+			"--witnet <\"mainnet\" | \"testnet\" | url>",
+			"The name of the Witnet network, or the URL of the WIT/RPC provider to connect to.",
+			process.env.WITNET_SDK_WATCHER_WIT_NETWORK
+                || process.env.WITNET_SDK_PROVIDER_URL
+                || "mainnet"
 		)
 		
 	program.parse();
@@ -88,11 +88,11 @@ async function main() {
         target,
         cooldown,
         heartbeat,
-		network,
         notarizeErrors,
 		priority,
 		signer,
-        witnesses
+        witnesses,
+		witnet,
 	} = program.opts();
 
 	if (!debug) console.debug = () => {};
@@ -104,7 +104,7 @@ async function main() {
 		process.exit(0);
 	}
 
-    const provider = network === "mainnet" ? "https://rpc-01.witnet.io" : (network === "testnet" ? "https://rpc-testnet.witnet.io" : network)
+    const provider = witnet === "mainnet" ? "https://rpc-01.witnet.io" : (witnet === "testnet" ? "https://rpc-testnet.witnet.io" : witnet)
 	const wallet = await Witnet.Wallet.fromXprv(WIT_WALLET_MASTER_KEY, {
 		limit: 1,
 		provider: await Witnet.JsonRpcProvider.fromURL(provider),

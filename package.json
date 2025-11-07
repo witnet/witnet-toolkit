@@ -54,6 +54,7 @@
 		"fmt!": "npx biome check --write --unsafe",
 		"postinstall": "node scripts/postinstall.cjs",
 		"prepare": "pnpm run build",
+		"watcher": "node ./src/bin/bots/watcher.cjs",
 		"witsdk": "cross-env-shell WITNET_SDK_RADON_ASSETS_PATH='../../../witnet/assets' node ./src/bin/index.js"
 	},
 	"dependencies": {
