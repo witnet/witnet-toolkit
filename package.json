@@ -1,6 +1,6 @@
 {
 	"name": "@witnet/sdk",
-	"version": "1.2.4",
+	"version": "1.2.5",
 	"description": "Typescript library and CLI tooling for Web3 buidlers willing to interact with the Witnet blockchain.",
 	"author": "Witnet Foundation",
 	"license": "MIT",
@@ -24,7 +24,6 @@
 	"files": [
 		"dist",
 		"scripts/",
-		"src/assets",
 		"src/bin",
 		".env_witnet"
 	],
@@ -36,8 +35,8 @@
 		},
 		"./assets": {
 			"types": "./dist/witnet/assets/*.d.cts",
-			"require": "./witnet/assets/index.cjs",
-			"default": "./witnet/assets/index.cjs"
+			"require": "./dist/witnet/assets/index.cjs",
+			"default": "./dist/witnet/assets/index.cjs"
 		},
 		"./utils": {
 			"types": "./dist/src/lib/*.d.ts",
@@ -49,7 +48,7 @@
 	"scripts": {
 		"build": "pbjs --target json witnet/witnet.proto -o witnet/witnet.proto.json && npm run clean && tsc -p tsconfig.json",
 		"clean": "node ./scripts/clean.cjs dist",
-		"fmt": "npx biome check ./src ./scripts",
+		"fmt": "npx biome check --unsafe ./src ./scripts",
 		"fmt!": "npx biome check --write --unsafe ./src ./scripts",
 		"postinstall": "node scripts/postinstall.cjs",
 		"prepare": "pnpm run build",
