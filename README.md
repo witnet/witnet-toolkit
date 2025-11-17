@@ -1,17 +1,17 @@
-# Witnet SDK and CLI tools
+# Witnet Javascript SDK and CLI tools
 
-> The **Witnet SDK** empowers devops and Web3 developers to seamlessly interact with the Witnet blockchain.
+> Typescript library and CLI tooling for Web3 buidlers willing to interact with the Witnet blockchain.
+> The **Witnet Javascript SDK** empowers devops and Web3 developers to seamlessly interact with the Witnet blockchain.
 
 ## ✨ Overview
 
-Users of the Witnet SDK library or the embedded CLI tools, will be able to:
+Users of the Witnet Javascript library or the embedded CLI tools, will be able to:
 
 - 👛 Create self-custody HD-wallets to hold and transact with $WIT coins.
 - 🌱 Stake and withdraw $WIT coins into and from Witnet validators.
 - 🧮 Build oracle queries adapted to all sorts of data sources and use cases.
 - 🩺 Simulate resolution of oracle queries, locally and at no cost.
 - 🧑‍⚖️ Notarize resolution of oracle queries on the Witnet blockchain.
-- 📰 Report resolution of oracle queries into smart contracts.
 - ⛓️ Check dynamic information on the Witnet P2P network.
 - 🔎 Explore public data on the Witnet blockchain.
 - 🪪 Generate legit stake-authorization codes for external customers.
@@ -32,11 +32,13 @@ $ npm install --save-dev @witnet/sdk`
 ```
 - Import from Javascript:
 ```javascript
-const { assets, utils, Witnet } = require("@witnet/sdk")`
+const { requests, modals } = require("@witnet/sdk/assets")
+const { utils, Witnet } = require("@witnet/sdk")
 ```
 - Import from Typescript:
 ```typescript
-import { assets, utils, Witnet } from "@witnet/sdk"
+import { requests, modals } from "@witnet/sdk/assets"
+import { utils, Witnet } from "@witnet/sdk"
 ```
 
 ## ⚙️ Requirements
