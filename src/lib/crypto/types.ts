@@ -1,18 +1,7 @@
 import { bech32 } from "bech32";
 import secp256k1 from "secp256k1";
-import {
-	fromHexString,
-	isHexString,
-	toHexString,
-	whole_wits,
-} from "../../bin/helpers.js";
-import type {
-	Balance,
-	Epoch,
-	Hash,
-	HexString,
-	UtxoMetadata,
-} from "../types.js";
+import { fromHexString, isHexString, toHexString, whole_wits } from "../../bin/helpers.js";
+import type { Balance, Epoch, Hash, HexString, UtxoMetadata } from "../types.js";
 import { sha256 } from "./utils.js";
 
 export class Coins {
@@ -32,10 +21,7 @@ export class Coins {
 				`${Coins.constructor.name}: internal error: too many wits: ${wits} > ${Number.MAX_SAFE_INTEGER}`,
 			);
 		}
-		return new Coins(
-			BigInt(Math.floor(wits)) * 10n ** 9n +
-				BigInt(Math.floor((wits - Math.floor(wits)) * 1000000000)),
-		);
+		return new Coins(BigInt(Math.floor(wits)) * 10n ** 9n + BigInt(Math.floor((wits - Math.floor(wits)) * 1000000000)));
 	}
 	public static zero(): Coins {
 		return new Coins(0n);
@@ -56,8 +42,7 @@ export class Coins {
 				`${this.constructor.name}: internal error: too many coins: ${quotient.toString()} > ${Number.MAX_SAFE_INTEGER}`,
 			);
 		}
-		const rest =
-			Number(BigInt(this.coins) - quotient * 1000000000n) / 1000000000;
+		const rest = Number(BigInt(this.coins) - quotient * 1000000000n) / 1000000000;
 		return Number(quotient) + rest;
 	}
 	public toString(decimals = 9): string {
@@ -89,10 +74,7 @@ export interface PublicKey extends Key {
 	type: "public";
 }
 
-export type TransactionCallback = (
-	receipt: TransactionReceipt,
-	error?: any,
-) => any;
+export type TransactionCallback = (receipt: TransactionReceipt, error?: any) => any;
 
 export type TransactionParams = {
 	deadline?: Epoch;
@@ -135,14 +117,7 @@ export type TransactionReceipt = {
 	witnesses?: number | Record<PublicKeyHashString, Coins>;
 };
 
-export type TransactionStatus =
-	| "signed"
-	| "pending"
-	| "relayed"
-	| "removed"
-	| "mined"
-	| "confirmed"
-	| "finalized";
+export type TransactionStatus = "signed" | "pending" | "relayed" | "removed" | "mined" | "confirmed" | "finalized";
 
 export type Transmission = {
 	bytecode?: Uint8Array;
@@ -183,10 +158,7 @@ export class PublicKey implements Key {
 	public readonly compressed: number;
 	public readonly bytes: Uint8Array;
 
-	static fromProtobuf(protobuf: {
-		compressed: number;
-		bytes: Array<number>;
-	}): PublicKey {
+	static fromProtobuf(protobuf: { compressed: number; bytes: Array<number> }): PublicKey {
 		return new PublicKey(protobuf.compressed, Uint8Array.from(protobuf.bytes));
 	}
 
@@ -203,19 +175,13 @@ export class PublicKey implements Key {
 		} else if (recoverable instanceof Uint8Array) {
 			bytes = recoverable;
 		} else {
-			throw new TypeError(
-				`PublicKey: unsupported recoverable signature format: ${recoverable}`,
-			);
+			throw new TypeError(`PublicKey: unsupported recoverable signature format: ${recoverable}`);
 		}
 		if (bytes.length !== 65) {
-			throw new TypeError(
-				`PublicKey: expected recoverable signature with length 65: ${toHexString(bytes)}`,
-			);
+			throw new TypeError(`PublicKey: expected recoverable signature with length 65: ${toHexString(bytes)}`);
 		}
 		const [recoveryId, signature] = [bytes[0], bytes.slice(1)];
-		return PublicKey.fromUint8Array(
-			secp256k1.ecdsaRecover(signature, recoveryId, msg),
-		);
+		return PublicKey.fromUint8Array(secp256k1.ecdsaRecover(signature, recoveryId, msg));
 	}
 
 	constructor(compressed: number, bytes: Uint8Array) {
@@ -224,10 +190,7 @@ export class PublicKey implements Key {
 	}
 
 	public equals(pubKey: PublicKey): boolean {
-		return (
-			pubKey.compressed === this.compressed &&
-			matchingUint8Arrays(pubKey.bytes, pubKey.bytes)
-		);
+		return pubKey.compressed === this.compressed && matchingUint8Arrays(pubKey.bytes, pubKey.bytes);
 	}
 
 	public hash(): PublicKeyHash {
@@ -254,9 +217,7 @@ export class PublicKeyHash {
 	}
 
 	static fromPublicKey(pk: PublicKey): PublicKeyHash {
-		return PublicKeyHash.fromHash(
-			sha256(Buffer.from([pk.compressed, ...pk.bytes])).subarray(0, 20),
-		);
+		return PublicKeyHash.fromHash(sha256(Buffer.from([pk.compressed, ...pk.bytes])).subarray(0, 20));
 	}
 
 	static fromBech32(pkh: string): PublicKeyHash {
@@ -281,9 +242,7 @@ export class PublicKeyHash {
 	}
 
 	public toBech32(network = "mainnet"): string {
-		return network === "mainnet"
-			? bech32.encode("wit", this.words, 66)
-			: bech32.encode("twit", this.words, 67);
+		return network === "mainnet" ? bech32.encode("wit", this.words, 66) : bech32.encode("twit", this.words, 67);
 	}
 
 	public toBytes20(): Uint8Array {
@@ -291,10 +250,7 @@ export class PublicKeyHash {
 	}
 
 	public toBytes32(): Uint8Array {
-		return Uint8Array.from([
-			...bech32.fromWords(this.words).slice(0, 20),
-			...new Array(12).fill(0),
-		]);
+		return Uint8Array.from([...bech32.fromWords(this.words).slice(0, 20), ...new Array(12).fill(0)]);
 	}
 
 	public toHexString(): string {
@@ -330,26 +286,15 @@ export class RecoverableSignature extends Signature {
 		} else if (recoverable instanceof Uint8Array) {
 			bytes = recoverable.slice(1);
 		} else {
-			throw new TypeError(
-				`RecoverableSignature: unsupported recoverable signature format: ${recoverable}`,
-			);
+			throw new TypeError(`RecoverableSignature: unsupported recoverable signature format: ${recoverable}`);
 		}
 		if (bytes.length !== 64) {
-			throw new TypeError(
-				`RecoverableSignatre: expected recoverable signature with length 65: ${toHexString(bytes)}`,
-			);
+			throw new TypeError(`RecoverableSignatre: expected recoverable signature with length 65: ${toHexString(bytes)}`);
 		}
-		return new RecoverableSignature(
-			PublicKey.recoverFrom(recoverable, msg),
-			bytes,
-			msg,
-		);
+		return new RecoverableSignature(PublicKey.recoverFrom(recoverable, msg), bytes, msg);
 	}
 
-	static fromKeyedSignature(
-		ks: KeyedSignature,
-		msg: Uint8Array,
-	): RecoverableSignature {
+	static fromKeyedSignature(ks: KeyedSignature, msg: Uint8Array): RecoverableSignature {
 		return new RecoverableSignature(
 			PublicKey.fromProtobuf(ks.public_key),
 			secp256k1.signatureImport(Uint8Array.from(ks.signature.Secp256k1.der)),

@@ -28,11 +28,7 @@ const DEPTH_LENGTH = 1;
 const KEY_LENGTH = 33;
 const KEY_PATH_LENGTH = 4;
 
-const BECH32_LIMIT =
-	DEPTH_LENGTH +
-	(256 ** DEPTH_LENGTH - 1) * KEY_PATH_LENGTH +
-	CHAIN_CODE_LENGTH +
-	KEY_LENGTH;
+const BECH32_LIMIT = DEPTH_LENGTH + (256 ** DEPTH_LENGTH - 1) * KEY_PATH_LENGTH + CHAIN_CODE_LENGTH + KEY_LENGTH;
 
 const getExpectedDataLength = (depth: number) =>
 	DEPTH_LENGTH + depth * KEY_PATH_LENGTH + CHAIN_CODE_LENGTH + KEY_LENGTH;
@@ -53,16 +49,8 @@ export function decipherXprv(slip32: string, passwd: string): string {
 	return decrypted;
 }
 
-export function ecdsaVerify(
-	msg: Buffer<ArrayBufferLike>,
-	pubKey: HexString,
-	signature: HexString,
-): boolean {
-	return secp256k1.ecdsaVerify(
-		fromHexString(signature),
-		msg,
-		fromHexString(pubKey),
-	);
+export function ecdsaVerify(msg: Buffer<ArrayBufferLike>, pubKey: HexString, signature: HexString): boolean {
+	return secp256k1.ecdsaVerify(fromHexString(signature), msg, fromHexString(pubKey));
 }
 
 export const parseXprv = (
@@ -88,20 +76,13 @@ export const parseXprv = (
 	}
 	const expectedLength = getExpectedDataLength(depth);
 	if (bytes.length !== expectedLength) {
-		throw Error(
-			"Invalid XPRV: bad data length" +
-				`(expected: ${expectedLength}, was: ${bytes.length}`,
-		);
+		throw Error(`Invalid XPRV: bad data length(expected: ${expectedLength}, was: ${bytes.length}`);
 	}
 	const buffer = new Uint8Array(bytes).buffer;
 
 	// extract key path (32-bit unsigned integers, big endian)
 	const keyPath: Array<number> = [];
-	const keyPathView = new DataView(
-		buffer,
-		DEPTH_LENGTH,
-		depth * KEY_PATH_LENGTH,
-	);
+	const keyPathView = new DataView(buffer, DEPTH_LENGTH, depth * KEY_PATH_LENGTH);
 	for (let i = 0; i < depth; i++) {
 		keyPath.push(keyPathView.getUint32(i * KEY_PATH_LENGTH, false));
 	}
@@ -109,21 +90,14 @@ export const parseXprv = (
 	// extract chain code
 	const chainCode: Uint8Array = new Uint8Array(CHAIN_CODE_LENGTH);
 	const chainCodeOffset = DEPTH_LENGTH + depth * KEY_PATH_LENGTH;
-	const chainCodeView = new DataView(
-		buffer,
-		chainCodeOffset,
-		CHAIN_CODE_LENGTH,
-	);
+	const chainCodeView = new DataView(buffer, chainCodeOffset, CHAIN_CODE_LENGTH);
 	for (let i = 0; i < chainCode.length; i++) {
 		chainCode[i] = chainCodeView.getUint8(i);
 	}
 
 	// extract key bytes
 	const privateKey: Uint8Array = new Uint8Array(KEY_LENGTH);
-	const privateKeyView = new DataView(
-		buffer,
-		chainCodeOffset + CHAIN_CODE_LENGTH,
-	);
+	const privateKeyView = new DataView(buffer, chainCodeOffset + CHAIN_CODE_LENGTH);
 	for (let i = 0; i < privateKey.length; i++) {
 		privateKey[i] = privateKeyView.getUint8(i);
 	}
@@ -149,9 +123,7 @@ export function selectUtxos(specs: {
 	switch (strategy) {
 		case UtxoSelectionStrategy.BigFirst:
 		case UtxoSelectionStrategy.SlimFit:
-			specs.utxos = specs.utxos.sort((a, b) =>
-				a.value > b.value ? -1 : a.value < b.value ? 1 : 0,
-			);
+			specs.utxos = specs.utxos.sort((a, b) => (a.value > b.value ? -1 : a.value < b.value ? 1 : 0));
 			break;
 
 		case UtxoSelectionStrategy.Random: {
@@ -166,9 +138,7 @@ export function selectUtxos(specs: {
 		}
 
 		case UtxoSelectionStrategy.SmallFirst:
-			specs.utxos = specs.utxos.sort((a, b) =>
-				a.value < b.value ? -1 : a.value > b.value ? 1 : 0,
-			);
+			specs.utxos = specs.utxos.sort((a, b) => (a.value < b.value ? -1 : a.value > b.value ? 1 : 0));
 			break;
 	}
 
@@ -180,9 +150,7 @@ export function selectUtxos(specs: {
 	const pedros = specs?.value?.pedros;
 	if (pedros) {
 		if (strategy === UtxoSelectionStrategy.SlimFit) {
-			const slimFitIndex = specs.utxos.findIndex(
-				(utxo) => utxo.value <= pedros,
-			);
+			const slimFitIndex = specs.utxos.findIndex((utxo) => utxo.value <= pedros);
 			if (slimFitIndex >= 1) {
 				return specs.utxos.slice(slimFitIndex - 1, slimFitIndex);
 			}
@@ -205,7 +173,5 @@ export function sha256(buffer: any) {
 }
 
 export function totalCoins(balance: Balance): Coins {
-	return Coins.fromPedros(
-		BigInt(balance.locked) + BigInt(balance.staked) + BigInt(balance.unlocked),
-	);
+	return Coins.fromPedros(BigInt(balance.locked) + BigInt(balance.staked) + BigInt(balance.unlocked));
 }

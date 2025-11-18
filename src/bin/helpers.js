@@ -8,10 +8,7 @@ import moment from "moment";
 const require = createRequire(import.meta.url);
 
 export const colorstrip = (str) =>
-	str.replace(
-		/[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g,
-		"",
-	);
+	str.replace(/[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g, "");
 
 export const commas = (number) => {
 	const parts = number.toString().split(".");
@@ -41,14 +38,8 @@ export const whole_wits = (number, digits) => {
 	];
 	// const regexp = /\.0+$|(?<=\.[0-9])0+$/
 	const item = lookup.findLast((item) => number >= item.value);
-	const quotient = item
-		? Number(BigInt(number) / item.value)
-		: number.toString();
-	const decimals = item
-		? (item.value + BigInt(number) - BigInt(quotient) * item.value)
-				.toString()
-				.slice(1)
-		: "";
+	const quotient = item ? Number(BigInt(number) / item.value) : number.toString();
+	const decimals = item ? (item.value + BigInt(number) - BigInt(quotient) * item.value).toString().slice(1) : "";
 	return item
 		? `${commas(quotient)}${decimals !== "" ? `.${decimals.slice(0, digits)}` : ""} ${item.symbol}`
 		: "(no coins)";
@@ -113,13 +104,8 @@ export const colors = {
 export function countLeaves(t, obj) {
 	if (!obj || typeof obj === "string") return 0;
 	if (obj instanceof t) return 1;
-	if (Array.isArray(obj))
-		return obj.reduce((sum, item) => sum + countLeaves(t, item), 0);
-	else
-		return Object.values(obj).reduce(
-			(sum, item) => sum + countLeaves(t, item),
-			0,
-		);
+	if (Array.isArray(obj)) return obj.reduce((sum, item) => sum + countLeaves(t, item), 0);
+	else return Object.values(obj).reduce((sum, item) => sum + countLeaves(t, item), 0);
 }
 
 export function deleteExtraFlags(args) {
@@ -128,19 +114,15 @@ export function deleteExtraFlags(args) {
 
 export function cmd(...command) {
 	return new Promise((resolve, reject) => {
-		exec(
-			command.join(" "),
-			{ maxBuffer: 1024 * 1024 * 10 },
-			(error, stdout, stderr) => {
-				if (error) {
-					reject(error);
-				}
-				if (stderr) {
-					reject(stderr);
-				}
-				resolve(stdout);
-			},
-		);
+		exec(command.join(" "), { maxBuffer: 1024 * 1024 * 10 }, (error, stdout, stderr) => {
+			if (error) {
+				reject(error);
+			}
+			if (stderr) {
+				reject(stderr);
+			}
+			resolve(stdout);
+		});
 	});
 }
 
@@ -189,9 +171,7 @@ export function extractFromArgs(args, flags) {
 
 export function fromHexString(hexString) {
 	if (hexString.startsWith("0x")) hexString = hexString.slice(2);
-	return Uint8Array.from(
-		hexString.match(/.{1,2}/g).map((byte) => parseInt(byte, 16)),
-	);
+	return Uint8Array.from(hexString.match(/.{1,2}/g).map((byte) => parseInt(byte, 16)));
 }
 
 export function ipIsPrivateOrLocalhost(ip) {
@@ -236,9 +216,7 @@ export function ipIsPrivateOrLocalhost(ip) {
 
 export function isHexStringOfLength(str, length) {
 	return (
-		(isHexString(str) &&
-			((str.startsWith("0x") && str.slice(2).length === length * 2) ||
-				str.length === length * 2)) ||
+		(isHexString(str) && ((str.startsWith("0x") && str.slice(2).length === length * 2) || str.length === length * 2)) ||
 		isWildcard(str)
 	);
 }
@@ -246,8 +224,7 @@ export function isHexStringOfLength(str, length) {
 export function isHexString(str) {
 	return (
 		(typeof str === "string" &&
-			((str.startsWith("0x") && /^[a-fA-F0-9]+$/i.test(str.slice(2))) ||
-				/^[a-fA-F0-9]+$/i.test(str))) ||
+			((str.startsWith("0x") && /^[a-fA-F0-9]+$/i.test(str.slice(2))) || /^[a-fA-F0-9]+$/i.test(str))) ||
 		isWildcard(str)
 	);
 }
@@ -267,12 +244,7 @@ export function toHexString(buffer, prefix0x = false) {
 export function parseURL(url) {
 	try {
 		const parsedUrl = new URL(url);
-		return [
-			`${parsedUrl.protocol}//`,
-			parsedUrl.host,
-			parsedUrl.pathname.slice(1),
-			parsedUrl.search.slice(1),
-		];
+		return [`${parsedUrl.protocol}//`, parsedUrl.host, parsedUrl.pathname.slice(1), parsedUrl.search.slice(1)];
 	} catch {
 		throw new TypeError(`Invalid URL was provided: ${url}`);
 	}
@@ -292,12 +264,7 @@ export function showUsageRouter(router) {
 		console.info("\nSUBCOMMANDS:");
 		const maxLength = Math.max(...cmds.map(([cmd]) => cmd.length));
 		cmds.forEach((cmd) => {
-			console.info(
-				"  ",
-				`${cmd[0]}${" ".repeat(maxLength - cmd[0].length)}`,
-				"  ",
-				cmd[1].hint,
-			);
+			console.info("  ", `${cmd[0]}${" ".repeat(maxLength - cmd[0].length)}`, "  ", cmd[1].hint);
 		});
 	}
 }
@@ -328,11 +295,7 @@ export function showUsageEnvars(envars) {
 						` => Settled to "${myellow(process.env[envar])}"`,
 					);
 				} else {
-					console.info(
-						"  ",
-						`${yellow(envar.toUpperCase())}${" ".repeat(maxWidth - envar.length)}`,
-						` ${hint}`,
-					);
+					console.info("  ", `${yellow(envar.toUpperCase())}${" ".repeat(maxWidth - envar.length)}`, ` ${hint}`);
 				}
 			});
 		}
@@ -353,19 +316,12 @@ export function showUsageFlags(flags) {
 			const maxLength = Math.max(
 				...flags
 					.filter(([, { hint }]) => hint)
-					.map(([key, { param }]) =>
-						param ? key.length + param.length + 3 : key.length,
-					),
+					.map(([key, { param }]) => (param ? key.length + param.length + 3 : key.length)),
 			);
 			flags.forEach((flag) => {
 				const str = `${flag[0]}${flag[1].param ? gray(` <${flag[1].param}>`) : ""}`;
 				if (flag[1].hint) {
-					console.info(
-						"  ",
-						`--${str}${" ".repeat(maxLength - colorstrip(str).length)}`,
-						"  ",
-						flag[1].hint,
-					);
+					console.info("  ", `--${str}${" ".repeat(maxLength - colorstrip(str).length)}`, "  ", flag[1].hint);
 				}
 			});
 		}
@@ -379,11 +335,7 @@ export function showUsageHeadline(cmd, subcmd, module) {
 		// const options = module.router[subcmd]?.options
 		if (params) {
 			const optionalize = (str) =>
-				str.endsWith(" ...]")
-					? `[<${str.slice(1, -5)}> ...]`
-					: str[0] === "["
-						? `[<${str.slice(1, -1)}>]`
-						: `<${str}>`;
+				str.endsWith(" ...]") ? `[<${str.slice(1, -5)}> ...]` : str[0] === "[" ? `[<${str.slice(1, -1)}>]` : `<${str}>`;
 			if (Array.isArray(params)) {
 				params = `${params.map((param) => optionalize(param)).join(" ")} `;
 			} else {
@@ -398,9 +350,7 @@ export function showUsageHeadline(cmd, subcmd, module) {
 			console.info(`   ${module.router[subcmd].hint}`);
 		}
 	} else {
-		console.info(
-			`   ${colors.white(`npx witsdk ${cmd}`)} <SUBCOMMAND> ... [OPTIONS] [FLAGS]`,
-		);
+		console.info(`   ${colors.white(`npx witsdk ${cmd}`)} <SUBCOMMAND> ... [OPTIONS] [FLAGS]`);
 	}
 }
 
@@ -415,21 +365,12 @@ export function showUsageOptions(options) {
 	if (options.length > 0) {
 		console.info("\nOPTIONS:");
 		const maxLength = options
-			.map((option) =>
-				option[1].param
-					? option[1].param.length + option[0].length + 3
-					: option[0].length,
-			)
+			.map((option) => (option[1].param ? option[1].param.length + option[0].length + 3 : option[0].length))
 			.reduce((prev, curr) => (curr > prev ? curr : prev));
 		options.forEach((option) => {
 			if (option[1].hint) {
 				const str = `${option[0]}${option[1].param ? gray(` <${option[1].param}>`) : ""}`;
-				console.info(
-					"  ",
-					`--${str}${" ".repeat(maxLength - colorstrip(str).length)}`,
-					"  ",
-					option[1].hint,
-				);
+				console.info("  ", `--${str}${" ".repeat(maxLength - colorstrip(str).length)}`, "  ", option[1].hint);
 			}
 		});
 	}
@@ -443,9 +384,7 @@ export function showUsageSubcommand(cmd, subcmd, module) {
 }
 
 export function showVersion() {
-	console.info(
-		`${colors.mcyan(`Witnet SDK v${require("../../package.json").version}`)}`,
-	);
+	console.info(`${colors.mcyan(`Witnet SDK v${require("../../package.json").version}`)}`);
 }
 
 export function getWildcardsCountFromString(str) {
@@ -465,11 +404,15 @@ export function checkRpcWildcards(wildcards) {
 	if (typeof wildcards === "object") {
 		Object.values(wildcards).forEach((wildcard) => {
 			if (Array.isArray(wildcard))
-				wildcard.forEach((item) => checkRpcWildcards(item));
+				wildcard.forEach((item) => {
+					checkRpcWildcards(item);
+				});
 			else checkRpcWildcards(wildcard);
 		});
 	} else if (Array.isArray(wildcards)) {
-		wildcards.forEach((wildcard) => checkRpcWildcards(wildcard));
+		wildcards.forEach((wildcard) => {
+			checkRpcWildcards(wildcard);
+		});
 	} else if (typeof wildcards === "string") {
 		if (isWildcard(wildcards)) {
 			const char = wildcards.charAt(1);
@@ -493,9 +436,7 @@ export function replaceWildcards(obj, args) {
 		}
 	} else if (obj && Array.isArray(obj)) {
 		obj = obj.map((value) =>
-			typeof value === "string" || Array.isArray(value)
-				? replaceWildcards(value, args)
-				: value,
+			typeof value === "string" || Array.isArray(value) ? replaceWildcards(value, args) : value,
 		);
 	} else if (obj && typeof obj === "object") {
 		obj = replaceObjectWildcards(obj, args);
@@ -525,9 +466,7 @@ export function spliceWildcard(obj, argIndex, argValue, argsCount) {
 		}
 	} else if (obj && Array.isArray(obj)) {
 		obj = obj.map((value) =>
-			typeof value === "string" || Array.isArray(value)
-				? spliceWildcard(value, argIndex, argValue, argsCount)
-				: value,
+			typeof value === "string" || Array.isArray(value) ? spliceWildcard(value, argIndex, argValue, argsCount) : value,
 		);
 	}
 	return obj;
@@ -549,9 +488,7 @@ export async function toolkitRun(settings, args) {
 }
 
 export function toUpperCamelCase(str) {
-	return str
-		.replace(/\b(\w)/g, (_match, capture) => capture.toUpperCase())
-		.replace(/\s+/g, "");
+	return str.replace(/\b(\w)/g, (_match, capture) => capture.toUpperCase()).replace(/\s+/g, "");
 }
 
 export function toUtf16Bytes(str) {
@@ -572,19 +509,14 @@ export function toUtf8Array(str) {
 		else if (charcode < 0x800) {
 			utf8.push(0xc0 | (charcode >> 6), 0x80 | (charcode & 0x3f));
 		} else if (charcode < 0xd800 || charcode >= 0xe000) {
-			utf8.push(
-				0xe0 | (charcode >> 12),
-				0x80 | ((charcode >> 6) & 0x3f),
-				0x80 | (charcode & 0x3f),
-			);
+			utf8.push(0xe0 | (charcode >> 12), 0x80 | ((charcode >> 6) & 0x3f), 0x80 | (charcode & 0x3f));
 		} else {
 			// surrogate pair
 			i++;
 			// UTF-16 encodes 0x10000-0x10FFFF by
 			// subtracting 0x10000 and splitting the
 			// 20 bits of 0x0-0xFFFFF into two halves
-			charcode =
-				0x10000 + (((charcode & 0x3ff) << 10) | (str.charCodeAt(i) & 0x3ff));
+			charcode = 0x10000 + (((charcode & 0x3ff) << 10) | (str.charCodeAt(i) & 0x3ff));
 			utf8.push(
 				0xf0 | (charcode >> 18),
 				0x80 | ((charcode >> 12) & 0x3f),
@@ -626,9 +558,7 @@ export function utf8ArrayToStr(array) {
 				// 1110 xxxx  10xx xxxx  10xx xxxx
 				char2 = array[i++];
 				char3 = array[i++];
-				out += String.fromCharCode(
-					((c & 0x0f) << 12) | ((char2 & 0x3f) << 6) | ((char3 & 0x3f) << 0),
-				);
+				out += String.fromCharCode(((c & 0x0f) << 12) | ((char2 & 0x3f) << 6) | ((char3 & 0x3f) << 0));
 				break;
 		}
 	}
@@ -667,22 +597,13 @@ export function prompter(promise) {
 
 export function traceChecklists(checklists) {
 	if (checklists && Object.keys(checklists).length > 0) {
-		const headlines = [
-			"NODES",
-			...Object.keys(checklists).map((key) => `:${key}`),
-		];
+		const headlines = ["NODES", ...Object.keys(checklists).map((key) => `:${key}`)];
 		checklists = Object.values(checklists);
 		const urls = Object.keys(checklists[0]);
 		const records = urls.map((url) => {
-			const errors = checklists.filter(
-				(checklist) => checklist[url] instanceof Error,
-			).length;
+			const errors = checklists.filter((checklist) => checklist[url] instanceof Error).length;
 			return [
-				errors === checklists.length
-					? colors.red(url)
-					: errors > 0
-						? colors.myellow(url)
-						: colors.mcyan(url),
+				errors === checklists.length ? colors.red(url) : errors > 0 ? colors.myellow(url) : colors.mcyan(url),
 				...checklists.map((checklist) =>
 					checklist[url] instanceof Error
 						? colors.red(checklist[url])
@@ -707,12 +628,9 @@ export function traceHeader(headline, color = normal, indent = "") {
 
 export function traceTable(records, options) {
 	const stringify = (data, humanizers, index) =>
-		humanizers?.[index]
-			? humanizers[index](data).toString()
-			: (data?.toString() ?? "");
+		humanizers?.[index] ? humanizers[index](data).toString() : (data?.toString() ?? "");
 	const max = (a, b) => (a > b ? a : b);
-	const reduceMax = (numbers) =>
-		numbers.reduce((curr, prev) => (prev > curr ? prev : curr), 0);
+	const reduceMax = (numbers) => numbers.reduce((curr, prev) => (prev > curr ? prev : curr), 0);
 	if (!options) options = {};
 	const indent = options?.indent || "";
 	const numColumns = reduceMax(records.map((record) => record?.length || 1));
@@ -721,17 +639,9 @@ export function traceTable(records, options) {
 	options.widths =
 		options?.widths ||
 		table.map((column, index) => {
-			let maxWidth = reduceMax(
-				column.map(
-					(field) =>
-						colorstrip(stringify(field, options?.humanizers, index)).length,
-				),
-			);
+			let maxWidth = reduceMax(column.map((field) => colorstrip(stringify(field, options?.humanizers, index)).length));
 			if (options?.headlines?.[index]) {
-				maxWidth = max(
-					maxWidth,
-					colorstrip(options.headlines[index].replaceAll(":", "")).length,
-				);
+				maxWidth = max(maxWidth, colorstrip(options.headlines[index].replaceAll(":", "")).length);
 			}
 			return Math.min(maxWidth, maxColumnWidth);
 		});
@@ -844,9 +754,7 @@ export function traceTransactionOnStatusChange(receipt) {
 	if (["finalized", "confirmed"].includes(receipt.status)) {
 		console.info(` > Block hash:   ${colors.gray(receipt?.blockHash)}`);
 		console.info(` > Block miner:  ${colors.cyan(receipt?.blockMiner)}`);
-		console.info(
-			` > Block epoch:  ${colors.white(commas(receipt?.blockEpoch))}`,
-		);
+		console.info(` > Block epoch:  ${colors.white(commas(receipt?.blockEpoch))}`);
 		console.info(
 			` > Included at:  ${colors.green(moment.unix(receipt?.blockTimestamp).format("MMMM Do YYYY, h:mm:ss a"))}`,
 		);
@@ -861,15 +769,10 @@ export function traceTransactionReceipt(receipt) {
 		DataRequest: " > DRT hash:     ",
 		ValueTransfer: " > VTT hash:     ",
 	};
-	console.info(
-		`${captions[receipt.type] || " > TX hash:      "}${colors.white(receipt.hash)}`,
-	);
-	if (receipt?.droHash)
-		console.info(` > DRO hash:     ${colors.green(receipt.droHash)}`);
-	if (receipt?.radHash)
-		console.info(` > RAD hash:     ${colors.mgreen(receipt.radHash)}`);
-	if (receipt?.droSLA)
-		console.info(` > SLA params:   ${JSON.stringify(receipt.droSLA)}`);
+	console.info(`${captions[receipt.type] || " > TX hash:      "}${colors.white(receipt.hash)}`);
+	if (receipt?.droHash) console.info(` > DRO hash:     ${colors.green(receipt.droHash)}`);
+	if (receipt?.radHash) console.info(` > RAD hash:     ${colors.mgreen(receipt.radHash)}`);
+	if (receipt?.droSLA) console.info(` > SLA params:   ${JSON.stringify(receipt.droSLA)}`);
 	if (receipt?.withdrawer) {
 		if (receipt?.validator) {
 			console.info(` > Validator:    ${colors.mcyan(receipt.validator)}`);
@@ -885,20 +788,13 @@ export function traceTransactionReceipt(receipt) {
 	if (receipt?.recipients) {
 		console.info(
 			` > Recipient/s:  ${colors.mblue(
-				receipt.recipients.filter(
-					(pkh, index, array) => index === array.indexOf(pkh),
-				),
+				receipt.recipients.filter((pkh, index, array) => index === array.indexOf(pkh)),
 			)}`,
 		);
 	}
-	if (receipt?.fees)
-		console.info(` > Network fee:  ${colors.yellow(receipt.fees.toString(2))}`);
-	if (receipt?.value)
-		console.info(
-			` > Value:        ${colors.myellow(receipt.value.toString(2))}`,
-		);
-	if (receipt?.weight)
-		console.info(` > Weight:       ${colors.mgreen(commas(receipt.weight))}`);
+	if (receipt?.fees) console.info(` > Network fee:  ${colors.yellow(receipt.fees.toString(2))}`);
+	if (receipt?.value) console.info(` > Value:        ${colors.myellow(receipt.value.toString(2))}`);
+	if (receipt?.weight) console.info(` > Weight:       ${colors.mgreen(commas(receipt.weight))}`);
 	if (receipt?.witnesses) {
 		console.info(` > Witnesses:    ${receipt.witnesses}`);
 	}
@@ -947,9 +843,7 @@ export async function traceTransaction(transmitter, options) {
 		}
 	} catch (err) {
 		if (err?.inFlight && err.inFlight) {
-			console.info(
-				`\n${colors.gray(JSON.stringify(err.inFligt?.message, txReceiptJsonReplacer))}`,
-			);
+			console.info(`\n${colors.gray(JSON.stringify(err.inFligt?.message, txReceiptJsonReplacer))}`);
 		}
 		throw err;
 	}

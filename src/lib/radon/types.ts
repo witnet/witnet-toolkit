@@ -145,7 +145,7 @@ export class RadonOperator extends RadonClass {
 		let args = "";
 		let script;
 		if (this.params && this.params[0] !== undefined) {
-			this.params.map((param) => {
+			this.params.forEach((param) => {
 				if (typeof param !== "object" || !(param instanceof RadonScript)) {
 					args += `${typeof param === "string" ? `"${param}"` : JSON.stringify(param)}, `;
 				} else {
@@ -197,9 +197,7 @@ export class RadonOperator extends RadonClass {
 	}
 	public replaceWildcards(args: string[]): RadonOperator {
 		if (args.length < this.argsCount()) {
-			throw EvalError(
-				`Insufficent args were provided (${args.length} < ${this.argsCount()})`,
-			);
+			throw EvalError(`Insufficent args were provided (${args.length} < ${this.argsCount()})`);
 		}
 		return new RadonOperator(
 			this.opcode,
@@ -224,12 +222,7 @@ export class RadonOperator extends RadonClass {
 			this.opcode,
 			this.params?.map((param) => {
 				if (typeof param === "string") {
-					return helpers.spliceWildcard(
-						param,
-						argIndex,
-						argValue,
-						this.argsCount(),
-					);
+					return helpers.spliceWildcard(param, argIndex, argValue, this.argsCount());
 				} else if (typeof param === "object" && param instanceof RadonScript) {
 					return param.spliceWildcard(argIndex, argValue);
 				} else {
@@ -286,24 +279,16 @@ export class RadonScript {
 			([prefix, _]) => input && RadonOperators[input.opcode].startsWith(prefix),
 		);
 		if (inputType?.[1]) this.inputType = new inputType[1]();
-		const outputType = Object.values(radonTypes).find(
-			(outputType) => output instanceof outputType,
-		);
+		const outputType = Object.values(radonTypes).find((outputType) => output instanceof outputType);
 		if (outputType) this.outputType = new outputType();
 	}
 	public argsCount(): number {
 		return this.ops?.argsCount() || 0;
 	}
 	public clone(): RadonAny {
-		const OutputType = [
-			RadonArray,
-			RadonBoolean,
-			RadonBytes,
-			RadonFloat,
-			RadonInteger,
-			RadonMap,
-			RadonString,
-		].find((OutputType) => this.outputType instanceof OutputType);
+		const OutputType = [RadonArray, RadonBoolean, RadonBytes, RadonFloat, RadonInteger, RadonMap, RadonString].find(
+			(OutputType) => this.outputType instanceof OutputType,
+		);
 		if (OutputType) {
 			return new OutputType(this.ops);
 		} else {
@@ -317,15 +302,9 @@ export class RadonScript {
 		return this.ops?.encode() || [];
 	}
 	public replaceWildcards(...args: string[]): RadonAny {
-		const OutputType = [
-			RadonArray,
-			RadonBoolean,
-			RadonBytes,
-			RadonFloat,
-			RadonInteger,
-			RadonMap,
-			RadonString,
-		].find((OutputType) => this.outputType instanceof OutputType);
+		const OutputType = [RadonArray, RadonBoolean, RadonBytes, RadonFloat, RadonInteger, RadonMap, RadonString].find(
+			(OutputType) => this.outputType instanceof OutputType,
+		);
 		if (OutputType) {
 			return new OutputType(this.ops?.replaceWildcards(args));
 		} else {
@@ -333,15 +312,9 @@ export class RadonScript {
 		}
 	}
 	public spliceWildcard(argIndex: number, argValue: string): RadonAny {
-		const OutputType = [
-			RadonArray,
-			RadonBoolean,
-			RadonBytes,
-			RadonFloat,
-			RadonInteger,
-			RadonMap,
-			RadonString,
-		].find((OutputType) => this.outputType instanceof OutputType);
+		const OutputType = [RadonArray, RadonBoolean, RadonBytes, RadonFloat, RadonInteger, RadonMap, RadonString].find(
+			(OutputType) => this.outputType instanceof OutputType,
+		);
 		if (OutputType) {
 			return new OutputType(this.ops?.spliceWildcard(argIndex, argValue));
 		} else {
@@ -349,10 +322,7 @@ export class RadonScript {
 		}
 	}
 	public toBytecode(): string {
-		return toHexString(
-			Object.values(Uint8Array.from(cbor.encode(this.encode()))),
-			true,
-		);
+		return toHexString(Object.values(Uint8Array.from(cbor.encode(this.encode()))), true);
 	}
 	public toString(left = "", indent = 0, level = 0): string {
 		const lf = left !== "" ? "\n" : "";
@@ -393,9 +363,7 @@ export interface RadonArray<ItemsType extends RadonAny> {
 	itemsType: ItemsType;
 }
 
-export class RadonArray<
-	ItemsType extends RadonAny = RadonAny,
-> extends RadonAny {
+export class RadonArray<ItemsType extends RadonAny = RadonAny> extends RadonAny {
 	/**
 	 * Discard the items in the input array that make the given `innerScript` to return a `false` value.
 	 * @param script Filtering script ultimately returning a `RadonBoolean` object.
@@ -406,9 +374,7 @@ export class RadonArray<
 		if (!(innerScript instanceof RadonBoolean)) {
 			throw new EvalError(`Inner script must fetch a RadonBoolean value`);
 		}
-		return this._pushOperator(RadonArray<ItemsType>, [
-			new RadonScript(innerScript),
-		]);
+		return this._pushOperator(RadonArray<ItemsType>, [new RadonScript(innerScript)]);
 	}
 	/**
 	 * Fetch the item at the given `index` as a `RadonArray` object.
@@ -772,10 +738,7 @@ export class RadonMap extends RadonAny {
 	 * @param key
 	 * @returns A `RadonArray` object.
 	 */
-	public getArray<ItemsType extends RadonAny = RadonAny>(
-		key: string,
-		_itemsType?: { new (): ItemsType },
-	) {
+	public getArray<ItemsType extends RadonAny = RadonAny>(key: string, _itemsType?: { new (): ItemsType }) {
 		return this._pushOperator(RadonArray<ItemsType>, [key]);
 	}
 	/**
@@ -832,9 +795,7 @@ export class RadonMap extends RadonAny {
 	 */
 	public pick(...keys: string[]) {
 		if (Array(keys).length === 0) {
-			throw new EvalError(
-				`\x1b[1;33mRadonMap::pick: a non-empty array of key strings must be provided\x1b[0m`,
-			);
+			throw new EvalError(`\x1b[1;33mRadonMap::pick: a non-empty array of key strings must be provided\x1b[0m`);
 		}
 		return this._pushOperator(RadonMap, [...keys]);
 	}

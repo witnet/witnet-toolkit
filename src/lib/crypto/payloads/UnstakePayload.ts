@@ -49,9 +49,7 @@ export class UnstakePayload extends TransactionPayload<StakeWithdrawalParams> {
 
 	public async consumeUtxos(ledger: ILedger): Promise<bigint> {
 		if (!this._target) {
-			throw new Error(
-				`${this.constructor.name}: internal error: no in-flight params.`,
-			);
+			throw new Error(`${this.constructor.name}: internal error: no in-flight params.`);
 		} else if (!this._covered) {
 			const signer = ledger.getSigner();
 			if (!signer) {
@@ -63,19 +61,14 @@ export class UnstakePayload extends TransactionPayload<StakeWithdrawalParams> {
 			if (this._target?.fees instanceof Coins) {
 				this._fees = this._target.fees.pedros;
 			} else {
-				const priority =
-					(this._target?.fees as TransactionPriority) ||
-					TransactionPriority.Medium;
+				const priority = (this._target?.fees as TransactionPriority) || TransactionPriority.Medium;
 				this._fees = await this._estimateNetworkFees(ledger.provider, priority);
 			}
 			// determine whether withdrawn amount covers MORE than the fees
 			this._change = this.value.pedros - this._fees;
 			if (this._change > 0) {
 				// settle nonce if none specified
-				this._covered = BigInt(
-					this._target?.nonce ||
-						(await signer.getStakeEntryNonce(this._target.validator)),
-				);
+				this._covered = BigInt(this._target?.nonce || (await signer.getStakeEntryNonce(this._target.validator)));
 				this._outputs.push({
 					pkh: signer.pkh,
 					value: this.value.pedros - this._fees,
@@ -124,15 +117,11 @@ export class UnstakePayload extends TransactionPayload<StakeWithdrawalParams> {
 				...(this._fees > 0 ? { fee: Long.fromValue(this._fees) } : {}),
 				nonce: Number(this._covered),
 				operator: {
-					hash: Array.from(
-						PublicKeyHash.fromBech32(this._target.validator).toBytes20(),
-					),
+					hash: Array.from(PublicKeyHash.fromBech32(this._target.validator).toBytes20()),
 				},
 				withdrawal: {
 					pkh: {
-						hash: Array.from(
-							PublicKeyHash.fromBech32(this.outputs[0].pkh).toBytes20(),
-						),
+						hash: Array.from(PublicKeyHash.fromBech32(this.outputs[0].pkh).toBytes20()),
 					},
 					value: Long.fromValue(this.outputs[0].value),
 					timeLock: this.outputs[0].time_lock,
@@ -148,22 +137,17 @@ export class UnstakePayload extends TransactionPayload<StakeWithdrawalParams> {
 				!(
 					target &&
 					(!target?.fees ||
-						(target.fees instanceof Coins &&
-							(target.fees as Coins).pedros >= 0) ||
+						(target.fees instanceof Coins && (target.fees as Coins).pedros >= 0) ||
 						Object.values(TransactionPriority).includes(target.fees)) &&
 					target?.value &&
 					(target.value as Coins).pedros > 0 &&
 					target?.validator
 				)
 			) {
-				throw new TypeError(
-					`${this.constructor.name}: invalid options: ${JSON.stringify(target)}`,
-				);
+				throw new TypeError(`${this.constructor.name}: invalid options: ${JSON.stringify(target)}`);
 			} else {
 				if (target?.nonce || parseInt(target.nonce, 10) <= 0) {
-					throw new TypeError(
-						`${this.constructor.name}: nonce must be positive if provided.`,
-					);
+					throw new TypeError(`${this.constructor.name}: nonce must be positive if provided.`);
 				}
 				// asume zero fees if not given in target params
 				if (!target?.fees) {
@@ -179,9 +163,7 @@ export class UnstakePayload extends TransactionPayload<StakeWithdrawalParams> {
 	protected _cleanTargetExtras(target?: any): any {
 		if (target) {
 			return Object.fromEntries(
-				Object.entries(target).filter(([key]) =>
-					["fees", "nonce", "value", "validator"].includes(key),
-				),
+				Object.entries(target).filter(([key]) => ["fees", "nonce", "value", "validator"].includes(key)),
 			);
 		}
 	}

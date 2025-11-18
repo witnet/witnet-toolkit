@@ -1,13 +1,7 @@
 import { ethers } from "ethers";
 import { default as keccak256 } from "keccak256";
 import { default as secp256k1 } from "secp256k1";
-import type {
-	Balance,
-	HexString,
-	Network,
-	QueryStakesOrder,
-	StakeEntry,
-} from "../types.js";
+import type { Balance, HexString, Network, QueryStakesOrder, StakeEntry } from "../types.js";
 import * as utils from "../utils.js";
 import type { IBIP32, IJsonRpcProvider, ISigner } from "./interfaces.js";
 import {
@@ -30,11 +24,7 @@ export class Signer implements ISigner {
 	public readonly provider: IJsonRpcProvider;
 	public strategy: UtxoSelectionStrategy;
 
-	constructor(
-		node: IBIP32,
-		provider: IJsonRpcProvider,
-		strategy?: UtxoSelectionStrategy,
-	) {
+	constructor(node: IBIP32, provider: IJsonRpcProvider, strategy?: UtxoSelectionStrategy) {
 		this.node = node;
 		this.provider = provider;
 		this.strategy = strategy || UtxoSelectionStrategy.SlimFit;
@@ -51,7 +41,7 @@ export class Signer implements ISigner {
 		const now = Math.floor(Date.now() / 1000);
 		let expendable: bigint = 0n;
 		let timelock: number = Number.MAX_SAFE_INTEGER;
-		this.utxos.map((utxo) => {
+		this.utxos.forEach((utxo) => {
 			if (utxo.timelock > now) {
 				if (utxo.timelock < timelock) {
 					timelock = utxo.timelock;
@@ -89,9 +79,7 @@ export class Signer implements ISigner {
 		included: Array<Utxo>;
 	} {
 		const excluded: Array<Utxo> = [];
-		const existingPointers = new Set(
-			this.utxos.map((cached) => cached.output_pointer),
-		);
+		const existingPointers = new Set(this.utxos.map((cached) => cached.output_pointer));
 		const included: Array<Utxo> = utxos.filter((utxo) => {
 			if (utxo.signer === this.pkh) {
 				// avoid adding duplicates
@@ -112,9 +100,7 @@ export class Signer implements ISigner {
 
 	public consumeUtxos(...utxos: Array<Utxo>): Array<Utxo> {
 		this.utxos = this.utxos.filter((cached) => {
-			const incomingIndex = utxos.findIndex(
-				(incoming) => cached.output_pointer === incoming.output_pointer,
-			);
+			const incomingIndex = utxos.findIndex((incoming) => cached.output_pointer === incoming.output_pointer);
 			if (incomingIndex >= 0) {
 				utxos.splice(incomingIndex, 1);
 				return false;
@@ -129,9 +115,7 @@ export class Signer implements ISigner {
 		return this.provider.getBalance(this.pkh);
 	}
 
-	public async getDelegatees(
-		order?: QueryStakesOrder,
-	): Promise<Array<StakeEntry>> {
+	public async getDelegatees(order?: QueryStakesOrder): Promise<Array<StakeEntry>> {
 		return this.provider.stakes({
 			filter: { withdrawer: this.pkh },
 			params: { order },
@@ -182,9 +166,7 @@ export class Signer implements ISigner {
 		}
 	}
 
-	public async getStakeEntryNonce(
-		validator: PublicKeyHashString,
-	): Promise<number> {
+	public async getStakeEntryNonce(validator: PublicKeyHashString): Promise<number> {
 		return this.provider
 			.stakes({
 				filter: {
@@ -204,14 +186,10 @@ export class Signer implements ISigner {
 		} else if (typeof hash === "string") {
 			buffer = Buffer.from(utils.fromHexString(hash));
 		} else {
-			throw new Error(
-				`${this.constructor.name}: unsupported hash value: ${hash}`,
-			);
+			throw new Error(`${this.constructor.name}: unsupported hash value: ${hash}`);
 		}
 		if (!buffer || buffer.length !== 32) {
-			throw new Error(
-				`${this.constructor.name}: invalid hash length: ${buffer.length} != 32`,
-			);
+			throw new Error(`${this.constructor.name}: invalid hash length: ${buffer.length} != 32`);
 		} else if (this.node.privateKey) {
 			const msg = Uint8Array.from(buffer);
 			const privateKey = Uint8Array.from(Buffer.from(this.node.privateKey));
@@ -244,13 +222,8 @@ export class Signer implements ISigner {
 		return {
 			address: this.pkh,
 			message: text,
-			publicKey: PublicKey.fromProtobuf(
-				keyedSignature.public_key,
-			).toHexString(),
-			signature: RecoverableSignature.fromKeyedSignature(
-				keyedSignature,
-				digest,
-			).toHexString(),
+			publicKey: PublicKey.fromProtobuf(keyedSignature.public_key).toHexString(),
+			signature: RecoverableSignature.fromKeyedSignature(keyedSignature, digest).toHexString(),
 		};
 	}
 }

@@ -9,16 +9,10 @@ const require = createRequire(import.meta.url);
 import protobuf from "protobufjs";
 
 const { Root: ProtoRoot } = protobuf;
-const protoRoot = ProtoRoot.fromJSON(
-	require("../../../witnet/witnet.proto.json"),
-);
+const protoRoot = ProtoRoot.fromJSON(require("../../../witnet/witnet.proto.json"));
 
 import { JsonRpcProvider } from "../rpc/index.js";
-import type {
-	TransactionReport,
-	UtxoMetadata,
-	ValueTransferOutput,
-} from "../rpc/types.js";
+import type { TransactionReport, UtxoMetadata, ValueTransferOutput } from "../rpc/types.js";
 import type { Hash, Network } from "../types.js";
 import { isHexString } from "../utils.js";
 
@@ -44,11 +38,7 @@ import {
 	type Utxo,
 } from "./types.js";
 
-export abstract class Transmitter<
-	Specs,
-	Payload extends ITransactionPayload<Specs>,
-> implements ITransmitter
-{
+export abstract class Transmitter<Specs, Payload extends ITransactionPayload<Specs>> implements ITransmitter {
 	public readonly ledger: ILedger;
 	public readonly changePkh: PublicKeyHashString;
 
@@ -57,25 +47,16 @@ export abstract class Transmitter<
 	protected _signatures: Array<KeyedSignature> = [];
 	protected _transactions: Array<Hash> = [];
 
-	constructor(
-		protoTypeName: string,
-		payload: Payload,
-		ledger: ILedger,
-		changePkh?: PublicKeyHashString,
-	) {
+	constructor(protoTypeName: string, payload: Payload, ledger: ILedger, changePkh?: PublicKeyHashString) {
 		this._protoBuf = protoRoot.lookupType(protoTypeName);
 		this._payload = payload;
 		this.ledger = ledger;
 		if (!ledger.provider.network) {
-			throw TypeError(
-				`${this.constructor.name}: ledger's provider is not initialized.`,
-			);
+			throw TypeError(`${this.constructor.name}: ledger's provider is not initialized.`);
 		}
 		this.changePkh = changePkh || ledger.changePkh;
 		if (!ledger.getSigner(this.changePkh)) {
-			throw TypeError(
-				`${this.constructor.name}: ledger holds no Signer for change address ${this.changePkh}.`,
-			);
+			throw TypeError(`${this.constructor.name}: ledger holds no Signer for change address ${this.changePkh}.`);
 		}
 	}
 
@@ -107,9 +88,7 @@ export abstract class Transmitter<
 			return (
 				this._signatures
 					.map((ks) => {
-						const pkh = PublicKey.fromProtobuf(ks.public_key)
-							.hash()
-							.toBech32(this.network);
+						const pkh = PublicKey.fromProtobuf(ks.public_key).hash().toBech32(this.network);
 						return this.ledger.getSigner(pkh)?.pkh || this.ledger.pkh;
 					})
 					// avoid repetitions
@@ -121,11 +100,7 @@ export abstract class Transmitter<
 	}
 
 	protected get _prepared(): boolean {
-		return (
-			this._payload.prepared &&
-			!!this._signatures &&
-			this._signatures.length > 0
-		);
+		return this._payload.prepared && !!this._signatures && this._signatures.length > 0;
 	}
 
 	public async sendTransaction(target?: Specs): Promise<TransactionReceipt> {
@@ -147,10 +122,7 @@ export abstract class Transmitter<
 		return this.provider
 			.sendRawTransaction(this._toJSON(false))
 			.catch((err) => {
-				const error = new TransmissionError(
-					this._getInflightTransmission(),
-					err,
-				);
+				const error = new TransmissionError(this._getInflightTransmission(), err);
 				JsonRpcProvider.receipts[receipt.hash].error = error;
 				throw error;
 			})
@@ -159,26 +131,18 @@ export abstract class Transmitter<
 					JsonRpcProvider.receipts[receipt.hash].status = "relayed";
 					return JsonRpcProvider.receipts[receipt.hash];
 				} else {
-					const error = new TransmissionError(
-						this._getInflightTransmission(),
-						Error(`Rejected for unknown reasons`),
-					);
+					const error = new TransmissionError(this._getInflightTransmission(), Error(`Rejected for unknown reasons`));
 					JsonRpcProvider.receipts[receipt.hash].error = error;
 					throw error;
 				}
 			});
 	}
 
-	public async signTransaction(
-		target?: Specs,
-		reloadUtxos = false,
-	): Promise<TransactionReceipt> {
+	public async signTransaction(target?: Specs, reloadUtxos = false): Promise<TransactionReceipt> {
 		target = await this._payload.validateTarget(target);
 		if (!target) {
 			// e.g. if called from this.send() with no params
-			throw TypeError(
-				`${this.constructor.name}: cannot sign a transaction if no params were previously specified.`,
-			);
+			throw TypeError(`${this.constructor.name}: cannot sign a transaction if no params were previously specified.`);
 		}
 
 		const inflight = this._getInflightReceipt();
@@ -189,9 +153,7 @@ export abstract class Transmitter<
 				if (!reloadUtxos) this._recoverInputUtxos();
 			} else if (inflight.status === "pending" && !inflight.error) {
 				// throw exception if a formerly signed transaction is still waiting to be relayed by a provider
-				throw Error(
-					`${this.constructor.name}: in-flight tx being relayed: ${inflight.hash}`,
-				);
+				throw Error(`${this.constructor.name}: in-flight tx being relayed: ${inflight.hash}`);
 			}
 		}
 
@@ -201,13 +163,11 @@ export abstract class Transmitter<
 		// if not yet prepared, try to cover transaction expenses with existing utxos on signers:
 		let change = 0n;
 		if (!this._payload.prepared) {
-			change = await this._payload
-				.consumeUtxos(this.ledger, reloadUtxos)
-				.catch((err: any) => {
-					throw Error(
-						`${this.constructor.name}: cannot consume UTXOs from ${this.ledger.constructor.name} ${this.ledger.pkh}: ${err}.`,
-					);
-				});
+			change = await this._payload.consumeUtxos(this.ledger, reloadUtxos).catch((err: any) => {
+				throw Error(
+					`${this.constructor.name}: cannot consume UTXOs from ${this.ledger.constructor.name} ${this.ledger.pkh}: ${err}.`,
+				);
+			});
 		}
 
 		if (!this._payload.prepared) {
@@ -225,11 +185,7 @@ export abstract class Transmitter<
 		}
 
 		// signing the transaction payload generates the transaction hash, and the receipt
-		return this._upsertTransactionReceipt(
-			this._signTransactionPayload(),
-			target,
-			"signed",
-		);
+		return this._upsertTransactionReceipt(this._signTransactionPayload(), target, "signed");
 	}
 
 	public async confirmTransaction(
@@ -243,18 +199,11 @@ export abstract class Transmitter<
 	): Promise<TransactionReceipt | unknown> {
 		const receipt = JsonRpcProvider.receipts[hash];
 		if (!receipt || receipt.hash !== hash) {
-			throw new Error(
-				`${this.constructor.name}: transaction not found: ${hash}`,
-			);
+			throw new Error(`${this.constructor.name}: transaction not found: ${hash}`);
 		} else if (["signed", "pending"].includes(receipt.status)) {
-			throw new Error(
-				`${this.constructor.name}: transaction status "${receipt.status}": ${hash}`,
-			);
+			throw new Error(`${this.constructor.name}: transaction status "${receipt.status}": ${hash}`);
 		} else if (receipt.status === "removed") {
-			throw new MempoolError(
-				receipt,
-				`${this.constructor.name}: transaction removed from mempool: ${hash}`,
-			);
+			throw new MempoolError(receipt, `${this.constructor.name}: transaction removed from mempool: ${hash}`);
 		} else if (receipt.status === "relayed" && options?.onStatusChange)
 			try {
 				options.onStatusChange(receipt);
@@ -264,9 +213,7 @@ export abstract class Transmitter<
 			return new Promise((_, reject) => {
 				setTimeout(
 					() =>
-						reject(
-							`${this.constructor.name}: polling timeout after ${Math.floor((Date.now() - start) / 1000)} secs).`,
-						),
+						reject(`${this.constructor.name}: polling timeout after ${Math.floor((Date.now() - start) / 1000)} secs).`),
 					ms,
 				);
 			});
@@ -289,19 +236,16 @@ export abstract class Transmitter<
 				shouldContinue: (error: any, report: TransactionReport) => {
 					const status = receipt.status;
 					receipt.error = error;
-					if (
-						error instanceof Error &&
-						error.message.indexOf("ItemNotFound") >= 0
-					) {
+					if (error instanceof Error && error.message.indexOf("ItemNotFound") >= 0) {
 						receipt.status = "removed";
 					} else
 						switch (receipt.status) {
 							case "relayed":
 								if (report?.blockHash && isHexString(report.blockHash)) {
 									receipt.confirmations = report.confirmations;
-									(receipt.blockHash = report.blockHash),
-										(receipt.blockEpoch = report.blockEpoch),
-										(receipt.blockTimestamp = report.blockTimestamp);
+									receipt.blockHash = report.blockHash;
+									receipt.blockEpoch = report.blockEpoch;
+									receipt.blockTimestamp = report.blockTimestamp;
 									receipt.status = report.confirmed
 										? "finalized"
 										: report?.confirmations >= confirmations
@@ -311,10 +255,7 @@ export abstract class Transmitter<
 								break;
 
 							case "mined":
-								if (
-									!report?.blockHash ||
-									report.blockHash !== receipt.blockHash
-								) {
+								if (!report?.blockHash || report.blockHash !== receipt.blockHash) {
 									delete receipt.blockHash;
 									delete receipt.blockEpoch;
 									delete receipt.blockMiner;
@@ -339,10 +280,7 @@ export abstract class Transmitter<
 
 					if (status !== receipt.status) {
 						receipt.timestamp = Math.floor(Date.now() / 1000);
-						if (
-							!["confirmed", "finalized"].includes(receipt.status) &&
-							options?.onStatusChange
-						)
+						if (!["confirmed", "finalized"].includes(receipt.status) && options?.onStatusChange)
 							try {
 								options.onStatusChange(receipt);
 							} catch {}
@@ -357,30 +295,23 @@ export abstract class Transmitter<
 					// TRANSACTION REMOVED FROM MEMPOOL //
 					// 1. Try to recover input utxos belonging to ledger's addresses:
 					try {
-						const inputs: Array<UtxoMetadata> =
-							receipt.tx[receipt.type].body.inputs;
-						const signatures: Array<KeyedSignature> =
-							receipt.tx[receipt.type].signatures;
+						const inputs: Array<UtxoMetadata> = receipt.tx[receipt.type].body.inputs;
+						const signatures: Array<KeyedSignature> = receipt.tx[receipt.type].signatures;
 						const utxos: Array<Utxo> = [];
 						if (inputs.length === signatures.length) {
-							inputs.forEach((metadata, index) => ({
-								...metadata,
-								signer: PublicKey.fromProtobuf(signatures[index].public_key)
-									.hash()
-									.toBech32(this.network),
-							}));
+							utxos.push(
+								...inputs.map((metadata, index) => ({
+									...metadata,
+									signer: PublicKey.fromProtobuf(signatures[index].public_key).hash().toBech32(this.network),
+								})),
+							);
 						}
 						this.ledger.addUtxos(...utxos);
 					} catch (err) {
-						console.error(
-							`${this.constructor.name}: warning: cannot recover input UTXOS from tx ${hash}: ${err}`,
-						);
+						console.error(`${this.constructor.name}: warning: cannot recover input UTXOS from tx ${hash}: ${err}`);
 					}
 					// 2. Throw MempoolError
-					throw new MempoolError(
-						receipt,
-						`${this.constructor.name}: transaction removed from mempool: ${hash}`,
-					);
+					throw new MempoolError(receipt, `${this.constructor.name}: transaction removed from mempool: ${hash}`);
 				} else {
 					// TRANSACTION EITHER CONFIRMED OR FINALIZED //
 					// 1. Try to load value transfer outputs into the ledger's local cache:
@@ -401,30 +332,25 @@ export abstract class Transmitter<
 								});
 							}
 						} else {
-							const outputs: Array<ValueTransferOutput> =
-								receipt.tx[receipt.type].body?.outputs || [];
-							outputs.forEach((vto, index) =>
+							const outputs: Array<ValueTransferOutput> = receipt.tx[receipt.type].body?.outputs || [];
+							outputs.forEach((vto, index) => {
 								utxos.push({
 									output_pointer: `${receipt.hash}:${index}`,
 									timelock: vto.time_lock,
 									utxo_mature: true,
 									value: BigInt(vto.value),
 									signer: vto.pkh,
-								}),
-							);
+								});
+							});
 						}
 						this.ledger.addUtxos(...utxos);
 					} catch (err) {
-						console.error(
-							`${this.constructor.name}: warning: cannot recover output UTXOs from ${hash}: ${err}`,
-						);
+						console.error(`${this.constructor.name}: warning: cannot recover output UTXOs from ${hash}: ${err}`);
 					}
 					// 2. Add blockMiner address to the transaction receipt:
 					if (receipt?.blockHash && isHexString(receipt.blockHash)) {
 						const block = await this.provider.getBlock(receipt.blockHash || "");
-						JsonRpcProvider.receipts[hash].blockMiner = PublicKey.fromProtobuf(
-							block.block_sig.public_key,
-						)
+						JsonRpcProvider.receipts[hash].blockMiner = PublicKey.fromProtobuf(block.block_sig.public_key)
 							.hash()
 							.toBech32(this.network);
 					}
@@ -475,11 +401,7 @@ export abstract class Transmitter<
 	protected _recoverInputUtxos(): any {}
 	protected _recoverOutputUtxos(): any {}
 
-	protected _upsertTransactionReceipt(
-		hash: Hash,
-		target: Specs,
-		status: TransactionStatus,
-	): TransactionReceipt {
+	protected _upsertTransactionReceipt(hash: Hash, target: Specs, status: TransactionStatus): TransactionReceipt {
 		JsonRpcProvider.receipts[hash] = {
 			...this._payload.intoReceipt(target, this.network),
 			hash,
@@ -505,12 +427,7 @@ export abstract class TransmitterMultiSig<
 	Specs,
 	Payload extends ITransactionPayloadMultiSig<Specs>,
 > extends Transmitter<Specs, Payload> {
-	constructor(
-		protoTypeName: string,
-		payload: Payload,
-		ledger: ILedger,
-		changePkh?: PublicKeyHashString,
-	) {
+	constructor(protoTypeName: string, payload: Payload, ledger: ILedger, changePkh?: PublicKeyHashString) {
 		super(protoTypeName, payload, ledger, changePkh);
 		this._payload = payload;
 	}

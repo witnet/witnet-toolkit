@@ -5,25 +5,13 @@ const FLAGS_LIMIT_MAX = 2048;
 const FLAGS_LIMIT_DEFAULT = 64;
 const OPTIONS_DEFAULT_SINCE = -2048;
 
-const {
-	cyan,
-	white,
-	gray,
-	green,
-	lcyan,
-	lyellow,
-	mgreen,
-	mred,
-	myellow,
-	yellow,
-} = helpers.colors;
+const { cyan, white, gray, green, lcyan, lyellow, mgreen, mred, myellow, yellow } = helpers.colors;
 
 /// ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /// CLI SUBMODULE CONSTANTS ===========================================================================================
 
 export const envars = {
-	WITNET_SDK_PROVIDER_URL:
-		"=> Wit/Oracle RPC provider(s) to connect to, if no otherwise specified.",
+	WITNET_SDK_PROVIDER_URL: "=> Wit/Oracle RPC provider(s) to connect to, if no otherwise specified.",
 };
 export const flags = {
 	limit: {
@@ -166,16 +154,10 @@ export const subcommands = {
 /// CLI SUBMODULE COMMANDS ============================================================================================
 
 async function blocks(options = {}) {
-	options.limit = Math.min(
-		parseInt(options.limit, 10) || FLAGS_LIMIT_DEFAULT,
-		FLAGS_LIMIT_MAX,
-	);
+	options.limit = Math.min(parseInt(options.limit, 10) || FLAGS_LIMIT_DEFAULT, FLAGS_LIMIT_MAX);
 	const provider = new Witnet.JsonRpcProvider(options?.provider);
 	// todo: use prompter?
-	const records = await provider.blocks(
-		parseInt(options?.since, 10) || -options.limit - 2,
-		options.limit,
-	);
+	const records = await provider.blocks(parseInt(options?.since, 10) || -options.limit - 2, options.limit);
 	if (records.length > 0) {
 		helpers.traceTable(
 			records.slice(0, options.limit).map((record) => [record[0], record[1]]),
@@ -185,14 +167,10 @@ async function blocks(options = {}) {
 				colors: [undefined, helpers.colors.gray],
 			},
 		);
-		console.info(
-			`^ Listed ${records.length} blocks for a range of ${options.limit} epochs.`,
-		);
+		console.info(`^ Listed ${records.length} blocks for a range of ${options.limit} epochs.`);
 	} else {
 		console.info(
-			`> No blocks found in specified range (since: ${
-				options?.since || -options.limit
-			}, limit: ${options.limit}).`,
+			`> No blocks found in specified range (since: ${options?.since || -options.limit}, limit: ${options.limit}).`,
 		);
 	}
 }
@@ -203,10 +181,7 @@ async function constants(options = {}) {
 }
 
 async function holders(options = {}) {
-	options.limit = Math.min(
-		parseInt(options.limit, 10) || FLAGS_LIMIT_DEFAULT,
-		FLAGS_LIMIT_MAX,
-	);
+	options.limit = Math.min(parseInt(options.limit, 10) || FLAGS_LIMIT_DEFAULT, FLAGS_LIMIT_MAX);
 	const provider = new Witnet.JsonRpcProvider(options?.provider);
 	const records = Object.entries(
 		await helpers.prompter(
@@ -230,39 +205,21 @@ async function holders(options = {}) {
 							Witnet.Coins.fromNanowits(balance.unlocked).wits,
 						]
 					: []),
-				Witnet.Coins.fromNanowits(
-					balance.locked + balance.staked + balance.unlocked,
-				).wits,
+				Witnet.Coins.fromNanowits(balance.locked + balance.staked + balance.unlocked).wits,
 			]),
 		{
 			headlines: [
 				"RANK",
 				"HOLDERS",
-				...(options?.verbose
-					? ["Locked ($WIT)", "Staked ($WIT)", "Available ($WIT)"]
-					: []),
+				...(options?.verbose ? ["Locked ($WIT)", "Staked ($WIT)", "Available ($WIT)"] : []),
 				"BALANCE ($WIT)",
 			],
-			humanizers: [
-				undefined,
-				undefined,
-				helpers.commas,
-				helpers.commas,
-				helpers.commas,
-				helpers.commas,
-			],
-			colors: [
-				undefined,
-				mgreen,
-				...(options?.verbose ? [gray, yellow, myellow] : []),
-				lyellow,
-			],
+			humanizers: [undefined, undefined, helpers.commas, helpers.commas, helpers.commas, helpers.commas],
+			colors: [undefined, mgreen, ...(options?.verbose ? [gray, yellow, myellow] : []), lyellow],
 		},
 	);
 	if (options.limit < totalRecords) {
-		console.info(
-			`^ Listed ${Math.min(options.limit, totalRecords)} out of ${totalRecords} records.`,
-		);
+		console.info(`^ Listed ${Math.min(options.limit, totalRecords)} out of ${totalRecords} records.`);
 	}
 }
 
@@ -307,25 +264,15 @@ async function powers(options = {}) {
 					undefined,
 					helpers.colors.green,
 					...(options?.verbose ? [helpers.colors.mgreen] : []),
-					query.orderBy === "mining"
-						? helpers.colors.mcyan
-						: helpers.colors.mmagenta,
+					query.orderBy === "mining" ? helpers.colors.mcyan : helpers.colors.mmagenta,
 				],
-				humanizers: [
-					helpers.commas,
-					undefined,
-					...(options?.verbose
-						? [undefined, helpers.commas]
-						: [helpers.commas]),
-				],
+				humanizers: [helpers.commas, undefined, ...(options?.verbose ? [undefined, helpers.commas] : [helpers.commas])],
 			},
 		);
 		if (records.length === query.limit || query.offset === 0) {
 			console.info(`^ Listed ${records.length} records.`);
 		} else if (query.offset !== 0) {
-			console.info(
-				`^ Listed ${records.length} out of ${records.length + query.offset} records.`,
-			);
+			console.info(`^ Listed ${records.length} out of ${records.length + query.offset} records.`);
 		}
 	} else {
 		if (query.offset === 0) {
@@ -353,19 +300,14 @@ async function provider(options = {}) {
 					: mred("Unknown")
 		}`,
 	);
-	console.info(
-		`> Witnet network id:   ${green(`0x${provider.networkId.toString(16).toUpperCase()}`)}`,
-	);
+	console.info(`> Witnet network id:   ${green(`0x${provider.networkId.toString(16).toUpperCase()}`)}`);
 }
 
 async function senate(options = {}) {
 	const provider = new Witnet.JsonRpcProvider(options?.provider);
 	const params = {
 		distinct: true,
-		limit: Math.min(
-			parseInt(options.limit, 10) || FLAGS_LIMIT_DEFAULT,
-			FLAGS_LIMIT_MAX,
-		),
+		limit: Math.min(parseInt(options.limit, 10) || FLAGS_LIMIT_DEFAULT, FLAGS_LIMIT_MAX),
 		offset: parseInt(options?.offset || 0, 10),
 		order: { by: "mining" },
 		since: -Math.abs(parseInt(options?.since, 10) || OPTIONS_DEFAULT_SINCE) - 1,
@@ -375,60 +317,34 @@ async function senate(options = {}) {
 		helpers.traceTable(
 			records.map((record, index) => [
 				...(options?.verbose
-					? [
-							index + 1,
-							record.key.validator,
-							record.value.nonce,
-							record.value.epochs.witnessing,
-						]
+					? [index + 1, record.key.validator, record.value.nonce, record.value.epochs.witnessing]
 					: [record.key.validator]),
 				record.value.epochs.mining,
 			]),
 			{
 				headlines: [
 					...(options?.verbose
-						? [
-								"INDEX",
-								`Superblock Voting Committee ${params.since + 1}`,
-								"Nonce",
-								"LW_Epoch",
-							]
+						? ["INDEX", `Superblock Voting Committee ${params.since + 1}`, "Nonce", "LW_Epoch"]
 						: [`Superblock Voting Committee ${params.since + 1}`]),
 					"LM_Epoch",
 				],
 				humanizers: [
 					...(options?.verbose
-						? [
-								helpers.commas,
-								undefined,
-								helpers.commas,
-								helpers.commas,
-								helpers.commas,
-							]
+						? [helpers.commas, undefined, helpers.commas, helpers.commas, helpers.commas]
 						: [undefined, helpers.commas, helpers.commas, helpers.commas]),
 				],
 				colors: [
 					...(options?.verbose
-						? [
-								undefined,
-								undefined,
-								undefined,
-								helpers.colors.magenta,
-								helpers.colors.mcyan,
-							]
+						? [undefined, undefined, undefined, helpers.colors.magenta, helpers.colors.mcyan]
 						: [undefined, helpers.colors.mcyan]),
 				],
 			},
 		);
 		if (records.length < params.limit) {
 			if (params.offset === 0) {
-				console.info(
-					`^ Only ${records.length} qualified members out of ${params.limit} seats.`,
-				);
+				console.info(`^ Only ${records.length} qualified members out of ${params.limit} seats.`);
 			} else {
-				console.info(
-					`^ Listed ${records.length} out of ${records.length + params.offset} members.`,
-				);
+				console.info(`^ Listed ${records.length} out of ${records.length + params.offset} members.`);
 			}
 		} else {
 			console.info(`^ Listed ${records.length} members.`);
@@ -446,16 +362,12 @@ async function stakes(options = {}) {
 	const provider = new Witnet.JsonRpcProvider(options?.provider);
 	const query = {
 		params: {
-			limit: Math.min(
-				parseInt(options.limit, 10) || FLAGS_LIMIT_DEFAULT,
-				FLAGS_LIMIT_MAX,
-			),
+			limit: Math.min(parseInt(options.limit, 10) || FLAGS_LIMIT_DEFAULT, FLAGS_LIMIT_MAX),
 			offset: parseInt(options?.offset || 0, 10),
 		},
 	};
 	if (options?.validator) query.filter = { validator: options.validator };
-	if (options?.withdrawer)
-		query.filter = { ...query.filter, withdrawer: options.withdrawer };
+	if (options?.withdrawer) query.filter = { ...query.filter, withdrawer: options.withdrawer };
 	const records = await provider.stakes(query); // todo: use prompter?
 	if (records.length > 0) {
 		helpers.traceTable(
@@ -463,13 +375,7 @@ async function stakes(options = {}) {
 				1 + index + query.params.offset,
 				record.key.withdrawer,
 				record.key.validator,
-				...(options?.verbose
-					? [
-							record.value.nonce,
-							record.value.epochs.witnessing,
-							record.value.epochs.mining,
-						]
-					: []),
+				...(options?.verbose ? [record.value.nonce, record.value.epochs.witnessing, record.value.epochs.mining] : []),
 				Witnet.Coins.fromNanowits(record.value.coins).wits,
 			]),
 			{
@@ -484,18 +390,14 @@ async function stakes(options = {}) {
 					undefined,
 					undefined,
 					undefined,
-					...(options?.verbose
-						? [helpers.commas, helpers.commas, helpers.commas]
-						: []),
+					...(options?.verbose ? [helpers.commas, helpers.commas, helpers.commas] : []),
 					(x) => helpers.commas(Math.floor(parseFloat(x))),
 				],
 				colors: [
 					undefined,
 					helpers.colors.mgreen,
 					undefined,
-					...(options?.verbose
-						? [undefined, helpers.colors.magenta, helpers.colors.cyan]
-						: []),
+					...(options?.verbose ? [undefined, helpers.colors.magenta, helpers.colors.cyan] : []),
 					helpers.colors.myellow,
 				],
 			},
@@ -503,9 +405,7 @@ async function stakes(options = {}) {
 		if (records.length === query.params.limit || query.params.offset === 0) {
 			console.info(`^ Listed ${records.length} records.`);
 		} else if (query.params.offset !== 0) {
-			console.info(
-				`^ Listed ${records.length} out of ${records.length + query.params.offset} records.`,
-			);
+			console.info(`^ Listed ${records.length} out of ${records.length + query.params.offset} records.`);
 		}
 	} else {
 		if (query.params.offset === 0) {
@@ -517,41 +417,22 @@ async function stakes(options = {}) {
 }
 
 async function supplyInfo(options = {}) {
-	const reporter = new Witnet.JsonRpcProvider(
-		options?.provider || process.env.WITNET_SDK_PROVIDER_URL,
-	);
+	const reporter = new Witnet.JsonRpcProvider(options?.provider || process.env.WITNET_SDK_PROVIDER_URL);
 	const data = await reporter.supplyInfo();
-	console.info(
-		`> Supply info at epoch ${helpers.colors.white(helpers.commas(data.epoch))}:`,
-	);
+	console.info(`> Supply info at epoch ${helpers.colors.white(helpers.commas(data.epoch))}:`);
 	const records = [];
-	records.push([
-		"Minted blocks",
-		`${helpers.toFixedTrunc((100 * data.blocks_minted) / (data.epoch - 1), 1)} %`,
-	]);
-	records.push([
-		"Minted rewards",
-		helpers.whole_wits(data.blocks_minted_reward, 2),
-	]);
+	records.push(["Minted blocks", `${helpers.toFixedTrunc((100 * data.blocks_minted) / (data.epoch - 1), 1)} %`]);
+	records.push(["Minted rewards", helpers.whole_wits(data.blocks_minted_reward, 2)]);
 	if (data.burnt_supply) {
 		records.push(["Burnt supply", helpers.whole_wits(data.burnt_supply, 2)]);
 	}
 	if (data.current_locked_supply) {
-		records.push([
-			"Locked supply",
-			helpers.whole_wits(data.current_locked_supply, 2),
-		]);
+		records.push(["Locked supply", helpers.whole_wits(data.current_locked_supply, 2)]);
 	}
 	if (data.current_staked_supply) {
-		records.push([
-			"Staked supply",
-			helpers.whole_wits(data.current_staked_supply, 2),
-		]);
+		records.push(["Staked supply", helpers.whole_wits(data.current_staked_supply, 2)]);
 	}
-	records.push([
-		"Circulating supply",
-		helpers.whole_wits(data.current_unlocked_supply, 2),
-	]);
+	records.push(["Circulating supply", helpers.whole_wits(data.current_unlocked_supply, 2)]);
 	helpers.traceTable(records, {
 		headlines: [":KPI", "VALUE"],
 		colors: [helpers.colors.mgreen, helpers.colors.myellow],
@@ -564,9 +445,7 @@ async function syncStatus(options = {}) {
 	helpers.traceTable(
 		[
 			[
-				provider.network === "mainnet"
-					? "Mainnet"
-					: `Testnet (${provider.networkId.toString(16).toUpperCase()})`,
+				provider.network === "mainnet" ? "Mainnet" : `Testnet (${provider.networkId.toString(16).toUpperCase()})`,
 				syncStatus.node_state || "",
 				syncStatus.current_epoch,
 				syncStatus.chain_beacon.checkpoint,
@@ -574,21 +453,9 @@ async function syncStatus(options = {}) {
 			],
 		],
 		{
-			headlines: [
-				"NETWORK",
-				":STATUS",
-				"Current epoch",
-				"Checkpoint epoch",
-				"Checkpoint block hash",
-			],
+			headlines: ["NETWORK", ":STATUS", "Current epoch", "Checkpoint epoch", "Checkpoint block hash"],
 			humanizers: [undefined, undefined, helpers.commas, helpers.commas],
-			colors: [
-				helpers.colors.mgreen,
-				helpers.colors.lgreen,
-				helpers.colors.white,
-				undefined,
-				helpers.colors.gray,
-			],
+			colors: [helpers.colors.mgreen, helpers.colors.lgreen, helpers.colors.white, undefined, helpers.colors.gray],
 		},
 	);
 }
@@ -610,25 +477,15 @@ async function versions(options = {}) {
 			if (records[key]) records[key].epoch = epoch;
 		});
 		helpers.traceTable(
-			Object.entries(records).map(([key, props]) => [
-				key === "V1_7" ? "V1_0" : key,
-				props?.epoch,
-				props?.period,
-			]),
+			Object.entries(records).map(([key, props]) => [key === "V1_7" ? "V1_0" : key, props?.epoch, props?.period]),
 			{
 				headlines: [":Version", "Activation epoch", ":Block time (secs)"],
 				humanizers: [undefined, helpers.commas],
-				colors: [
-					helpers.colors.mgreen,
-					helpers.colors.white,
-					helpers.colors.normal,
-				],
+				colors: [helpers.colors.mgreen, helpers.colors.white, helpers.colors.normal],
 			},
 		);
 	}
-	console.info(
-		`Current protocol version is ${helpers.colors.mgreen(protocolInfo.current_version)}.`,
-	);
+	console.info(`Current protocol version is ${helpers.colors.mgreen(protocolInfo.current_version)}.`);
 }
 
 async function wips(options = {}) {
@@ -636,9 +493,7 @@ async function wips(options = {}) {
 	const wips = await provider.wips();
 	if (!options?.pending) {
 		// console.info(`> Active WIP upgrades at epoch ${helpers.colors.white(helpers.commas(wips.epoch))}:`)
-		const active_upgrades = Object.entries(wips.active_upgrades).map(
-			([wip, epoch]) => [wip, epoch],
-		);
+		const active_upgrades = Object.entries(wips.active_upgrades).map(([wip, epoch]) => [wip, epoch]);
 		helpers.traceTable(active_upgrades, {
 			headlines: [":WIP", "Activation epoch"],
 			humanizers: [undefined, helpers.commas],
@@ -647,13 +502,9 @@ async function wips(options = {}) {
 	}
 	if (wips.pending_upgrades || options?.pending) {
 		if (wips.pending_upgrades.length === 0) {
-			console.info(
-				`> No pending WIP upgrades at epoch ${helpers.colors.white(helpers.commas(wips.epoch))}.`,
-			);
+			console.info(`> No pending WIP upgrades at epoch ${helpers.colors.white(helpers.commas(wips.epoch))}.`);
 		} else {
-			console.info(
-				`Pending WIP upgrades at epoch ${helpers.colors.white(helpers.commas(wips.epoch))}:`,
-			);
+			console.info(`Pending WIP upgrades at epoch ${helpers.colors.white(helpers.commas(wips.epoch))}:`);
 			const pending_upgrades = wips.pending_upgrades.map((upgrade) => {
 				return [
 					upgrade.wip,
@@ -673,14 +524,7 @@ async function wips(options = {}) {
 					"Duration",
 					// "Deadline",
 				],
-				humanizers: [
-					undefined,
-					undefined,
-					helpers.commas,
-					helpers.commas,
-					helpers.commas,
-					helpers.commas,
-				],
+				humanizers: [undefined, undefined, helpers.commas, helpers.commas, helpers.commas, helpers.commas],
 				colors: [
 					helpers.colors.lcyan,
 					helpers.colors.mcyan,

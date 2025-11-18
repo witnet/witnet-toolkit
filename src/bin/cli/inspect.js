@@ -2,17 +2,7 @@ import moment from "moment";
 import { utils, Witnet } from "../../../dist/src/index.js";
 import * as helpers from "../helpers.js";
 
-const {
-	cyan,
-	gray,
-	green,
-	lyellow,
-	magenta,
-	mgreen,
-	mmagenta,
-	myellow,
-	yellow,
-} = helpers.colors;
+const { cyan, gray, green, lyellow, magenta, mgreen, mmagenta, myellow, yellow } = helpers.colors;
 
 const _DEFAULT_LIMIT = 100;
 
@@ -20,8 +10,7 @@ const _DEFAULT_LIMIT = 100;
 /// CLI SUBMODULE CONSTANTS ===========================================================================================
 
 export const envars = {
-	WITNET_SDK_PROVIDER_URL:
-		"=> Wit/Oracle RPC provider(s) to connect to, if no otherwise specified.",
+	WITNET_SDK_PROVIDER_URL: "=> Wit/Oracle RPC provider(s) to connect to, if no otherwise specified.",
 };
 
 export const flags = {
@@ -155,23 +144,11 @@ async function balance(options = {}, args = []) {
 		Witnet.Coins.fromNanowits(balance.locked).wits,
 		Witnet.Coins.fromNanowits(balance.staked).wits,
 		Witnet.Coins.fromNanowits(balance.unlocked).wits,
-		Witnet.Coins.fromNanowits(
-			balance.locked + balance.staked + balance.unlocked,
-		).wits,
+		Witnet.Coins.fromNanowits(balance.locked + balance.staked + balance.unlocked).wits,
 	]);
 	helpers.traceTable(records, {
-		headlines: [
-			"Locked ($WIT)",
-			"Staked ($WIT)",
-			"Available ($WIT)",
-			"BALANCE ($WIT)",
-		],
-		humanizers: [
-			helpers.commas,
-			helpers.commas,
-			helpers.commas,
-			helpers.commas,
-		],
+		headlines: ["Locked ($WIT)", "Staked ($WIT)", "Available ($WIT)", "BALANCE ($WIT)"],
+		humanizers: [helpers.commas, helpers.commas, helpers.commas, helpers.commas],
 		colors: [gray, yellow, myellow, lyellow],
 	});
 }
@@ -195,17 +172,13 @@ async function block(options = {}, args = []) {
 						case "bytes":
 						case "der":
 						case "proof":
-							return Array.isArray(value)
-								? helpers.toHexString(value, true)
-								: value;
+							return Array.isArray(value) ? helpers.toHexString(value, true) : value;
 
 						case "public_key":
 							return Array.isArray(value)
 								? helpers.toHexString(value, true)
 								: typeof value === "object"
-									? Witnet.PublicKey.fromProtobuf(value)
-											.hash()
-											.toBech32(provider.network)
+									? Witnet.PublicKey.fromProtobuf(value).hash().toBech32(provider.network)
 									: value;
 
 						default:
@@ -261,28 +234,18 @@ async function dataRequests(options = {}, [arg]) {
 	);
 	helpers.traceTable(
 		results.map((record) => {
-			let result = record?.result.cbor_bytes
-				? utils.cbor.decode(record?.result.cbor_bytes, { encoding: "hex" })
-				: "";
-			const request = Witnet.Radon.RadonRequest.fromBytecode(
-				record.query.rad_bytecode,
-			);
-			const dataType =
-				result.constructor.name === "Tagged" ? "RadonError" : request.dataType;
+			let result = record?.result.cbor_bytes ? utils.cbor.decode(record?.result.cbor_bytes, { encoding: "hex" }) : "";
+			const request = Witnet.Radon.RadonRequest.fromBytecode(record.query.rad_bytecode);
+			const dataType = result.constructor.name === "Tagged" ? "RadonError" : request.dataType;
 			if (dataType !== "RadonError")
-				result = Buffer.from(
-					utils.fromHexString(record?.result.cbor_bytes),
-				).toString("base64");
-			else if (result.constructor.name === "Buffer")
-				result = result.toString("base64");
+				result = Buffer.from(utils.fromHexString(record?.result.cbor_bytes)).toString("base64");
+			else if (result.constructor.name === "Buffer") result = result.toString("base64");
 			return [
 				record.block_epoch,
 				record.hash,
 				record.query.witnesses,
 				Witnet.Coins.fromPedros(record.query.unitary_reward).toString(2),
-				dataType === "RadonError"
-					? helpers.colors.mred("RadonError")
-					: helpers.colors.mgreen(dataType),
+				dataType === "RadonError" ? helpers.colors.mred("RadonError") : helpers.colors.mgreen(dataType),
 				...(options?.verbose
 					? [
 							dataType === "RadonError"
@@ -292,12 +255,8 @@ async function dataRequests(options = {}, [arg]) {
 									: helpers.colors.cyan(result),
 						]
 					: [
-							record?.result
-								? `${record.result.cbor_bytes.length / 2} bytes`
-								: "",
-							record?.result.timestamp
-								? moment.unix(record.result.timestamp).fromNow()
-								: "",
+							record?.result ? `${record.result.cbor_bytes.length / 2} bytes` : "",
+							record?.result.timestamp ? moment.unix(record.result.timestamp).fromNow() : "",
 						]),
 			];
 		}),
@@ -308,9 +267,7 @@ async function dataRequests(options = {}, [arg]) {
 				"witnesses",
 				"total fees",
 				":data type",
-				...(options?.verbose
-					? [":DATA REQUEST RESULT"]
-					: ["CBOR SIZE:", "DATA FRESHNESS:"]),
+				...(options?.verbose ? [":DATA REQUEST RESULT"] : ["CBOR SIZE:", "DATA FRESHNESS:"]),
 			],
 			humanizers: [helpers.commas],
 			colors: [
@@ -384,9 +341,7 @@ async function transaction(options = {}, args = []) {
 	}
 	const provider = new Witnet.JsonRpcProvider(options?.provider);
 	const transaction = await provider.getTransaction(txHash);
-	console.info(
-		`${yellow(JSON.stringify(transaction, utils.txJsonReplacer, 2))}`,
-	);
+	console.info(`${yellow(JSON.stringify(transaction, utils.txJsonReplacer, 2))}`);
 }
 
 async function utxos(options = {}, args = []) {
@@ -396,9 +351,7 @@ async function utxos(options = {}, args = []) {
 	const now = Math.floor(Date.now() / 1000);
 	const provider = new Witnet.JsonRpcProvider(options?.provider);
 	let utxos = await provider.getUtxos(args[0], {
-		minValue: options["min-value"]
-			? Witnet.Coins.fromWits(Number(options["min-value"])).pedros
-			: undefined,
+		minValue: options["min-value"] ? Witnet.Coins.fromWits(Number(options["min-value"])).pedros : undefined,
 		fromSigner: options.from,
 	});
 	let totalBalance = 0n;
@@ -421,18 +374,14 @@ async function utxos(options = {}, args = []) {
 			return [
 				utxo.output_pointer,
 				utxo.timelock > now ? gray(moment.unix(utxo.timelock).fromNow()) : "",
-				utxo.timelock > now
-					? gray(helpers.commas(utxo.value))
-					: myellow(helpers.commas(utxo.value)),
+				utxo.timelock > now ? gray(helpers.commas(utxo.value)) : myellow(helpers.commas(utxo.value)),
 			];
 		});
 		helpers.traceTable(utxos, {
 			headlines: [":UTXOs", "Timelock", "Value ($pedros)"],
 		});
 	}
-	console.info(
-		`^ Showing ${utxos.length} UTXOs: ${lyellow(helpers.whole_wits(totalBalance, 2))}.`,
-	);
+	console.info(`^ Showing ${utxos.length} UTXOs: ${lyellow(helpers.whole_wits(totalBalance, 2))}.`);
 }
 
 async function validators(options = {}, args = []) {
@@ -452,13 +401,7 @@ async function validators(options = {}, args = []) {
 				return [
 					1 + index,
 					record.key.validator,
-					...(options?.verbose
-						? [
-								record.value.nonce,
-								record.value.epochs.witnessing,
-								record.value.epochs.mining,
-							]
-						: []),
+					...(options?.verbose ? [record.value.nonce, record.value.epochs.witnessing, record.value.epochs.mining] : []),
 					Witnet.Coins.fromNanowits(record.value.coins).wits,
 				];
 			}),
@@ -472,24 +415,14 @@ async function validators(options = {}, args = []) {
 				humanizers: [
 					undefined,
 					undefined,
-					...(options?.verbose
-						? [helpers.commas, helpers.commas, helpers.commas]
-						: []),
+					...(options?.verbose ? [helpers.commas, helpers.commas, helpers.commas] : []),
 					helpers.commas,
 				],
-				colors: [
-					undefined,
-					green,
-					...(options?.verbose
-						? [undefined, magenta, cyan, myellow]
-						: [myellow]),
-				],
+				colors: [undefined, green, ...(options?.verbose ? [undefined, magenta, cyan, myellow] : [myellow])],
 			},
 		);
 		console.info(
-			`^ ${records.length} validators for withdrawer ${mgreen(
-				args[0],
-			)}: ${lyellow(helpers.whole_wits(nanowits, 2))}`,
+			`^ ${records.length} validators for withdrawer ${mgreen(args[0])}: ${lyellow(helpers.whole_wits(nanowits, 2))}`,
 		);
 	} else {
 		console.info(`> No validators found for withdrawer ${mmagenta(args[0])}.`);
@@ -509,14 +442,8 @@ async function valueTransfer(options = {}, args = []) {
 		throw Error(`Invalid mode value: "${options.mode}"`);
 	}
 	const provider = new Witnet.JsonRpcProvider(options?.provider);
-	const transaction = await provider.getValueTransfer(
-		txHash,
-		mode,
-		options?.force,
-	);
-	console.info(
-		`${yellow(JSON.stringify(transaction, utils.txJsonReplacer, 2))}`,
-	);
+	const transaction = await provider.getValueTransfer(txHash, mode, options?.force);
+	console.info(`${yellow(JSON.stringify(transaction, utils.txJsonReplacer, 2))}`);
 }
 
 async function withdrawers(options = {}, args = []) {
@@ -536,13 +463,7 @@ async function withdrawers(options = {}, args = []) {
 				return [
 					1 + index,
 					record.key.withdrawer,
-					...(options?.verbose
-						? [
-								record.value.nonce,
-								record.value.epochs.witnessing,
-								record.value.epochs.mining,
-							]
-						: []),
+					...(options?.verbose ? [record.value.nonce, record.value.epochs.witnessing, record.value.epochs.mining] : []),
 					Witnet.Coins.fromNanowits(record.value.coins).wits,
 				];
 			}),
@@ -556,24 +477,14 @@ async function withdrawers(options = {}, args = []) {
 				humanizers: [
 					undefined,
 					undefined,
-					...(options?.verbose
-						? [helpers.commas, helpers.commas, helpers.commas]
-						: []),
+					...(options?.verbose ? [helpers.commas, helpers.commas, helpers.commas] : []),
 					helpers.commas,
 				],
-				colors: [
-					undefined,
-					green,
-					...(options?.verbose
-						? [undefined, magenta, cyan, myellow]
-						: [myellow]),
-				],
+				colors: [undefined, green, ...(options?.verbose ? [undefined, magenta, cyan, myellow] : [myellow])],
 			},
 		);
 		console.info(
-			`^ ${records.length} withdrawers for validator ${mgreen(
-				args[0],
-			)}: ${lyellow(helpers.whole_wits(nanowits, 2))}`,
+			`^ ${records.length} withdrawers for validator ${mgreen(args[0])}: ${lyellow(helpers.whole_wits(nanowits, 2))}`,
 		);
 	} else {
 		console.info(`> No withdrawers found for validator ${mmagenta(args[0])}.`);

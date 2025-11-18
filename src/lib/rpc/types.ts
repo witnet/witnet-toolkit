@@ -1,15 +1,5 @@
 import type { PublicKeyHashString } from "../crypto/types.js";
-import type {
-	Epoch,
-	f64,
-	Hash,
-	i64,
-	u8,
-	u16,
-	u32,
-	u64,
-	usize,
-} from "../types.js";
+import type { Epoch, f64, Hash, i64, u8, u16, u32, u64, usize } from "../types.js";
 
 export enum Methods {
 	AddPeers = "addPeers",
@@ -276,13 +266,7 @@ export type DataRequestPayload = {
 	collateral: number;
 };
 
-export type DataRequestStatus =
-	| "cancelled"
-	| "pending"
-	| "committing"
-	| "revealing"
-	| "solved"
-	| "reverted";
+export type DataRequestStatus = "cancelled" | "pending" | "committing" | "revealing" | "solved" | "reverted";
 
 export type GetDataRequestMode = "full" | "ethereal";
 

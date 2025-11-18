@@ -36,53 +36,27 @@ export function digestMessage(text: string): Buffer<ArrayBufferLike> {
 	return sha256(new Uint8Array(toUtf16Bytes(text)));
 }
 
-export function flattenRadonRequests(
-	assets: any,
-): Record<string, RadonRequest> {
-	return Object.fromEntries(
-		flattenRadonAssets(assets, RadonRequest).map((asset) =>
-			Object.entries(asset),
-		),
-	);
+export function flattenRadonRequests(assets: any): Record<string, RadonRequest> {
+	return Object.fromEntries(flattenRadonAssets(assets, RadonRequest).map((asset) => Object.entries(asset)));
 }
 
-export function flattenRadonTemplates(
-	assets: any,
-): Record<string, RadonTemplate> {
-	return Object.fromEntries(
-		flattenRadonAssets(assets, RadonTemplate).map((asset) => [
-			asset.key,
-			asset.artifact,
-		]),
-	);
+export function flattenRadonTemplates(assets: any): Record<string, RadonTemplate> {
+	return Object.fromEntries(flattenRadonAssets(assets, RadonTemplate).map((asset) => [asset.key, asset.artifact]));
 }
 
 export function flattenRadonModals(assets: any): Record<string, RadonModal> {
-	return Object.fromEntries(
-		flattenRadonAssets(assets, RadonModal).map((asset) =>
-			Object.entries(asset),
-		),
-	);
+	return Object.fromEntries(flattenRadonAssets(assets, RadonModal).map((asset) => Object.entries(asset)));
 }
 
-export function requireRadonRequest(
-	artifact: string,
-	assets?: any,
-): RadonRequest | undefined {
+export function requireRadonRequest(artifact: string, assets?: any): RadonRequest | undefined {
 	return requireRadonAsset({ artifact, assets, type: RadonRequest });
 }
 
-export function requireRadonTemplate(
-	artifact: string,
-	assets?: any,
-): RadonTemplate | undefined {
+export function requireRadonTemplate(artifact: string, assets?: any): RadonTemplate | undefined {
 	return requireRadonAsset({ artifact, assets, type: RadonTemplate });
 }
 
-export function requireRadonModal(
-	artifact: string,
-	assets?: any,
-): RadonModal | undefined {
+export function requireRadonModal(artifact: string, assets?: any): RadonModal | undefined {
 	return requireRadonAsset({ artifact, assets, type: RadonModal });
 }
 

@@ -1,16 +1,5 @@
-import type {
-	Balance,
-	HexString,
-	Network,
-	QueryStakesOrder,
-	StakeEntry,
-} from "../types.js";
-import type {
-	IAccount,
-	IBIP32,
-	IJsonRpcProvider,
-	ISigner,
-} from "./interfaces.js";
+import type { Balance, HexString, Network, QueryStakesOrder, StakeEntry } from "../types.js";
+import type { IAccount, IBIP32, IJsonRpcProvider, ISigner } from "./interfaces.js";
 import { Signer } from "./signer.js";
 import {
 	type Coins,
@@ -30,23 +19,10 @@ export class Account implements IAccount {
 	public readonly provider: IJsonRpcProvider;
 	public strategy: UtxoSelectionStrategy;
 
-	constructor(
-		root: IBIP32,
-		provider: IJsonRpcProvider,
-		index: number,
-		strategy?: UtxoSelectionStrategy,
-	) {
+	constructor(root: IBIP32, provider: IJsonRpcProvider, index: number, strategy?: UtxoSelectionStrategy) {
 		this.index = index;
-		this.internal = new Signer(
-			root.derivePath(`m/3'/4919'/0'/1/${index}`),
-			provider,
-			strategy,
-		);
-		this.external = new Signer(
-			root.derivePath(`m/3'/4919'/0'/0/${index}`),
-			provider,
-			strategy,
-		);
+		this.internal = new Signer(root.derivePath(`m/3'/4919'/0'/1/${index}`), provider, strategy);
+		this.external = new Signer(root.derivePath(`m/3'/4919'/0'/0/${index}`), provider, strategy);
 
 		if (!provider.network) {
 			throw new Error(`Account: uninitialized provider.`);
@@ -61,10 +37,7 @@ export class Account implements IAccount {
 		return {
 			expendable: BigInt(internal.expendable) + BigInt(external.expendable),
 			size: internal.size + external.size,
-			timelock: Math.min(
-				internal.timelock || Number.MAX_SAFE_INTEGER,
-				external.timelock,
-			),
+			timelock: Math.min(internal.timelock || Number.MAX_SAFE_INTEGER, external.timelock),
 		};
 	}
 
@@ -109,10 +82,7 @@ export class Account implements IAccount {
 	}
 
 	public async getBalance(): Promise<Balance> {
-		return Promise.all([
-			this.internal.getBalance(),
-			this.external.getBalance(),
-		]).then(([internal, external]) => {
+		return Promise.all([this.internal.getBalance(), this.external.getBalance()]).then(([internal, external]) => {
 			return {
 				locked: internal.locked + external.locked,
 				staked: internal.staked + external.staked,
@@ -121,10 +91,7 @@ export class Account implements IAccount {
 		});
 	}
 
-	public async getDelegatees(
-		order?: QueryStakesOrder,
-		leftJoin = true,
-	): Promise<Array<StakeEntry>> {
+	public async getDelegatees(order?: QueryStakesOrder, leftJoin = true): Promise<Array<StakeEntry>> {
 		return this.provider
 			.stakes({
 				filter: { withdrawer: this.pkh },
@@ -156,10 +123,7 @@ export class Account implements IAccount {
 	}
 
 	public async getUtxos(reload = false): Promise<Array<Utxo>> {
-		return [
-			...(await this.internal.getUtxos(reload)),
-			...(await this.external.getUtxos(reload)),
-		];
+		return [...(await this.internal.getUtxos(reload)), ...(await this.external.getUtxos(reload))];
 	}
 
 	public async selectUtxos(specs?: {

@@ -12,10 +12,7 @@ const stringify = (query: any) =>
 		.slice(1);
 
 interface IKermitClient {
-	getDataPushReport(
-		witDrTxHash: Hash,
-		evmNetwork?: number | string,
-	): Promise<DataPushReport>;
+	getDataPushReport(witDrTxHash: Hash, evmNetwork?: number | string): Promise<DataPushReport>;
 	// searchDataRequests(hash: Hash, {}): Promise<any>;
 }
 
@@ -34,9 +31,7 @@ export class KermitError extends Error {
 
 export class KermitClient implements IKermitClient {
 	static async fromEnv(url?: string): Promise<KermitClient> {
-		return new KermitClient(
-			url || process.env.WITNET_SDK_KERMIT_URL || "https://kermit.witnet.io",
-		);
+		return new KermitClient(url || process.env.WITNET_SDK_KERMIT_URL || "https://kermit.witnet.io");
 	}
 
 	public readonly url: string;
@@ -55,10 +50,7 @@ export class KermitClient implements IKermitClient {
 		}
 	}
 
-	protected async callApiGetMethod<T>(
-		path: string,
-		query?: any,
-	): Promise<Error | any> {
+	protected async callApiGetMethod<T>(path: string, query?: any): Promise<Error | any> {
 		const url = `${this.url}${path}${query ? `?${stringify(query)}` : ""}`;
 		return axios
 			.get(url, {
@@ -66,17 +58,9 @@ export class KermitClient implements IKermitClient {
 			})
 			.then((response: any) => {
 				if (response?.error || response?.data?.error) {
-					throw new KermitError(
-						path,
-						query,
-						response?.error || response?.data?.error,
-					);
+					throw new KermitError(path, query, response?.error || response?.data?.error);
 				} else if (response?.statusCode && response.statusCode !== 200) {
-					throw new KermitError(
-						path,
-						query,
-						`server status code: HTTP/${response.statusCode}`,
-					);
+					throw new KermitError(path, query, `server status code: HTTP/${response.statusCode}`);
 				} else {
 					return response?.data as T;
 				}
@@ -86,10 +70,7 @@ export class KermitClient implements IKermitClient {
 			});
 	}
 
-	public async getDataPushReport(
-		witDrTxHash: Hash,
-		evmNetwork?: number | string,
-	): Promise<DataPushReport> {
+	public async getDataPushReport(witDrTxHash: Hash, evmNetwork?: number | string): Promise<DataPushReport> {
 		return this.callApiGetMethod<DataPushReport>("get_data_push_report", {
 			witDrTxHash,
 			evmNetwork,

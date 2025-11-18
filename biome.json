@@ -30,6 +30,19 @@
       "scripts/*.cjs", 
       "witnet/**/*.cjs",
       "!witnet/**/_*.cjs"
-    ]
+    ],
+    "rules": {
+      "complexity": {
+        "noBannedTypes": "off"
+      },
+      "suspicious": {
+        "noAssignInExpressions": "off",
+        "noControlCharactersInRegex": "off",
+        "noExplicitAny": "off",
+        "noFallthroughSwitchClause": "off",
+        "noImplicitAnyLet": "off",
+        "noUnsafeDeclarationMerging": "off"
+      }
+    }
   }
 }

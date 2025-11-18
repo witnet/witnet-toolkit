@@ -8,12 +8,7 @@ const require = createRequire(import.meta.url);
 
 import { fromHexString, isHexString } from "../../bin/helpers.js";
 
-import {
-	RadonModal,
-	RadonRequest,
-	RadonRetrieval,
-	RadonTemplate,
-} from "./index.js";
+import { RadonModal, RadonRequest, RadonRetrieval, RadonTemplate } from "./index.js";
 
 import {
 	type RadonAny,
@@ -27,8 +22,7 @@ import {
 	RadonString,
 } from "./types.js";
 
-const WITNET_ASSETS_PATH =
-	process.env.WITNET_SDK_RADON_ASSETS_PATH || "../../../../../witnet/assets";
+const WITNET_ASSETS_PATH = process.env.WITNET_SDK_RADON_ASSETS_PATH || "../../../../../witnet/assets";
 
 export { execRadonBytecode } from "../../bin/helpers.js";
 
@@ -52,9 +46,7 @@ export function parseRadonScript(bytecode: any): RadonAny {
 	return parseScript(array);
 }
 
-export function flattenRadonAssets<
-	T extends RadonRequest | RadonTemplate | RadonModal | RadonRetrieval,
->(
+export function flattenRadonAssets<T extends RadonRequest | RadonTemplate | RadonModal | RadonRetrieval>(
 	tree: any,
 	type?: { new (specs: any): T },
 	headers?: string[],
@@ -81,19 +73,15 @@ export function flattenRadonAssets<
 	return entries;
 }
 
-export function requireRadonAsset<
-	T extends RadonRequest | RadonTemplate | RadonModal | RadonRetrieval,
->(specs: {
+export function requireRadonAsset<T extends RadonRequest | RadonTemplate | RadonModal | RadonRetrieval>(specs: {
 	artifact: string;
 	assets?: any;
-	type?: { new (specs: any): T };
+	type?: { new (_specs: any): T };
 }): T {
 	const stuff = specs?.assets
 		? flattenRadonAssets(specs.assets, specs?.type)
 		: loadModuleAssets({ flattened: true, type: specs?.type });
-	const found = stuff.find(
-		(entry: { key: string; artifact: any }) => entry.key === specs.artifact,
-	);
+	const found = stuff.find((entry: { key: string; artifact: any }) => entry.key === specs.artifact);
 	if (found?.artifact) {
 		return found.artifact;
 	} else {
@@ -110,9 +98,7 @@ export function requireRadonAsset<
  * @param filterFn Filtering function.
  * @returns An array of Radon assets of the specified kind complying with the search pattern.
  */
-export function searchRadonAssets<
-	T extends RadonRequest | RadonTemplate | RadonModal | RadonRetrieval,
->(
+export function searchRadonAssets<T extends RadonRequest | RadonTemplate | RadonModal | RadonRetrieval>(
 	options: {
 		/**
 		 * Object containing structured heriarchy of Radon assets. If not provided, Radon assets declared within project's environment.
@@ -137,28 +123,23 @@ export function searchRadonAssets<
 	},
 	filterFn?: (key: string, pattern: string) => boolean,
 ): Array<[key: string, artifact: T]> {
-	const defaultFilter = (key: string, pattern: string) =>
-		key.toLowerCase().endsWith(pattern.toLowerCase());
+	const defaultFilter = (key: string, pattern: string) => key.toLowerCase().endsWith(pattern.toLowerCase());
 	const stuff = options?.assets
 		? flattenRadonAssets(options.assets, options?.type)
 		: loadModuleAssets({ flattened: true, type: options?.type });
 	return stuff
-		.filter((entry: { key: string; artifact: any }) =>
-			(filterFn || defaultFilter)(entry.key, options.pattern || ""),
-		)
+		.filter((entry: { key: string; artifact: any }) => (filterFn || defaultFilter)(entry.key, options.pattern || ""))
 		.slice(options?.offset || 0, options?.limit)
-		.map((entry: { key: string; artifact: any | T }) => [
-			entry.key,
-			entry.artifact,
-		]);
+		.map((entry: { key: string; artifact: any | T }) => [entry.key, entry.artifact]);
 }
 
 // ====================================================================================================================
 // --- INTERNAL METHODS -----------------------------------------------------------------------------------------------
 
-function loadModuleAssets<
-	T extends RadonRequest | RadonTemplate | RadonModal | RadonRetrieval,
->(options: { flattened?: boolean; type?: { new (specs: any): T } }): any {
+function loadModuleAssets<T extends RadonRequest | RadonTemplate | RadonModal | RadonRetrieval>(options: {
+	flattened?: boolean;
+	type?: { new (specs: any): T };
+}): any {
 	const stuff = require(`${WITNET_ASSETS_PATH}/index.cjs`);
 	return options?.flattened ? flattenRadonAssets(stuff, options?.type) : stuff;
 }

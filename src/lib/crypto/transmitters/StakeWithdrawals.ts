@@ -1,18 +1,12 @@
 import type { Hash } from "../../types.js";
 import type { ILedger } from "../interfaces.js";
-import {
-	type StakeWithdrawalParams,
-	UnstakePayload,
-} from "../payloads/UnstakePayload.js";
+import { type StakeWithdrawalParams, UnstakePayload } from "../payloads/UnstakePayload.js";
 import { Transmitter } from "../transmitters.js";
 import type { PublicKeyHashString, TransactionReceipt } from "../types.js";
 
 export { StakeWithdrawalParams } from "../payloads/UnstakePayload.js";
 
-export class StakeWithdrawals extends Transmitter<
-	StakeWithdrawalParams,
-	UnstakePayload
-> {
+export class StakeWithdrawals extends Transmitter<StakeWithdrawalParams, UnstakePayload> {
 	public static MIN_TIMELOCK_SECS = UnstakePayload.MIN_TIMELOCK_SECS;
 	public static WEIGHT = UnstakePayload.WEIGHT;
 
@@ -21,18 +15,10 @@ export class StakeWithdrawals extends Transmitter<
 	}
 
 	constructor(ledger: ILedger, changePkh?: PublicKeyHashString) {
-		super(
-			"UnstakeTransaction",
-			new UnstakePayload("UnstakeTransactionBody"),
-			ledger,
-			changePkh,
-		);
+		super("UnstakeTransaction", new UnstakePayload("UnstakeTransactionBody"), ledger, changePkh);
 	}
 
-	public async signTransaction(
-		params?: StakeWithdrawalParams,
-		reload?: boolean,
-	): Promise<TransactionReceipt> {
+	public async signTransaction(params?: StakeWithdrawalParams, reload?: boolean): Promise<TransactionReceipt> {
 		return super.signTransaction(params, reload);
 	}
 

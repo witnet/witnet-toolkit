@@ -45,8 +45,7 @@ const options = {
 /// CLI SUBMODULE CONSTANTS ===========================================================================================
 
 export const envars = {
-	WITNET_SDK_PROVIDER_URL:
-		"=> Wit/Oracle RPC provider(s) to connect to, if no otherwise specified.",
+	WITNET_SDK_PROVIDER_URL: "=> Wit/Oracle RPC provider(s) to connect to, if no otherwise specified.",
 	WITNET_SDK_WALLET_MASTER_KEY:
 		"=> Wallet's master key in XPRV format, as exported from either a node, Sheikah or myWitWallet.",
 };
@@ -271,17 +270,12 @@ async function signMessage(options = {}, [...words]) {
 	const text = words.join(" ");
 	let ledger;
 	if (options?.signer) {
-		ledger =
-			options.signer === wallet.coinbase.pkh
-				? wallet.coinbase
-				: wallet.getAccount(options.signer);
+		ledger = options.signer === wallet.coinbase.pkh ? wallet.coinbase : wallet.getAccount(options.signer);
 	} else {
 		ledger = wallet;
 	}
 	if (!ledger) {
-		throw Error(
-			`no private key available for signer address ${options?.signer}`,
-		);
+		throw Error(`no private key available for signer address ${options?.signer}`);
 	}
 	console.info(ledger.getSigner().signMessage(text));
 }
@@ -307,9 +301,7 @@ async function verifyMessage(options = {}, [...words]) {
 	console.info("-".repeat(120));
 	if (utils.ecdsaVerify(digest, publicKey, signature.slice(2))) {
 		console.info(
-			`^ Signed by ${Witnet.PublicKey.fromUint8Array(
-				utils.fromHexString(publicKey),
-			)
+			`^ Signed by ${Witnet.PublicKey.fromUint8Array(utils.fromHexString(publicKey))
 				.hash()
 				.toBech32("mainnet")}.\n^ Message is authentic.`,
 		);
@@ -346,9 +338,7 @@ async function accounts(options = {}, args = []) {
 		}
 		addrs.forEach((account) => {
 			qrcodes.generate(account.pkh);
-			console.info(
-				`Wallet account #${account.index + 1}: ${colors.lmagenta(account.pkh)}\n`,
-			);
+			console.info(`Wallet account #${account.index + 1}: ${colors.lmagenta(account.pkh)}\n`);
 		});
 		return;
 	}
@@ -370,12 +360,7 @@ async function accounts(options = {}, args = []) {
 
 	if (coinbase) {
 		const coinbaseUtxos = await wallet.coinbase.getUtxos();
-		records.push([
-			0,
-			coinbaseColor(wallet.coinbase.pkh),
-			coinbaseUtxos.length,
-			coinbaseBalance,
-		]);
+		records.push([0, coinbaseColor(wallet.coinbase.pkh), coinbaseUtxos.length, coinbaseBalance]);
 	}
 	records.push(
 		...(await Promise.all(
@@ -384,9 +369,7 @@ async function accounts(options = {}, args = []) {
 				const utxos = await account.getUtxos();
 				return [
 					account.index + 1,
-					balance.unlocked > 0
-						? colors.mmagenta(account.pkh)
-						: colors.magenta(account.pkh),
+					balance.unlocked > 0 ? colors.mmagenta(account.pkh) : colors.magenta(account.pkh),
 					utxos.length,
 					balance,
 					...(ethereum
@@ -419,10 +402,7 @@ async function accounts(options = {}, args = []) {
 								Witnet.Coins.fromNanowits(balance.unlocked).wits.toFixed(2),
 								utils.totalCoins(balance).wits.toFixed(2),
 							]
-						: [
-								count,
-								Witnet.Coins.fromNanowits(balance.unlocked).wits.toFixed(2),
-							]),
+						: [count, Witnet.Coins.fromNanowits(balance.unlocked).wits.toFixed(2)]),
 			];
 		}),
 		{
@@ -430,31 +410,15 @@ async function accounts(options = {}, args = []) {
 				"INDEX",
 				`:WITNET WALLET ${wallet.network.toUpperCase()} ACCOUNTS`,
 				...(ethereum
-					? [
-							`ETHEREUM ${wallet.network.toUpperCase()} WRAPPING AUTHORIZATION CODE [${ethereum}]`,
-						]
+					? [`ETHEREUM ${wallet.network.toUpperCase()} WRAPPING AUTHORIZATION CODE [${ethereum}]`]
 					: verbose
-						? [
-								"# UTXOS",
-								"Locked ($WIT)",
-								"Staked ($WIT)",
-								"Available ($WIT)",
-								"BALANCE ($WIT)",
-							]
+						? ["# UTXOS", "Locked ($WIT)", "Staked ($WIT)", "Available ($WIT)", "BALANCE ($WIT)"]
 						: ["# UTXOS", "Available ($WIT)"]),
 			],
 			humanizers: [
 				helpers.commas,
 				undefined,
-				...(ethereum
-					? [undefined]
-					: [
-							helpers.commas,
-							helpers.commas,
-							helpers.commas,
-							helpers.commas,
-							helpers.commas,
-						]),
+				...(ethereum ? [undefined] : [helpers.commas, helpers.commas, helpers.commas, helpers.commas, helpers.commas]),
 			],
 			colors: [
 				undefined,
@@ -462,21 +426,13 @@ async function accounts(options = {}, args = []) {
 				...(ethereum
 					? [colors.mblue, colors.gray]
 					: verbose
-						? [
-								colors.white,
-								colors.gray,
-								colors.yellow,
-								colors.myellow,
-								colors.lyellow,
-							]
+						? [colors.white, colors.gray, colors.yellow, colors.myellow, colors.lyellow]
 						: [colors.white, colors.myellow]),
 			],
 			maxColumnWidth: 132,
 		},
 	);
-	console.info(
-		`^ Available balance: ${colors.lyellow(whole_wits(unlocked, 2))}`,
-	);
+	console.info(`^ Available balance: ${colors.lyellow(whole_wits(unlocked, 2))}`);
 }
 
 async function coinbase(options = {}) {
@@ -493,10 +449,7 @@ async function coinbase(options = {}) {
 		wallet = masterWallet;
 	}
 
-	const coinbaseColor =
-		utils.totalCoins(await wallet.coinbase.getBalance()) > 0
-			? colors.mred
-			: colors.lcyan;
+	const coinbaseColor = utils.totalCoins(await wallet.coinbase.getBalance()) > 0 ? colors.mred : colors.lcyan;
 	console.info(
 		`> ${options["node-master-key"] ? "Coinbase " : "Wallet's coinbase"} address: ${coinbaseColor(wallet.coinbase.pkh)}`,
 	);
@@ -521,12 +474,10 @@ async function coinbase(options = {}) {
 					const withdrawer =
 						record.key.withdrawer === wallet.coinbase.pkh ||
 						record.key.withdrawer === masterWallet.coinbase.PublicKeyHash
-							? record.value.epochs.witnessing > record.value.nonce ||
-								record.value.epochs.mining > record.value.nonce
+							? record.value.epochs.witnessing > record.value.nonce || record.value.epochs.mining > record.value.nonce
 								? colors.mred(record.key.withdrawer)
 								: colors.red(record.key.withdrawer)
-							: record.value.epochs.witnessing > record.value.nonce ||
-									record.value.epochs.mining > record.value.nonce
+							: record.value.epochs.witnessing > record.value.nonce || record.value.epochs.mining > record.value.nonce
 								? masterWallet.getSigner(record.key.withdrawer)
 									? colors.mgreen(record.key.withdrawer)
 									: colors.mmagenta(record.key.withdrawer)
@@ -534,20 +485,14 @@ async function coinbase(options = {}) {
 									? colors.green(record.key.withdrawer)
 									: colors.magenta(record.key.withdrawer);
 					const nonce =
-						record.value.epochs.witnessing > record.value.nonce ||
-						record.value.epochs.mining > record.value.nonce
+						record.value.epochs.witnessing > record.value.nonce || record.value.epochs.mining > record.value.nonce
 							? record.value.nonce
 							: colors.gray(record.value.nonce || "");
 					return [
 						index + 1,
 						withdrawer,
 						nonce,
-						...(verbose
-							? [
-									record.value.epochs.witnessing || "",
-									record.value.epochs.mining || "",
-								]
-							: []),
+						...(verbose ? [record.value.epochs.witnessing || "", record.value.epochs.mining || ""] : []),
 						colors.yellow(Witnet.Coins.fromNanowits(record.value.coins).wits),
 					];
 				}),
@@ -561,18 +506,14 @@ async function coinbase(options = {}) {
 					humanizers: [
 						undefined,
 						undefined,
-						...(verbose
-							? [helpers.commas, helpers.commas, helpers.commas]
-							: [helpers.commas]),
+						...(verbose ? [helpers.commas, helpers.commas, helpers.commas] : [helpers.commas]),
 						helpers.commas,
 					],
 					colors: [
 						undefined,
 						undefined,
 						undefined,
-						...(verbose
-							? [colors.magenta, colors.cyan, colors.myellow]
-							: [colors.myellow]),
+						...(verbose ? [colors.magenta, colors.cyan, colors.myellow] : [colors.myellow]),
 					],
 				},
 			);
@@ -639,30 +580,19 @@ async function stake(options = {}, [authorization]) {
 	let available = 0;
 	let ledger;
 	if (options?.from) {
-		ledger =
-			options.from === wallet.coinbase.pkh
-				? wallet.coinbase
-				: wallet.getAccount(options.from);
+		ledger = options.from === wallet.coinbase.pkh ? wallet.coinbase : wallet.getAccount(options.from);
 		if (ledger) available = (await ledger.getBalance()).unlocked;
 	} else {
 		ledger = wallet;
-		available =
-			(await wallet.getBalance()).unlocked +
-			(await wallet.coinbase.getBalance()).unlocked;
+		available = (await wallet.getBalance()).unlocked + (await wallet.coinbase.getBalance()).unlocked;
 	}
 	if (!ledger) {
 		throw Error(`--from address ${options?.from} doesn't belong to the wallet`);
 	}
 
 	// validate withdrawer address
-	const withdrawer = Witnet.PublicKeyHash.fromBech32(
-		options?.withdrawer,
-	).toBech32(wallet.network);
-	if (
-		!wallet.getAccount(withdrawer) &&
-		withdrawer !== wallet.coinbase.pkh &&
-		!options?.force
-	) {
+	const withdrawer = Witnet.PublicKeyHash.fromBech32(options?.withdrawer).toBech32(wallet.network);
+	if (!wallet.getAccount(withdrawer) && withdrawer !== wallet.coinbase.pkh && !options?.force) {
 		const user = await prompt([
 			{
 				message: `Withdrawer ${withdrawer} doesn't belong to the wallet. Proceed anyway?`,
@@ -683,13 +613,9 @@ async function stake(options = {}, [authorization]) {
 			? Witnet.Coins.fromPedros(available - params.fees.pedros)
 			: Witnet.Coins.fromWits(params?.value);
 	if (available < coins.pedros) {
-		throw Error(
-			`Insufficient funds ${options?.from ? `on address ${options.from}.` : "on wallet."}`,
-		);
+		throw Error(`Insufficient funds ${options?.from ? `on address ${options.from}.` : "on wallet."}`);
 	} else if (params?.fees && coins.pedros <= params.fees.pedros) {
-		throw Error(
-			`The fees cannot be greater than the value: ${params.fees.pedros} > ${coins.pedros} $pedros`,
-		);
+		throw Error(`The fees cannot be greater than the value: ${params.fees.pedros} > ${coins.pedros} $pedros`);
 	}
 
 	// todo: validate withdrawer matches delegatee's withdrawer
@@ -716,10 +642,7 @@ async function transfer(options = {}) {
 	let available = 0n;
 	let ledger;
 	if (options?.from) {
-		ledger =
-			options.from === wallet.coinbase.pkh
-				? wallet.coinbase
-				: wallet.getAccount(options.from);
+		ledger = options.from === wallet.coinbase.pkh ? wallet.coinbase : wallet.getAccount(options.from);
 	} else {
 		ledger = wallet;
 	}
@@ -736,37 +659,25 @@ async function transfer(options = {}) {
 		if (!utils.isHexStringOfLength(options.metadata, 20)) {
 			throw Error(`--metadata must be a 20-byte hex string`);
 		}
-		metadata = Witnet.PublicKeyHash.fromHexString(options.metadata).toBech32(
-			wallet.network,
-		);
+		metadata = Witnet.PublicKeyHash.fromHexString(options.metadata).toBech32(wallet.network);
 	}
 
 	// validate recipient address
 	if (!options?.into) {
 		throw Error("--into address must be specified");
 	}
-	const into = Witnet.PublicKeyHash.fromBech32(options?.into).toBech32(
-		wallet.network,
-	);
+	const into = Witnet.PublicKeyHash.fromBech32(options?.into).toBech32(wallet.network);
 
 	// determine transfer params
 	const params = await _loadTransactionParams({ ...options });
 	const coins =
 		params?.value === "all"
-			? Witnet.Coins.fromPedros(
-					BigInt(
-						available - params.fees.pedros - BigInt(options?.metadata ? 1 : 0),
-					),
-				)
+			? Witnet.Coins.fromPedros(BigInt(available - params.fees.pedros - BigInt(options?.metadata ? 1 : 0)))
 			: Witnet.Coins.fromWits(params?.value);
 	if (available < coins.pedros) {
-		throw Error(
-			`Insufficient funds ${options?.from ? `on address ${options.from}.` : "on wallet."}`,
-		);
+		throw Error(`Insufficient funds ${options?.from ? `on address ${options.from}.` : "on wallet."}`);
 	} else if (params?.fees && coins.pedros <= params.fees.pedros) {
-		throw Error(
-			`The fees cannot be greater than the value: ${params.fees.pedros} > ${coins.pedros} $pedros`,
-		);
+		throw Error(`The fees cannot be greater than the value: ${params.fees.pedros} > ${coins.pedros} $pedros`);
 	}
 
 	// transfer value
@@ -791,20 +702,12 @@ async function unstake(options = {}) {
 	// determine validator address:
 	let validator;
 	if (options?.from) {
-		validator = Witnet.PublicKeyHash.fromBech32(options?.from).toBech32(
-			wallet.network,
-		);
+		validator = Witnet.PublicKeyHash.fromBech32(options?.from).toBech32(wallet.network);
 	} else {
-		const delegatees = (
-			await wallet.getDelegatees(
-				{ by: Witnet.StakesOrderBy.Coins, reverse: true },
-				false,
-			)
-		).filter(
+		const delegatees = (await wallet.getDelegatees({ by: Witnet.StakesOrderBy.Coins, reverse: true }, false)).filter(
 			(entry) => !options?.into || entry.key.withdrawer === options?.into,
 		);
-		if (delegatees.length === 0)
-			throw new Error(`No delegatees to withdraw from.`);
+		if (delegatees.length === 0) throw new Error(`No delegatees to withdraw from.`);
 		else if (delegatees.length === 1) validator = delegatees[0].key.validator;
 		else {
 			const choices = delegatees
@@ -826,15 +729,12 @@ async function unstake(options = {}) {
 	// determine withdrawer address:
 	let withdrawer;
 	if (options?.into) {
-		withdrawer = Witnet.PublicKeyHash.fromBech32(options?.into).toBech32(
-			wallet.network,
-		);
+		withdrawer = Witnet.PublicKeyHash.fromBech32(options?.into).toBech32(wallet.network);
 	} else {
-		const stakes = (
-			await wallet.provider.stakes({ filter: { validator } })
-		).filter((entry) => wallet.getSigner(entry.key.withdrawer) !== undefined);
-		if (stakes.length === 0)
-			throw new Error(`Nothing to withdraw from validator ${validator}.`);
+		const stakes = (await wallet.provider.stakes({ filter: { validator } })).filter(
+			(entry) => wallet.getSigner(entry.key.withdrawer) !== undefined,
+		);
+		if (stakes.length === 0) throw new Error(`Nothing to withdraw from validator ${validator}.`);
 		else if (stakes.length === 1) withdrawer = stakes[0].key.withdrawer;
 		else {
 			const choices = stakes.map(
@@ -862,8 +762,7 @@ async function unstake(options = {}) {
 
 	// valite delegatee address:
 	const delegatee = (await ledger.getDelegatees()).find(
-		(stake) =>
-			stake.key.validator === validator && stake.key.withdrawer === withdrawer,
+		(stake) => stake.key.validator === validator && stake.key.withdrawer === withdrawer,
 	);
 	if (!delegatee) {
 		throw Error(`Nothing to withdraw from ${validator} into ${withdrawer}`);
@@ -882,9 +781,7 @@ async function unstake(options = {}) {
 	if (available < value.pedros + params?.fees.pedros) {
 		throw Error(`Cannot withdraw that much: ${value.pedros} > ${available}`);
 	} else if (params?.fees && value.pedros <= params.fees.pedros) {
-		throw Error(
-			`The fees cannot be greater than the value: ${params.fees.pedros} > ${value.pedros} $pedros`,
-		);
+		throw Error(`The fees cannot be greater than the value: ${params.fees.pedros} > ${value.pedros} $pedros`);
 	}
 
 	// withdraw deposit from validator into withdrawer:
@@ -903,14 +800,11 @@ async function utxos(options = {}, [from]) {
 	let ledger;
 	let available = 0n;
 	if (from) {
-		ledger =
-			from === wallet.coinbase.pkh ? wallet.coinbase : wallet.getAccount(from);
+		ledger = from === wallet.coinbase.pkh ? wallet.coinbase : wallet.getAccount(from);
 		if (ledger) available = (await ledger.getBalance()).unlocked;
 	} else {
 		ledger = wallet;
-		available =
-			(await wallet.getBalance()).unlocked +
-			(await wallet.coinbase.getBalance()).unlocked;
+		available = (await wallet.getBalance()).unlocked + (await wallet.coinbase.getBalance()).unlocked;
 	}
 	if (!ledger) {
 		throw Error(`Address ${from} doesn't belong to the wallet`);
@@ -919,12 +813,7 @@ async function utxos(options = {}, [from]) {
 	// determine into address
 	let into = options?.into;
 	if (into) {
-		if (
-			into !== from &&
-			!wallet.getAccount(into) &&
-			into !== wallet.coinbase.pkh &&
-			!options?.force
-		) {
+		if (into !== from && !wallet.getAccount(into) && into !== wallet.coinbase.pkh && !options?.force) {
 			const user = await prompt([
 				{
 					message: `Recipient address ${into} doesn't belong to the wallet. Proceed anyway?`,
@@ -959,19 +848,12 @@ async function utxos(options = {}, [from]) {
 				? Witnet.Coins.fromWits(params?.value)
 				: Witnet.Coins.fromPedros(available);
 	if (available < value.pedros) {
-		throw Error(
-			`Insufficient funds ${from ? `on address ${from}.` : "on wallet."}`,
-		);
+		throw Error(`Insufficient funds ${from ? `on address ${from}.` : "on wallet."}`);
 	} else if (params?.fees && value.pedros <= params.fees.pedros) {
-		throw Error(
-			`The fees cannot be greater than the value: ${params.fees.pedros} > ${value.pedros} $pedros`,
-		);
+		throw Error(`The fees cannot be greater than the value: ${params.fees.pedros} > ${value.pedros} $pedros`);
 	}
 	const utxos = await ledger.selectUtxos({ value });
-	const covered =
-		utxos
-			.map((utxo) => BigInt(utxo.value))
-			?.reduce((prev, curr) => prev + curr, 0n) || 0n;
+	const covered = utxos.map((utxo) => BigInt(utxo.value))?.reduce((prev, curr) => prev + curr, 0n) || 0n;
 	// if (value && covered < value.pedros) {
 	//   console.log(value, covered)
 	//   throw Error(`Insufficient unlocked UTXOs in ${from ? `wallet account ${ledger.pkh}` : "wallet"}`)
@@ -983,12 +865,8 @@ async function utxos(options = {}, [from]) {
 			helpers.traceTable(
 				utxos.map((utxo, index) => [
 					index + 1,
-					utxo.signer === wallet.coinbase.pkh
-						? colors.mcyan(utxo.signer)
-						: colors.mmagenta(utxo.signer),
-					utxo?.internal
-						? colors.green(utxo.output_pointer)
-						: colors.mgreen(utxo.output_pointer),
+					utxo.signer === wallet.coinbase.pkh ? colors.mcyan(utxo.signer) : colors.mmagenta(utxo.signer),
+					utxo?.internal ? colors.green(utxo.output_pointer) : colors.mgreen(utxo.output_pointer),
 					utxo.value,
 				]),
 				{
@@ -1002,9 +880,7 @@ async function utxos(options = {}, [from]) {
 					colors: [undefined, undefined, undefined, colors.myellow],
 				},
 			);
-			console.info(
-				`^ Available balance: ${colors.lyellow(whole_wits(covered, 2))}`,
-			);
+			console.info(`^ Available balance: ${colors.lyellow(whole_wits(covered, 2))}`);
 		}
 
 		const valueTransfer = Witnet.ValueTransfers.from(ledger);
@@ -1030,9 +906,7 @@ async function utxos(options = {}, [from]) {
 			if (splits > 50) {
 				throw Error("Not possible to split into more than 50 UTXOs");
 			}
-			value = Witnet.Coins.fromPedros(
-				BigInt(Math.floor(Number(value.pedros) / splits)),
-			);
+			value = Witnet.Coins.fromPedros(BigInt(Math.floor(Number(value.pedros) / splits)));
 			recipients.push(...Array(splits).fill([into, value]));
 			await helpers.traceTransaction(valueTransfer, {
 				headline: `SPLITTING UTXOs: ${utxos.length} -> ${Number(value.pedros) * splits < covered ? splits + 1 : splits}`,
@@ -1066,28 +940,17 @@ async function validators(options = {}) {
 						: record.key.validator !== ""
 							? colors.mmagenta(record.key.withdrawer)
 							: colors.magenta(record.key.withdrawer),
-					...(record.value.epochs.witnessing > record.value.nonce ||
-					record.value.epochs.mining > record.value.nonce
+					...(record.value.epochs.witnessing > record.value.nonce || record.value.epochs.mining > record.value.nonce
 						? [colors.mcyan(record.key.validator), record.value.nonce]
-						: [
-								colors.cyan(record.key.validator),
-								colors.gray(record.value.nonce || ""),
-							]),
-					...(verbose
-						? [
-								record.value.epochs.witnessing || "",
-								record.value.epochs.mining || "",
-							]
-						: []),
+						: [colors.cyan(record.key.validator), colors.gray(record.value.nonce || "")]),
+					...(verbose ? [record.value.epochs.witnessing || "", record.value.epochs.mining || ""] : []),
 					colors.yellow(record.value.coins),
 				];
 			}),
 			{
 				headlines: [
 					// "INDEX",
-					coinbase
-						? "WITNET WALLET COINBASE"
-						: `WITNET WALLET ${wallet.network.toUpperCase()} ACCOUNTS`,
+					coinbase ? "WITNET WALLET COINBASE" : `WITNET WALLET ${wallet.network.toUpperCase()} ACCOUNTS`,
 					"STAKE DELEGATEES",
 					...(verbose ? ["Nonce", "LW_Epoch", "LM_Epoch"] : ["Nonce"]),
 					"STAKED ($pedros)",
@@ -1095,18 +958,14 @@ async function validators(options = {}) {
 				humanizers: [
 					undefined,
 					undefined,
-					...(verbose
-						? [helpers.commas, helpers.commas, helpers.commas]
-						: [helpers.commas]),
+					...(verbose ? [helpers.commas, helpers.commas, helpers.commas] : [helpers.commas]),
 					helpers.commas,
 				],
 				colors: [
 					undefined,
 					undefined,
 					undefined,
-					...(verbose
-						? [colors.magenta, colors.cyan, colors.myellow]
-						: [colors.myellow]),
+					...(verbose ? [colors.magenta, colors.cyan, colors.myellow] : [colors.myellow]),
 				],
 			},
 		);
@@ -1121,11 +980,7 @@ async function validators(options = {}) {
 
 async function _loadRadonRequest(options = {}) {
 	const args = options?.args || [];
-	if (
-		options?.pattern &&
-		typeof options.pattern === "string" &&
-		utils.isHexString(options.pattern)
-	) {
+	if (options?.pattern && typeof options.pattern === "string" && utils.isHexString(options.pattern)) {
 		// if (utils.isHexStringOfLength(options.pattern, 32)) {
 		//     throw `Searching RADON_BYTECODE by RAD_HASH not yet supported.`
 		// } else
@@ -1147,9 +1002,7 @@ async function _loadRadonRequest(options = {}) {
 
 	if (args.length > 0) {
 		// ignore RadonRequests if args were passed from the CLI
-		assets = assets.filter(
-			([, artifact]) => !(artifact instanceof Witnet.Radon.RadonRequest),
-		);
+		assets = assets.filter(([, artifact]) => !(artifact instanceof Witnet.Radon.RadonRequest));
 	}
 
 	// sort Radon assets alphabetically
@@ -1194,9 +1047,7 @@ async function _loadRadonRequest(options = {}) {
 			]);
 			templateArgs = artifact.samples[sample.key];
 		} else if (args.length === 1 && artifact?.samples) {
-			const sample = Object.keys(artifact.samples).find(
-				(sample) => sample.toLowerCase() === args[0].toLowerCase(),
-			);
+			const sample = Object.keys(artifact.samples).find((sample) => sample.toLowerCase() === args[0].toLowerCase());
 			if (sample) templateArgs = artifact.samples[sample];
 		}
 
@@ -1213,10 +1064,7 @@ async function _loadRadonRequest(options = {}) {
 		} else {
 			if (artifact instanceof Witnet.Radon.RadonModal) {
 				if (templateArgs.length === 0) templateArgs = [...args];
-				if (
-					templateArgs.length === 0 &&
-					templateArgs.length < artifact.argsCount + 1
-				) {
+				if (templateArgs.length === 0 && templateArgs.length < artifact.argsCount + 1) {
 					throw Error(
 						`${key}: missing ${artifact.argsCount + 1 - templateArgs.length} out of ${artifact.argsCount + 1} parameters.`,
 					);
@@ -1230,9 +1078,7 @@ async function _loadRadonRequest(options = {}) {
 						templateArgs[index] = args.splice(0, retrieval.argsCount);
 						if (templateArgs[index].length < retrieval.argsCount) {
 							throw Error(
-								`${key}: missing ${
-									retrieval.argsCount - templateArgs[index].length
-								} out of ${
+								`${key}: missing ${retrieval.argsCount - templateArgs[index].length} out of ${
 									retrieval.argsCount
 								} expected args for template source #${index + 1}`,
 							);
@@ -1241,9 +1087,7 @@ async function _loadRadonRequest(options = {}) {
 				}
 				artifact = artifact.buildRadonRequest(templateArgs);
 			} else {
-				throw Error(
-					`${key}: unsupported Radon asset type ${artifact?.constructor.name}`,
-				);
+				throw Error(`${key}: unsupported Radon asset type ${artifact?.constructor.name}`);
 			}
 		}
 	}
@@ -1251,29 +1095,18 @@ async function _loadRadonRequest(options = {}) {
 }
 
 async function _loadTransactionParams(options = {}) {
-	const confirmations = options?.confirmations
-		? parseInt(options?.confirmations, 10)
-		: options?.await
-			? 0
-			: undefined;
+	const confirmations = options?.confirmations ? parseInt(options?.confirmations, 10) : options?.await ? 0 : undefined;
 	let fees = options?.fees
 		? Witnet.Coins.fromWits(options.fees)
 		: options?.fees === 0n
 			? Witnet.Coins.zero()
 			: undefined;
-	const value = options?.value
-		? options?.value.toLowerCase() === "all"
-			? "all"
-			: options.value
-		: undefined;
+	const value = options?.value ? (options?.value.toLowerCase() === "all" ? "all" : options.value) : undefined;
 	if (fees === undefined) {
 		if (value === "all") {
 			throw Error("--fees must be specified if --value is set to `all`");
 		}
-		let priority =
-			!options?.priority && options?.force
-				? Witnet.TransactionPriority.Medium
-				: options?.priority;
+		let priority = !options?.priority && options?.force ? Witnet.TransactionPriority.Medium : options?.priority;
 		if (!priority) {
 			const priorities = {
 				"< 60 seconds": Witnet.TransactionPriority.Opulent,
@@ -1294,10 +1127,7 @@ async function _loadTransactionParams(options = {}) {
 		} else if (!Object.values(Witnet.TransactionPriority).includes(priority)) {
 			throw Error(`Invalid priority "${priority}"`);
 		}
-		fees =
-			Witnet.TransactionPriority[
-				priority.charAt(0).toUpperCase() + priority.slice(1)
-			];
+		fees = Witnet.TransactionPriority[priority.charAt(0).toUpperCase() + priority.slice(1)];
 	}
 	return {
 		await: options?.await,
@@ -1325,9 +1155,7 @@ async function _loadWallet(options = {}) {
 		if (options?.strategy && !strategies[options.strategy]) {
 			throw Error(`Unrecognised UTXO selection strategy "${options.strategy}"`);
 		}
-		const strategy =
-			strategies[options?.strategy || "slim-fit"] ||
-			Witnet.UtxoSelectionStrategy.SlimFit;
+		const strategy = strategies[options?.strategy || "slim-fit"] || Witnet.UtxoSelectionStrategy.SlimFit;
 		const gap = options?.gap || 10;
 		let wallet;
 		const xprv = options?.xprv || process.env.WITNET_SDK_WALLET_MASTER_KEY;

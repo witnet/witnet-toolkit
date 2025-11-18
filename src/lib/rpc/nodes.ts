@@ -1,17 +1,8 @@
 import { default as axios } from "axios";
-import {
-	PublicKey,
-	PublicKeyHash,
-	type PublicKeyHashString,
-	RecoverableSignature,
-} from "../crypto/types.js";
+import { PublicKey, PublicKeyHash, type PublicKeyHashString, RecoverableSignature } from "../crypto/types.js";
 import type { Epoch, HexString, Nonce } from "../types.js";
 import * as utils from "../utils.js";
-import {
-	type IJsonRpcProvider,
-	JsonRpcProvider,
-	JsonRpcProviderError,
-} from "./provider.js";
+import { type IJsonRpcProvider, JsonRpcProvider, JsonRpcProviderError } from "./provider.js";
 import {
 	type Balance2,
 	Methods,
@@ -34,9 +25,7 @@ export interface IJsonRpcNodeFarm extends IJsonRpcProvider {
 	withdrawers(): Promise<Record<PublicKeyHashString, [bigint, Nonce, number]>>;
 
 	addPeers(peers: Array<string>): Promise<Record<string, boolean>>;
-	authorizeStakes(
-		withdrawer: PublicKeyHashString,
-	): Promise<Record<string, [PublicKeyHashString, HexString]>>;
+	authorizeStakes(withdrawer: PublicKeyHashString): Promise<Record<string, [PublicKeyHashString, HexString]>>;
 	clearPeers(): Promise<Record<string, boolean>>;
 	initializePeers(): Promise<Record<string, boolean>>;
 	rewind(epoch: Epoch): Promise<Record<string, boolean>>;
@@ -47,19 +36,12 @@ function isPrivateURL(url: string): boolean {
 	return utils.ipIsPrivateOrLocalhost(host.split(":")[0]);
 }
 
-export class JsonRpcNodeFarm
-	extends JsonRpcProvider
-	implements IJsonRpcNodeFarm
-{
+export class JsonRpcNodeFarm extends JsonRpcProvider implements IJsonRpcNodeFarm {
 	constructor(url?: string) {
-		super(
-			url || process.env.WITNET_TOOLKIT_FARM_NODES || "http://127.0.0.1:21339",
-		);
+		super(url || process.env.WITNET_TOOLKIT_FARM_NODES || "http://127.0.0.1:21339");
 		this.endpoints.forEach((url) => {
 			if (!isPrivateURL(url)) {
-				throw Error(
-					`Witnet.JsonRpcNodeFarm: only local host or private IPs can be provided: ${url}`,
-				);
+				throw Error(`Witnet.JsonRpcNodeFarm: only local host or private IPs can be provided: ${url}`);
 			}
 		});
 	}
@@ -72,12 +54,7 @@ export class JsonRpcNodeFarm
 			.then(async (addresses: Record<string, Error | string>) => {
 				const promises = Object.entries(addresses).map(async ([url, pkh]) => [
 					url,
-					[
-						pkh,
-						pkh instanceof Error
-							? undefined
-							: await this.callApiMethod<T>(url, method, { pkh, ...params }),
-					],
+					[pkh, pkh instanceof Error ? undefined : await this.callApiMethod<T>(url, method, { pkh, ...params })],
 				]);
 				return Promise.all(promises);
 			})
@@ -86,9 +63,7 @@ export class JsonRpcNodeFarm
 					entries.map(([url, [pkh, value]]) => {
 						if (value && value instanceof Error) {
 							if ((value as JsonRpcProviderError)?.error?.message) {
-								value = new Error(
-									(value as JsonRpcProviderError)?.error?.message,
-								);
+								value = new Error((value as JsonRpcProviderError)?.error?.message);
 								delete value.stack;
 							}
 						}
@@ -106,12 +81,7 @@ export class JsonRpcNodeFarm
 			.then(async (addresses: Record<string, Error | string>) => {
 				const promises = Object.entries(addresses).map(async ([url, pkh]) => [
 					url,
-					[
-						pkh,
-						pkh instanceof Error
-							? undefined
-							: await this.callApiMethod<T>(url, method, params),
-					],
+					[pkh, pkh instanceof Error ? undefined : await this.callApiMethod<T>(url, method, params)],
 				]);
 				return Promise.all(promises);
 			})
@@ -120,9 +90,7 @@ export class JsonRpcNodeFarm
 					entries.map(([url, [pkh, value]]) => {
 						if (value && value instanceof Error) {
 							if ((value as JsonRpcProviderError)?.error?.message) {
-								value = new Error(
-									(value as JsonRpcProviderError)?.error?.message,
-								);
+								value = new Error((value as JsonRpcProviderError)?.error?.message);
 								delete value.stack;
 							}
 						}
@@ -132,10 +100,7 @@ export class JsonRpcNodeFarm
 			);
 	}
 
-	protected async batchApiMethod<T>(
-		method: string,
-		params?: Array<any> | any,
-	): Promise<Record<string, T>> {
+	protected async batchApiMethod<T>(method: string, params?: Array<any> | any): Promise<Record<string, T>> {
 		const promises = this.endpoints.map(async (url) =>
 			axios
 				.post(
@@ -152,22 +117,13 @@ export class JsonRpcNodeFarm
 				)
 				.then((response: any) => {
 					if (response?.error || response?.data?.error) {
-						return [
-							url,
-							new JsonRpcProviderError(
-								method,
-								params,
-								response?.error || response?.data?.error,
-							),
-						];
+						return [url, new JsonRpcProviderError(method, params, response?.error || response?.data?.error)];
 					} else {
 						return [url, response?.data?.result as T];
 					}
 				})
 				.catch((exception: any) => {
-					const error = new Error(
-						exception?.message || exception?.error || exception,
-					);
+					const error = new Error(exception?.message || exception?.error || exception);
 					delete error.stack;
 					return [url, error];
 				}),
@@ -175,11 +131,7 @@ export class JsonRpcNodeFarm
 		return Promise.all(promises).then((values) => Object.fromEntries(values));
 	}
 
-	protected async callApiMethod<T>(
-		url: string,
-		method: string,
-		params?: Array<any> | any,
-	): Promise<Error | any> {
+	protected async callApiMethod<T>(url: string, method: string, params?: Array<any> | any): Promise<Error | any> {
 		return axios
 			.post(
 				url,
@@ -195,11 +147,7 @@ export class JsonRpcNodeFarm
 			)
 			.then((response: any) => {
 				if (response?.error || response?.data?.error) {
-					const error = new JsonRpcProviderError(
-						method,
-						params,
-						response?.error || response?.data?.error,
-					);
+					const error = new JsonRpcProviderError(method, params, response?.error || response?.data?.error);
 					delete error?.stack;
 					return error;
 				} else {
@@ -207,9 +155,7 @@ export class JsonRpcNodeFarm
 				}
 			})
 			.catch((exception: any) => {
-				const error = new Error(
-					exception?.message || exception?.error || exception,
-				);
+				const error = new Error(exception?.message || exception?.error || exception);
 				delete error?.stack;
 				return error;
 			});
@@ -221,21 +167,15 @@ export class JsonRpcNodeFarm
 		return this.batchApiMethod<PublicKeyHashString>(Methods.GetPkh);
 	}
 
-	public async balances(): Promise<
-		Record<string, [PublicKeyHashString, Balance2]>
-	> {
+	public async balances(): Promise<Record<string, [PublicKeyHashString, Balance2]>> {
 		return this.batchApiPkhMethod<Balance2>(Methods.GetBalance2);
 	}
 
-	public async masterKeys(): Promise<
-		Record<string, [PublicKeyHashString, string]>
-	> {
+	public async masterKeys(): Promise<Record<string, [PublicKeyHashString, string]>> {
 		return this.batchApiPkhMethodNoPkh<string>(Methods.MasterKeyExport);
 	}
 
-	public async publicKeys(): Promise<
-		Record<string, [PublicKeyHashString, PublicKey]>
-	> {
+	public async publicKeys(): Promise<Record<string, [PublicKeyHashString, PublicKey]>> {
 		return this.batchApiPkhMethodNoPkh<Uint8Array>(Methods.GetPublicKey).then(
 			(results: Record<string, [PublicKeyHashString, Error | Uint8Array]>) =>
 				Object.fromEntries(
@@ -247,10 +187,7 @@ export class JsonRpcNodeFarm
 							}
 							return [url, [pkh, raw]];
 						} else {
-							return [
-								url,
-								[pkh, raw ? PublicKey.fromUint8Array(raw) : undefined],
-							];
+							return [url, [pkh, raw ? PublicKey.fromUint8Array(raw) : undefined]];
 						}
 					}),
 				),
@@ -258,21 +195,19 @@ export class JsonRpcNodeFarm
 	}
 
 	public async peers(): Promise<Array<PeerAddr>> {
-		return this.batchApiMethod<Array<PeerAddr>>(Methods.Peers).then(
-			(results: Record<string, PeerAddr[]>) => {
-				const peers: PeerAddr[] = [];
-				Object.values(results).forEach((morePeers: Error | PeerAddr[]) => {
-					if (!(morePeers instanceof Error)) {
-						morePeers.forEach((peer) => {
-							if (!peers.includes(peer)) {
-								peers.push(peer);
-							}
-						});
-					}
-				});
-				return peers;
-			},
-		);
+		return this.batchApiMethod<Array<PeerAddr>>(Methods.Peers).then((results: Record<string, PeerAddr[]>) => {
+			const peers: PeerAddr[] = [];
+			Object.values(results).forEach((morePeers: Error | PeerAddr[]) => {
+				if (!(morePeers instanceof Error)) {
+					morePeers.forEach((peer) => {
+						if (!peers.includes(peer)) {
+							peers.push(peer);
+						}
+					});
+				}
+			});
+			return peers;
+		});
 	}
 
 	public async stats(): Promise<Record<string, NodeStats>> {
@@ -289,25 +224,19 @@ export class JsonRpcNodeFarm
 	): Promise<Record<PublicKeyHashString, [bigint, Nonce, number]>> {
 		return this.addresses()
 			.then(async (addresses: Record<string, Error | string>) => {
-				const promises = Object.entries(addresses).map(
-					async ([url, validator]) => [
-						url,
-						validator instanceof Error
-							? undefined
-							: await this.callApiMethod<Array<StakeEntry>>(
-									url,
-									Methods.QueryStakes,
-									{
-										filter: { validator },
-										params: {
-											limit,
-											offset,
-											since: 0,
-										},
-									},
-								),
-					],
-				);
+				const promises = Object.entries(addresses).map(async ([url, validator]) => [
+					url,
+					validator instanceof Error
+						? undefined
+						: await this.callApiMethod<Array<StakeEntry>>(url, Methods.QueryStakes, {
+								filter: { validator },
+								params: {
+									limit,
+									offset,
+									since: 0,
+								},
+							}),
+				]);
 				return Promise.all(promises);
 			})
 			.then((entries) =>
@@ -315,9 +244,7 @@ export class JsonRpcNodeFarm
 					entries.map(([url, stakes]) => {
 						if (stakes && stakes instanceof Error) {
 							if ((stakes as JsonRpcProviderError)?.error?.message) {
-								stakes = new Error(
-									(stakes as JsonRpcProviderError)?.error?.message,
-								);
+								stakes = new Error((stakes as JsonRpcProviderError)?.error?.message);
 								delete stakes.stack;
 							}
 							return [url];
@@ -329,26 +256,16 @@ export class JsonRpcNodeFarm
 			)
 			.then((results: Record<string, Error | Array<StakeEntry>>) => {
 				const max = (a: number, b: number) => (a > b ? a : b);
-				const withdrawers: Record<
-					PublicKeyHashString,
-					[bigint, Nonce, number]
-				> = {};
+				const withdrawers: Record<PublicKeyHashString, [bigint, Nonce, number]> = {};
 				Object.values(results).forEach((moreEntries) => {
 					if (moreEntries && !(moreEntries instanceof Error)) {
 						moreEntries.forEach((entry) => {
 							if (withdrawers[entry.key.withdrawer]) {
 								withdrawers[entry.key.withdrawer][0] += entry.value.coins;
-								withdrawers[entry.key.withdrawer][1] = max(
-									entry.value.nonce,
-									withdrawers[entry.key.withdrawer][1],
-								);
+								withdrawers[entry.key.withdrawer][1] = max(entry.value.nonce, withdrawers[entry.key.withdrawer][1]);
 								withdrawers[entry.key.withdrawer][2] += 1;
 							} else {
-								withdrawers[entry.key.withdrawer] = [
-									entry.value.coins,
-									entry.value.nonce,
-									1,
-								];
+								withdrawers[entry.key.withdrawer] = [entry.value.coins, entry.value.nonce, 1];
 							}
 						});
 					}
@@ -365,9 +282,7 @@ export class JsonRpcNodeFarm
 
 	/// ---------------------------------------------------------------------------------------------------------------
 
-	public async addPeers(
-		peers: Array<string>,
-	): Promise<Record<string, boolean>> {
+	public async addPeers(peers: Array<string>): Promise<Record<string, boolean>> {
 		return this.batchApiMethod<boolean>(Methods.AddPeers, peers);
 	}
 
@@ -375,33 +290,19 @@ export class JsonRpcNodeFarm
 		withdrawer: PublicKeyHashString,
 	): Promise<Record<string, [PublicKeyHashString, HexString]>> {
 		const msg = PublicKeyHash.fromBech32(withdrawer).toBytes32();
-		return this.batchApiPkhMethodNoPkh<StakeAuthorization>(
-			Methods.AuthorizeStake,
-			withdrawer,
-		).then(
-			(
-				records: Record<
-					string,
-					[PublicKeyHashString, Error | StakeAuthorization]
-				>,
-			) =>
+		return this.batchApiPkhMethodNoPkh<StakeAuthorization>(Methods.AuthorizeStake, withdrawer).then(
+			(records: Record<string, [PublicKeyHashString, Error | StakeAuthorization]>) =>
 				Object.fromEntries(
 					Object.entries(records).map(([url, [pkh, authorization]]) => {
 						if (authorization && authorization instanceof Error) {
 							if ((authorization as JsonRpcProviderError)?.error?.message) {
-								authorization = new Error(
-									(authorization as JsonRpcProviderError)?.error?.message,
-								);
+								authorization = new Error((authorization as JsonRpcProviderError)?.error?.message);
 								delete authorization.stack;
 							}
 							return [url, [pkh, authorization]];
 						} else if (authorization) {
-							const signature = RecoverableSignature.fromKeyedSignature(
-								authorization.signature,
-								msg,
-							);
-							const authcode =
-								signature.pubKey.hash().toHexString() + signature.toHexString();
+							const signature = RecoverableSignature.fromKeyedSignature(authorization.signature, msg);
+							const authcode = signature.pubKey.hash().toHexString() + signature.toHexString();
 							return [url, [pkh, authcode]];
 						} else {
 							return [url, [pkh, undefined]];

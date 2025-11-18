@@ -7,9 +7,7 @@ const require = createRequire(import.meta.url);
 import protobuf from "protobufjs";
 
 const { Root: ProtoRoot } = protobuf;
-const protoRoot = ProtoRoot.fromJSON(
-	require("../../../witnet/witnet.proto.json"),
-);
+const protoRoot = ProtoRoot.fromJSON(require("../../../witnet/witnet.proto.json"));
 const RADRequest = protoRoot.lookupType("RADRequest");
 
 import {
@@ -57,14 +55,8 @@ class RadonArtifact {
 		sourcesReducer: RadonReducer;
 		witnessReducer: RadonReducer;
 	}) {
-		if (
-			!specs.sources ||
-			!Array.isArray(specs.sources) ||
-			specs.sources.length === 0
-		) {
-			throw TypeError(
-				"RadonArtifact: cannot build if no retrievals are passed",
-			);
+		if (!specs.sources || !Array.isArray(specs.sources) || specs.sources.length === 0) {
+			throw TypeError("RadonArtifact: cannot build if no retrievals are passed");
 		}
 		specs.sources?.forEach((retrieval, index) => {
 			if (retrieval === undefined) {
@@ -80,9 +72,7 @@ class RadonArtifact {
 
 	public opsCount(): number {
 		return (
-			(this.sources
-				?.map((retrieval) => retrieval.opsCount())
-				.reduce((sum, a) => sum + a) || 0) +
+			(this.sources?.map((retrieval) => retrieval.opsCount()).reduce((sum, a) => sum + a) || 0) +
 			this.sourcesReducer?.opsCount() +
 			this.witnessReducer?.opsCount()
 		);
@@ -104,9 +94,7 @@ export class RadonRequest extends RadonArtifact {
 		} else if (bytecode instanceof Buffer) {
 			buffer = bytecode;
 		} else {
-			throw new TypeError(
-				`RadonRequest: unsupported bytecode format: ${bytecode}`,
-			);
+			throw new TypeError(`RadonRequest: unsupported bytecode format: ${bytecode}`);
 		}
 		const obj: any = RADRequest.decode(buffer);
 		return RadonRequest.fromProtobuf(obj);
@@ -125,35 +113,24 @@ export class RadonRequest extends RadonArtifact {
 			}
 			if (retrieval?.headers) {
 				specs.headers = Object.fromEntries(
-					retrieval.headers.map((stringPair: any) => [
-						stringPair.left,
-						stringPair.right,
-					]),
+					retrieval.headers.map((stringPair: any) => [stringPair.left, stringPair.right]),
 				);
 			}
 			if (retrieval?.body && retrieval.body.length > 0) {
 				specs.body = utf8ArrayToStr(Object.values(retrieval.body));
 			}
-			if (retrieval?.script)
-				specs.script = parseRadonScript(toHexString(retrieval.script));
+			if (retrieval?.script) specs.script = parseRadonScript(toHexString(retrieval.script));
 			specs.method = retrieval.kind;
 			return new RadonRetrieval(specs);
 		});
 		const decodeFilter = (f: any) => {
-			if (f?.args && f.args.length > 0)
-				return new RadonFilter(f.op, cbor.decode(Uint8Array.from(f.args)));
+			if (f?.args && f.args.length > 0) return new RadonFilter(f.op, cbor.decode(Uint8Array.from(f.args)));
 			else return new RadonFilter(f.op);
 		};
 		return new RadonRequest({
 			sources,
-			sourcesReducer: new RadonReducer(
-				obj.aggregate.reducer,
-				obj.aggregate.filters?.map(decodeFilter),
-			),
-			witnessReducer: new RadonReducer(
-				obj.tally.reducer,
-				obj.tally.filters?.map(decodeFilter),
-			),
+			sourcesReducer: new RadonReducer(obj.aggregate.reducer, obj.aggregate.filters?.map(decodeFilter)),
+			witnessReducer: new RadonReducer(obj.tally.reducer, obj.tally.filters?.map(decodeFilter)),
 		});
 	}
 
@@ -162,17 +139,13 @@ export class RadonRequest extends RadonArtifact {
 		sourcesReducer?: RadonReducer;
 		witnessReducer?: RadonReducer;
 	}) {
-		const sources = Array.isArray(specs.sources)
-			? (specs.sources as RadonRetrieval[])
-			: [specs.sources];
+		const sources = Array.isArray(specs.sources) ? (specs.sources as RadonRetrieval[]) : [specs.sources];
 		super({
 			sources,
 			sourcesReducer: specs?.sourcesReducer || reducers.Mode(),
 			witnessReducer: specs?.witnessReducer || reducers.Mode(),
 		});
-		const argsCount = sources
-			.map((retrieval) => retrieval.argsCount)
-			.reduce((prev, curr) => prev + curr);
+		const argsCount = sources.map((retrieval) => retrieval.argsCount).reduce((prev, curr) => prev + curr);
 		if (argsCount > 0) {
 			throw TypeError("RadonRequest: parameterized retrievals were passed");
 		}
@@ -190,13 +163,7 @@ export class RadonRequest extends RadonArtifact {
 	}
 
 	public async execDryRun(verbose = false): Promise<string> {
-		return (
-			await execRadonBytecode(
-				this.toBytecode(),
-				"--json",
-				verbose ? "--verbose" : "",
-			)
-		).trim();
+		return (await execRadonBytecode(this.toBytecode(), "--json", verbose ? "--verbose" : "")).trim();
 	}
 
 	public get dataType(): string {
@@ -269,13 +236,10 @@ export function RadonRequestFromAssets(specs: {
 	});
 }
 
-export function RadonScript<
-	InputType extends RadonAny = RadonString,
->(inputType: { new (ops?: RadonOperator): InputType }): InputType {
-	if (!inputType)
-		throw TypeError(
-			"Input Radon data type must be specified when declaring a new Radon script.",
-		);
+export function RadonScript<InputType extends RadonAny = RadonString>(inputType: {
+	new (ops?: RadonOperator): InputType;
+}): InputType {
+	if (!inputType) throw TypeError("Input Radon data type must be specified when declaring a new Radon script.");
 	return new inputType();
 }
 
@@ -293,23 +257,17 @@ export class RadonTemplate extends RadonArtifact {
 		},
 		samples?: Record<string, Args>,
 	) {
-		const sources = Array.isArray(specs.sources)
-			? (specs.sources as RadonRetrieval[])
-			: [specs.sources];
+		const sources = Array.isArray(specs.sources) ? (specs.sources as RadonRetrieval[]) : [specs.sources];
 		super({
 			sources,
 			sourcesReducer: specs?.sourcesReducer || reducers.Mode(),
 			witnessReducer: specs?.witnessReducer || reducers.Mode(),
 		});
-		this._argsCount = sources
-			.map((retrieval) => retrieval?.argsCount)
-			.reduce((prev, curr) => Math.max(prev, curr), 0);
+		this._argsCount = sources.map((retrieval) => retrieval?.argsCount).reduce((prev, curr) => Math.max(prev, curr), 0);
 		if (this._argsCount === 0) {
 			throw TypeError("RadonTemplate: no parameterized retrievals were passed");
 		}
-		this.homogeneous = !sources.find(
-			(retrieval) => retrieval.argsCount !== this._argsCount,
-		);
+		this.homogeneous = !sources.find((retrieval) => retrieval.argsCount !== this._argsCount);
 		if (samples) {
 			Object.keys(samples).forEach((sample) => {
 				let sampleArgs: Args = Object(samples)[sample];
@@ -342,17 +300,13 @@ export class RadonTemplate extends RadonArtifact {
 		return this._argsCount;
 	}
 
-	public buildRadonRequest(
-		args: any | any[] | string[] | string[][],
-	): RadonRequest {
+	public buildRadonRequest(args: any | any[] | string[] | string[][]): RadonRequest {
 		const sources: RadonRetrieval[] = [];
 		if (this.homogeneous) {
 			// args can be either any, string[] or string[0][]
 			if (Array.isArray(args) && args[0] && Array.isArray(args[0])) {
 				if (args.length > 1) {
-					throw new TypeError(
-						`RadonTemplate: homogeneous template: args vector dimension ${args.length} > 1.`,
-					);
+					throw new TypeError(`RadonTemplate: homogeneous template: args vector dimension ${args.length} > 1.`);
 				}
 				args = args[0];
 			} else if (Array.isArray(args) && args.length !== this.argsCount) {
@@ -360,20 +314,15 @@ export class RadonTemplate extends RadonArtifact {
 					`RadonTemplate: homogenous template: missing ${this.argsCount - args.length} out of ${args.length} parameters.`,
 				);
 			}
-			this.sources.forEach((retrieval) =>
-				sources.push(retrieval.foldArgs(args)),
-			);
+			this.sources.forEach((retrieval) => {
+				sources.push(retrieval.foldArgs(args));
+			});
 		} else {
 			if (!Array.isArray(args) || args.length !== this.sources.length) {
-				throw new TypeError(
-					`RadonTemplate: args vector dimension ${args.length} != ${this.sources.length}`,
-				);
+				throw new TypeError(`RadonTemplate: args vector dimension ${args.length} != ${this.sources.length}`);
 			}
 			this.sources.forEach((retrieval, index) => {
-				if (
-					Array.isArray(args[index]) &&
-					retrieval.argsCount !== args[index].length
-				) {
+				if (Array.isArray(args[index]) && retrieval.argsCount !== args[index].length) {
 					throw new TypeError(
 						`RadonTemplate: retrieval #${index + 1}: mismatching args count: ${
 							args[index].length
@@ -419,12 +368,8 @@ export class RadonModal extends RadonTemplate {
 	}
 
 	public get argsCount(): number {
-		const _providersArgsCount = Math.max(
-			...this.providers.map((url) => getWildcardsCountFromString(url)),
-		);
-		return _providersArgsCount > 0
-			? Math.max(this._argsCount, _providersArgsCount)
-			: this._argsCount;
+		const _providersArgsCount = Math.max(...this.providers.map((url) => getWildcardsCountFromString(url)));
+		return _providersArgsCount > 0 ? Math.max(this._argsCount, _providersArgsCount) : this._argsCount;
 	}
 
 	public get providers(): Array<string> {
@@ -442,9 +387,7 @@ export class RadonModal extends RadonTemplate {
 		const template = this.buildRadonTemplate(this.providers);
 		return template.homogeneous
 			? template.buildRadonRequest(args)
-			: template.buildRadonRequest(
-					template.sources.map((source) => args.slice(0, source.argsCount)),
-				);
+			: template.buildRadonRequest(template.sources.map((source) => args.slice(0, source.argsCount)));
 	}
 
 	public buildRadonTemplate(providers?: Array<string>): RadonTemplate {
@@ -500,17 +443,12 @@ export class RadonRetrieval {
 		},
 		samples?: Record<string, string[]>,
 	) {
-		if (
-			specs.method === retrievals.Methods.RNG &&
-			(specs?.url || specs?.headers?.size || specs?.body)
-		) {
+		if (specs.method === retrievals.Methods.RNG && (specs?.url || specs?.headers?.size || specs?.body)) {
 			throw TypeError("RadonRetrieval: RNG accepts no URLs or headers");
 			// } else if (!specs?.url && (method == Methods.HttpPost || method == Methods.HttpGet)) {
 			//     throw TypeError("RadonRetrieval: URL must be specified");
 		} else if (specs?.body && specs.method === retrievals.Methods.HttpGet) {
-			throw TypeError(
-				"RadonRetrieval: body cannot be specified in HTTP-GET queries",
-			);
+			throw TypeError("RadonRetrieval: body cannot be specified in HTTP-GET queries");
 		}
 		this.method = specs.method;
 		if (specs?.url) {
@@ -533,9 +471,7 @@ export class RadonRetrieval {
 		}
 		if (specs?.headers) {
 			if (typeof specs.headers !== "object" || Array.isArray(specs.headers)) {
-				throw new TypeError(
-					"RadonRetrieval: HTTP headers must be of type Record<string, string>",
-				);
+				throw new TypeError("RadonRetrieval: HTTP headers must be of type Record<string, string>");
 			}
 			this.headers = specs?.headers;
 		}
@@ -544,25 +480,17 @@ export class RadonRetrieval {
 		this.argsCount = Math.max(
 			getWildcardsCountFromString(this?.url),
 			getWildcardsCountFromString(this?.body),
-			...(Object.keys(this?.headers || {}).map((key) =>
-				getWildcardsCountFromString(key),
-			) ?? []),
-			...(Object.values(this?.headers || {}).map((value) =>
-				getWildcardsCountFromString(value),
-			) ?? []),
+			...(Object.keys(this?.headers || {}).map((key) => getWildcardsCountFromString(key)) ?? []),
+			...(Object.values(this?.headers || {}).map((value) => getWildcardsCountFromString(value)) ?? []),
 			this.script?.argsCount() || 0,
 		);
 		if (samples && this.argsCount === 0) {
-			throw new TypeError(
-				"RadonRetrieval: passed samples to non-parameterized retrieval.",
-			);
+			throw new TypeError("RadonRetrieval: passed samples to non-parameterized retrieval.");
 		}
 		this.samples = samples;
 		if (specs?.argsKeys) {
 			if (this.argsCount === 0) {
-				throw new TypeError(
-					"RadonRetrieval: passed args keys to non-parameterized retrieval",
-				);
+				throw new TypeError("RadonRetrieval: passed args keys to non-parameterized retrieval");
 			} else if (specs.argsKeys.length !== this.argsCount) {
 				throw new TypeError(
 					`RadonRetrieval: passed invalid number of args keys: ${specs.argsKeys.length} != ${this.argsCount}`,
@@ -573,10 +501,7 @@ export class RadonRetrieval {
 	}
 
 	public isModal(): boolean {
-		return (
-			this.method !== retrievals.Methods.RNG &&
-			(!this.url || this.url === "\\0\\")
-		);
+		return this.method !== retrievals.Methods.RNG && (!this.url || this.url === "\\0\\");
 	}
 
 	public isParameterized(): boolean {
@@ -594,22 +519,16 @@ export class RadonRetrieval {
 		const params: string[] = [];
 		if (Array.isArray(args)) {
 			if ((args as any[]).length > this.argsCount) {
-				throw new TypeError(
-					`RadonRetrieval: too may args passed: ${args.length} > ${this.argsCount}`,
-				);
+				throw new TypeError(`RadonRetrieval: too may args passed: ${args.length} > ${this.argsCount}`);
 			}
 			params.push(...(args as string[]));
 		} else if (typeof args === "object") {
 			if (!this.argsKeys) {
-				throw new TypeError(
-					`RadonRetrieval: unexpected args map: undefined args keys.`,
-				);
+				throw new TypeError(`RadonRetrieval: unexpected args map: undefined args keys.`);
 			} else {
 				this.argsKeys.forEach((key) => {
 					if (!args[key]) {
-						throw new TypeError(
-							`RadonRetrieval: missing value for parameter "${key}".`,
-						);
+						throw new TypeError(`RadonRetrieval: missing value for parameter "${key}".`);
 					}
 					params.push(args[key] as string);
 				});
@@ -652,9 +571,7 @@ export class RadonRetrieval {
 			});
 		} else {
 			if (this.argsCount === 0) {
-				throw new TypeError(
-					`RadonRetrieval: cannot spawn from unparameterized retrieval`,
-				);
+				throw new TypeError(`RadonRetrieval: cannot spawn from unparameterized retrieval`);
 			}
 			values.forEach((value) => {
 				_spawned.push(
@@ -663,12 +580,10 @@ export class RadonRetrieval {
 						url: spliceWildcard(this.url, 0, value, this.argsCount),
 						body: spliceWildcard(this.body, 0, value, this.argsCount),
 						headers: Object.fromEntries(
-							Object.entries(this.headers || {}).map(
-								([headerKey, headerValue]) => [
-									spliceWildcard(headerKey, 0, value, this.argsCount),
-									spliceWildcard(headerValue, 0, value, this.argsCount),
-								],
-							),
+							Object.entries(this.headers || {}).map(([headerKey, headerValue]) => [
+								spliceWildcard(headerKey, 0, value, this.argsCount),
+								spliceWildcard(headerValue, 0, value, this.argsCount),
+							]),
 						),
 						script: this.script?.spliceWildcard(0, value),
 						argsKeys: this.argsKeys?.slice(1),
@@ -695,9 +610,7 @@ export class RadonRetrieval {
 				json.body = this.body;
 			}
 		}
-		json.script = humanize
-			? this.script?.toString()
-			: Array.from(fromHexString(this.script?.toBytecode() || "0x80"));
+		json.script = humanize ? this.script?.toString() : Array.from(fromHexString(this.script?.toBytecode() || "0x80"));
 		return json;
 	}
 
@@ -707,22 +620,18 @@ export class RadonRetrieval {
 		};
 		if (this.url) protobuf.url = this.url;
 		if (this.headers) {
-			protobuf.headers = Object.entries(this.headers).map(
-				([headerKey, headerValue]) => {
-					return {
-						left: headerKey,
-						right: headerValue,
-					};
-				},
-			);
+			protobuf.headers = Object.entries(this.headers).map(([headerKey, headerValue]) => {
+				return {
+					left: headerKey,
+					right: headerValue,
+				};
+			});
 		}
 		if (this.body) {
 			const utf8Array = toUtf8Array(this.body);
 			protobuf.body = utf8Array;
 		}
-		protobuf.script = Object.values(
-			Uint8Array.from(cbor.encode(this.script?.encode() || [])),
-		);
+		protobuf.script = Object.values(Uint8Array.from(cbor.encode(this.script?.encode() || [])));
 		return protobuf;
 	}
 
@@ -732,9 +641,7 @@ export class RadonRetrieval {
 
 	protected _countOps(items: any[]): number {
 		return items.length > 0
-			? items
-					.map((item) => (Array.isArray(item) ? this._countOps(item) : 1))
-					.reduce((sum, a) => sum + a)
+			? items.map((item) => (Array.isArray(item) ? this._countOps(item) : 1)).reduce((sum, a) => sum + a)
 			: 0;
 	}
 }
@@ -781,9 +688,7 @@ import * as ccdr from "./ccdr/index.js";
 export namespace retrievals {
 	export const rpc = ccdr;
 
-	export function fromRadonAssets(
-		assets: Object,
-	): Record<string, RadonRetrieval> {
+	export function fromRadonAssets(assets: Object): Record<string, RadonRetrieval> {
 		return new Proxy(assets, proxyHandler(RadonRetrieval));
 	}
 
@@ -802,10 +707,7 @@ export namespace retrievals {
 	 **/
 	export function RNG(script?: RadonAny) {
 		const retrieval = new RadonRetrieval({ method: Methods.RNG, script });
-		if (
-			retrieval?.script &&
-			retrieval?.script?.inputType?.constructor.name !== "RadonBytes"
-		) {
+		if (retrieval?.script && retrieval?.script?.inputType?.constructor.name !== "RadonBytes") {
 			throw new TypeError("RNG scripts require [RadonBytes] as input type");
 		}
 		return retrieval;
@@ -1028,9 +930,7 @@ function proxyHandler<T>(t: { new (specs: any): T }) {
 			//     throw EvalError(`['${prop}'] was not found in dictionary`)
 			// } else
 			if (found && !(found instanceof t)) {
-				throw TypeError(
-					`['${prop}'] was found with type ${found?.constructor?.name} instead of ${t.name}!`,
-				);
+				throw TypeError(`['${prop}'] was found with type ${found?.constructor?.name} instead of ${t.name}!`);
 			}
 			return found;
 		},

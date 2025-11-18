@@ -7,16 +7,10 @@ const require = createRequire(import.meta.url);
 import protobuf from "protobufjs";
 
 const { Root: ProtoRoot } = protobuf;
-const protoRoot = ProtoRoot.fromJSON(
-	require("../../../witnet/witnet.proto.json"),
-);
+const protoRoot = ProtoRoot.fromJSON(require("../../../witnet/witnet.proto.json"));
 const protoBuf = protoRoot.lookupType("ConsensusConstants");
 
-import {
-	PublicKey,
-	type PublicKeyHashString,
-	type TransactionReceipt,
-} from "../crypto/types.js";
+import { PublicKey, type PublicKeyHashString, type TransactionReceipt } from "../crypto/types.js";
 import type { Epoch, Hash, Network, UtxoMetadata } from "../types.js";
 import * as utils from "../utils.js";
 
@@ -49,10 +43,7 @@ export interface IJsonRpcProvider {
 	network?: Network;
 	networkId?: number;
 
-	blocks(
-		since: Epoch,
-		limit: number,
-	): Promise<Array<[number, Hash /*, PublicKeyHashString*/]>>;
+	blocks(since: Epoch, limit: number): Promise<Array<[number, Hash /*, PublicKeyHashString*/]>>;
 	constants(): Promise<ConsensusConstants>;
 	holders(limit?: number): Promise<Record<PublicKeyHashString, Balance2>>;
 	mempool(): Promise<Mempool>;
@@ -120,9 +111,7 @@ export class JsonRpcProvider implements IJsonRpcProvider {
 	 * on the environment.
 	 */
 	static async fromEnv(url?: string): Promise<JsonRpcProvider> {
-		return JsonRpcProvider.fromURL(
-			url || process.env.WITNET_SDK_PROVIDER_URL || "https://rpc-01.witnet.io",
-		);
+		return JsonRpcProvider.fromURL(url || process.env.WITNET_SDK_PROVIDER_URL || "https://rpc-01.witnet.io");
 	}
 
 	/**
@@ -141,16 +130,12 @@ export class JsonRpcProvider implements IJsonRpcProvider {
 			urls.forEach((url) => {
 				const [schema] = utils.parseURL(url);
 				if (!schema.startsWith("http://") && !schema.startsWith("https://")) {
-					throw Error(
-						`Witnet.JsonRpcProvider: unsupported URL schema ${schema}`,
-					);
+					throw Error(`Witnet.JsonRpcProvider: unsupported URL schema ${schema}`);
 				}
 			});
 			this.endpoints = urls;
 		} else {
-			this.endpoints.push(
-				process.env.WITNET_SDK_PROVIDER_URL || "https://rpc-01.witnet.io",
-			);
+			this.endpoints.push(process.env.WITNET_SDK_PROVIDER_URL || "https://rpc-01.witnet.io");
 		}
 		this._headers = new AxiosHeaders({
 			"Content-Type": "application/json",
@@ -159,9 +144,7 @@ export class JsonRpcProvider implements IJsonRpcProvider {
 
 	public get network(): Network | undefined {
 		if (this._constants) {
-			return this._constants.bootstrapping_committee[0].startsWith("wit")
-				? "mainnet"
-				: "testnet";
+			return this._constants.bootstrapping_committee[0].startsWith("wit") ? "mainnet" : "testnet";
 		} else {
 			return undefined;
 		}
@@ -179,8 +162,7 @@ export class JsonRpcProvider implements IJsonRpcProvider {
 			obj.checkpointsPeriod = this._constants.checkpoints_period;
 			obj.collateralAge = this._constants.collateral_age;
 			obj.collateralMinimum = this._constants.collateral_minimum;
-			obj.epochsWithMinimumDifficulty =
-				this._constants.epochs_with_minimum_difficulty;
+			obj.epochsWithMinimumDifficulty = this._constants.epochs_with_minimum_difficulty;
 			obj.extraRounds = this._constants.extra_rounds;
 			obj.genesisHash = {
 				SHA256: Array.from(utils.fromHexString(this._constants.genesis_hash)),
@@ -189,23 +171,17 @@ export class JsonRpcProvider implements IJsonRpcProvider {
 			obj.initialBlockReward = this._constants.initial_block_reward;
 			obj.maxDrWeight = this._constants.max_dr_weight;
 			obj.maxVtWeight = this._constants.max_vt_weight;
-			if (this._constants.minimum_difficulty > 0)
-				obj.minimumDifficulty = this._constants.minimum_difficulty;
+			if (this._constants.minimum_difficulty > 0) obj.minimumDifficulty = this._constants.minimum_difficulty;
 			obj.miningBackupFactor = this._constants.mining_backup_factor;
 			obj.miningReplicationFactor = this._constants.mining_replication_factor;
-			obj.reputationExpireAlphaDiff =
-				this._constants.reputation_expire_alpha_diff;
+			obj.reputationExpireAlphaDiff = this._constants.reputation_expire_alpha_diff;
 			obj.reputationIssuance = this._constants.reputation_issuance;
 			obj.reputationIssuanceStop = this._constants.reputation_issuance_stop;
-			obj.reputationPenalizationFactor =
-				this._constants.reputation_penalization_factor;
-			obj.superblockCommitteeDecreasingPeriod =
-				this._constants.superblock_committee_decreasing_period;
-			obj.superblockCommitteeDecreasingStep =
-				this._constants.superblock_committee_decreasing_step;
+			obj.reputationPenalizationFactor = this._constants.reputation_penalization_factor;
+			obj.superblockCommitteeDecreasingPeriod = this._constants.superblock_committee_decreasing_period;
+			obj.superblockCommitteeDecreasingStep = this._constants.superblock_committee_decreasing_step;
 			obj.superblockPeriod = this._constants.superblock_period;
-			obj.superblockSigningCommitteeSize =
-				this._constants.superblock_signing_committee_size;
+			obj.superblockSigningCommitteeSize = this._constants.superblock_signing_committee_size;
 			const message = protoBuf.fromObject(obj);
 			const buffer = protoBuf.encode(message).finish();
 			const hash = utils.toHexString(utils.sha256(buffer));
@@ -219,10 +195,7 @@ export class JsonRpcProvider implements IJsonRpcProvider {
 		return this.endpoints[Math.floor(Math.random() * this.endpoints.length)];
 	}
 
-	protected async callApiMethod<T>(
-		method: string,
-		params?: Array<any> | any,
-	): Promise<Error | any> {
+	protected async callApiMethod<T>(method: string, params?: Array<any> | any): Promise<Error | any> {
 		const url = this.nextURL();
 		return axios
 			.post(
@@ -240,11 +213,7 @@ export class JsonRpcProvider implements IJsonRpcProvider {
 			)
 			.then((response: any) => {
 				if (response?.error || response?.data?.error) {
-					throw new JsonRpcProviderError(
-						method,
-						params,
-						response?.error || response?.data?.error,
-					);
+					throw new JsonRpcProviderError(method, params, response?.error || response?.data?.error);
 				} else return response?.data?.result as T;
 			});
 	}
@@ -256,44 +225,32 @@ export class JsonRpcProvider implements IJsonRpcProvider {
 	 * @param {number} since - First epoch for which to return block hashes. If negative, return block hashes from the last n epochs.
 	 * @param {number} limit - Number of block hashes to return. If negative, return the last n block hashes from this epoch range.
 	 */
-	public async blocks(
-		since: number = -1,
-		limit: number = 1,
-	): Promise<Array<[number, Hash]>> {
-		return this.callApiMethod<[number, Hash]>(Methods.GetBlockChain, [
-			since,
-			limit,
-		]);
+	public async blocks(since: number = -1, limit: number = 1): Promise<Array<[number, Hash]>> {
+		return this.callApiMethod<[number, Hash]>(Methods.GetBlockChain, [since, limit]);
 	}
 
 	/// Get consensus constants used by the node
 	public async constants(): Promise<ConsensusConstants> {
 		if (!this._constants) {
-			return this.callApiMethod<ConsensusConstants>(
-				Methods.GetConsensusConstants,
-			).then((constants: ConsensusConstants) => {
-				this._constants = constants;
-				return constants;
-			});
+			return this.callApiMethod<ConsensusConstants>(Methods.GetConsensusConstants).then(
+				(constants: ConsensusConstants) => {
+					this._constants = constants;
+					return constants;
+				},
+			);
 		} else {
 			return this._constants;
 		}
 	}
 
 	/// Get limited list of currently top holders, as known by the provider.
-	public async holders(
-		minBalance = 0,
-		maxBalance?: number,
-	): Promise<Record<PublicKeyHashString, Balance2>> {
-		return this.callApiMethod<Record<PublicKeyHashString, Balance>>(
-			Methods.GetBalance2,
-			{
-				all: {
-					minBalance,
-					...(maxBalance ? { maxBalance } : {}),
-				},
+	public async holders(minBalance = 0, maxBalance?: number): Promise<Record<PublicKeyHashString, Balance2>> {
+		return this.callApiMethod<Record<PublicKeyHashString, Balance>>(Methods.GetBalance2, {
+			all: {
+				minBalance,
+				...(maxBalance ? { maxBalance } : {}),
 			},
-		).then((balances: Record<PublicKeyHashString, Balance2>) => {
+		}).then((balances: Record<PublicKeyHashString, Balance2>) => {
 			const reverseCompare = (a: Balance2, b: Balance2) => {
 				const a_tot = a.locked + a.unlocked + a.staked;
 				const b_tot = b.locked + b.unlocked + b.staked;
@@ -302,9 +259,8 @@ export class JsonRpcProvider implements IJsonRpcProvider {
 				else return 0;
 			};
 			return Object.fromEntries(
-				Object.entries(balances).sort(
-					(a: (string | Balance2)[], b: (string | Balance2)[]) =>
-						reverseCompare(a[1] as Balance2, b[1] as Balance2),
+				Object.entries(balances).sort((a: (string | Balance2)[], b: (string | Balance2)[]) =>
+					reverseCompare(a[1] as Balance2, b[1] as Balance2),
 				),
 			);
 		});
@@ -331,25 +287,14 @@ export class JsonRpcProvider implements IJsonRpcProvider {
 	}
 
 	/// Get a full list of staking powers ordered by rank
-	public async powers(
-		query?: QueryStakingPowers,
-	): Promise<Array<StakingPower>> {
-		return this.callApiMethod<Array<StakingPower>>(
-			Methods.QueryStakingPowers,
-			query,
-		);
+	public async powers(query?: QueryStakingPowers): Promise<Array<StakingPower>> {
+		return this.callApiMethod<Array<StakingPower>>(Methods.QueryStakingPowers, query);
 	}
 
 	/// Get a full list of current stake entries  Query the amount of nanowits staked by an address.
 	public async stakes(query?: QueryStakes): Promise<Array<StakeEntry>> {
-		return this.callApiMethod<Array<StakeEntry>>(
-			Methods.QueryStakes,
-			query,
-		).catch((err) => {
-			if (
-				err?.error?.message &&
-				err.error.message.indexOf("not registered") > -1
-			) {
+		return this.callApiMethod<Array<StakeEntry>>(Methods.QueryStakes, query).catch((err) => {
+			if (err?.error?.message && err.error.message.indexOf("not registered") > -1) {
 				return [];
 			} else {
 				throw err;
@@ -383,29 +328,22 @@ export class JsonRpcProvider implements IJsonRpcProvider {
 			})
 			.then((blocks) => {
 				const validators: Array<PublicKeyHashString> = [];
-				blocks.map((block) => {
-					const pkh = PublicKey.fromProtobuf(block.block_sig.public_key)
-						.hash()
-						.toBech32(this.network);
+				blocks.forEach((block) => {
+					const pkh = PublicKey.fromProtobuf(block.block_sig.public_key).hash().toBech32(this.network);
 					if (!validators.includes(pkh)) validators.push(pkh);
 				});
-				return Math.min(
-					validators.length,
-					Math.floor(this.network === "testnet" ? census / 2 : census / 4),
-				);
+				return Math.min(validators.length, Math.floor(this.network === "testnet" ? census / 2 : census / 4));
 			});
 	}
 
 	/// ---------------------------------------------------------------------------------------------------------------
 	/// Get balance
 	public async getBalance(pkh: PublicKeyHashString): Promise<Balance2> {
-		return this.callApiMethod<Balance2>(Methods.GetBalance2, { pkh }).then(
-			(balance: Balance2) => ({
-				locked: BigInt(balance.locked),
-				staked: BigInt(balance.staked),
-				unlocked: BigInt(balance.unlocked),
-			}),
-		);
+		return this.callApiMethod<Balance2>(Methods.GetBalance2, { pkh }).then((balance: Balance2) => ({
+			locked: BigInt(balance.locked),
+			staked: BigInt(balance.staked),
+			unlocked: BigInt(balance.unlocked),
+		}));
 	}
 
 	/**
@@ -413,14 +351,8 @@ export class JsonRpcProvider implements IJsonRpcProvider {
 	 * @param {Hash} blockHash - Hash of the block that we are querying.
 	 * @param {boolean} showTransactionHash - Whether to include an extra field containing array of transaction hashes.
 	 */
-	public async getBlock(
-		blockHash: Hash,
-		showTransactionHash = false,
-	): Promise<Block> {
-		return this.callApiMethod<Block>(Methods.GetBlock, [
-			blockHash,
-			showTransactionHash,
-		]);
+	public async getBlock(blockHash: Hash, showTransactionHash = false): Promise<Block> {
+		return this.callApiMethod<Block>(Methods.GetBlock, [blockHash, showTransactionHash]);
 	}
 
 	public async getDataRequest(
@@ -428,9 +360,7 @@ export class JsonRpcProvider implements IJsonRpcProvider {
 		mode?: GetDataRequestMode,
 		force = false,
 	): Promise<GetDataRequestFullReport | GetDataRequestEtherealReport> {
-		return this.callApiMethod<
-			GetDataRequestFullReport | GetDataRequestEtherealReport
-		>(Methods.GetDataRequest, {
+		return this.callApiMethod<GetDataRequestFullReport | GetDataRequestEtherealReport>(Methods.GetDataRequest, {
 			hash: drTxHash,
 			mode: mode || "full",
 			force,
@@ -445,14 +375,10 @@ export class JsonRpcProvider implements IJsonRpcProvider {
 	}
 
 	public async getTransaction(txHash: Hash): Promise<TransactionReport> {
-		return this.callApiMethod<TransactionReport>(Methods.GetTransaction, [
-			txHash,
-		]);
+		return this.callApiMethod<TransactionReport>(Methods.GetTransaction, [txHash]);
 	}
 
-	public async getTransactionReceipt(
-		txHash: Hash,
-	): Promise<TransactionReceipt> {
+	public async getTransactionReceipt(txHash: Hash): Promise<TransactionReceipt> {
 		// todo: fetch/update receipt from provider, if not cached
 		return JsonRpcProvider.receipts[txHash];
 	}
@@ -465,22 +391,16 @@ export class JsonRpcProvider implements IJsonRpcProvider {
 		if (filter) {
 			filter.minValue = filter?.minValue?.toString() ?? "0";
 		}
-		return this.callApiMethod<UtxoInfo>(Methods.GetUtxoInfo, [
-			pkh,
-			...(filter ? [filter] : []),
-		]).then((result: UtxoInfo) =>
-			result.utxos.map((utxo: UtxoMetadata) => ({
-				...utxo,
-				value: BigInt(utxo.value),
-			})),
+		return this.callApiMethod<UtxoInfo>(Methods.GetUtxoInfo, [pkh, ...(filter ? [filter] : [])]).then(
+			(result: UtxoInfo) =>
+				result.utxos.map((utxo: UtxoMetadata) => ({
+					...utxo,
+					value: BigInt(utxo.value),
+				})),
 		);
 	}
 
-	public async getValueTransfer(
-		txHash: Hash,
-		mode?: string,
-		force = false,
-	): Promise<any> {
+	public async getValueTransfer(txHash: Hash, mode?: string, force = false): Promise<any> {
 		return this.callApiMethod<any>(Methods.GetValueTransfer, {
 			hash: txHash,
 			mode: mode,
@@ -505,11 +425,7 @@ export class JsonRpcProvider implements IJsonRpcProvider {
 		}).then(async (entries) =>
 			Promise.all(
 				entries.map((entry: any[]) => {
-					return this.getDataRequest(
-						entry[1],
-						options?.mode || "ethereal",
-						true,
-					);
+					return this.getDataRequest(entry[1], options?.mode || "ethereal", true);
 				}),
 			),
 		);

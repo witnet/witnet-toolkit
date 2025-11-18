@@ -15,11 +15,7 @@ module.exports = {
 					sources: [
 						retrievals.HttpGet({
 							url: "https://api.mexc.com/api/v3/ticker/price?symbol=WITUSDT",
-							script: RadonScript(types.RadonString)
-								.parseJSONMap()
-								.getFloat("price")
-								.multiply(1e6)
-								.round(),
+							script: RadonScript(types.RadonString).parseJSONMap().getFloat("price").multiply(1e6).round(),
 						}),
 					],
 					sourcesReducer: reducers.Median(filters.Stdev(1.4)),
@@ -29,11 +25,7 @@ module.exports = {
 					sources: [
 						retrievals.HttpGet({
 							url: "https://api.mexc.com/api/v3/ticker/price?symbol=WITUSDT",
-							script: RadonScript(types.RadonString)
-								.parseJSONMap()
-								.getFloat("price")
-								.multiply(1e6)
-								.round(),
+							script: RadonScript(types.RadonString).parseJSONMap().getFloat("price").multiply(1e6).round(),
 						}),
 					],
 					sourcesReducer: reducers.Median(filters.Stdev(1.4)),

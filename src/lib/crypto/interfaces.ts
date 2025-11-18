@@ -46,17 +46,10 @@ export interface ILedger {
 		included: Array<Utxo>;
 	};
 	consumeUtxos(...utxos: Array<Utxo>): any;
-	selectUtxos(specs?: {
-		value?: Coins;
-		reload?: boolean;
-		strategy?: UtxoSelectionStrategy;
-	}): Promise<Array<Utxo>>;
+	selectUtxos(specs?: { value?: Coins; reload?: boolean; strategy?: UtxoSelectionStrategy }): Promise<Array<Utxo>>;
 
 	getBalance(): Promise<Balance>;
-	getDelegatees(
-		order?: QueryStakesOrder,
-		leftJoin?: boolean,
-	): Promise<Array<StakeEntry>>;
+	getDelegatees(order?: QueryStakesOrder, leftJoin?: boolean): Promise<Array<StakeEntry>>;
 	getSigner(pkh?: PublicKeyHashString): ISigner | undefined;
 	getUtxos(specs?: any): Promise<Array<Utxo>>;
 }
@@ -123,7 +116,6 @@ export interface ITransactionPayload<Specs> extends IHashable {
 	validateTarget(target?: Specs): Specs | undefined;
 }
 
-export interface ITransactionPayloadMultiSig<Specs>
-	extends ITransactionPayload<Specs> {
+export interface ITransactionPayloadMultiSig<Specs> extends ITransactionPayload<Specs> {
 	inputs: Array<Utxo>;
 }

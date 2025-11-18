@@ -1,9 +1,4 @@
-import {
-	checkRpcWildcards,
-	isHexString,
-	isHexStringOfLength,
-	isWildcard,
-} from "../../../bin/helpers.js";
+import { checkRpcWildcards, isHexString, isHexStringOfLength, isWildcard } from "../../../bin/helpers.js";
 
 import type {
 	// CrossChainRPC,
@@ -54,12 +49,7 @@ export const call = (tx: {
 	if (tx?.from && !isHexStringOfLength(tx?.from, 20) && !isWildcard(tx?.from)) {
 		throw new TypeError("rpc.eth.call: invalid 'from' address");
 	}
-	if (
-		tx?.gas &&
-		!Number.isInteger(tx.gas) &&
-		!isHexStringOfLength(tx.gas, 32) &&
-		!isWildcard(tx.gas)
-	) {
+	if (tx?.gas && !Number.isInteger(tx.gas) && !isHexStringOfLength(tx.gas, 32) && !isWildcard(tx.gas)) {
 		throw new TypeError("rpc.eth.call: invalid 'gas' value");
 	}
 	if (
@@ -70,12 +60,7 @@ export const call = (tx: {
 	) {
 		throw new TypeError("rpc.eth.call: invalid 'gasPrice' value");
 	}
-	if (
-		tx?.value &&
-		!Number.isInteger(tx.value) &&
-		!isHexStringOfLength(tx.value, 32) &&
-		!isWildcard(tx.value)
-	) {
+	if (tx?.value && !Number.isInteger(tx.value) && !isHexStringOfLength(tx.value, 32) && !isWildcard(tx.value)) {
 		throw new TypeError("rpc.eth.call: invalid transaction 'value'");
 	}
 	if (tx?.data && !isHexString(tx.data) && !isWildcard(tx.data)) {
@@ -107,12 +92,7 @@ export const estimateGas = (tx: {
 	if (tx?.from && !isHexStringOfLength(tx?.from, 20) && !isWildcard(tx?.from)) {
 		throw new TypeError("rpc.eth.estimateGas: invalid 'from' address");
 	}
-	if (
-		tx?.gas &&
-		!Number.isInteger(tx.gas) &&
-		!isHexStringOfLength(tx.gas, 32) &&
-		!isWildcard(tx.gas)
-	) {
+	if (tx?.gas && !Number.isInteger(tx.gas) && !isHexStringOfLength(tx.gas, 32) && !isWildcard(tx.gas)) {
 		throw new TypeError("rpc.eth.estimateGas: invalid 'gas' value");
 	}
 	if (
@@ -123,12 +103,7 @@ export const estimateGas = (tx: {
 	) {
 		throw new TypeError("rpc.eth.estimateGas: invalid 'gasPrice' value");
 	}
-	if (
-		tx?.value &&
-		!Number.isInteger(tx.value) &&
-		!isHexStringOfLength(tx.value, 32) &&
-		!isWildcard(tx.value)
-	) {
+	if (tx?.value && !Number.isInteger(tx.value) && !isHexStringOfLength(tx.value, 32) && !isWildcard(tx.value)) {
 		throw new TypeError("rpc.eth.estimateGas: invalid transaction 'value'");
 	}
 	if (tx?.data && !isHexString(tx.data) && !isWildcard(tx.data)) {
@@ -144,10 +119,7 @@ export const estimateGas = (tx: {
  * Retrieve the balance of the account of given address.
  * @param address Web3 address on remote EVM chain.
  */
-export const getBalance = (
-	address: EthAddress | Wildcard,
-	block?: EthBlockHead | Wildcard,
-) => {
+export const getBalance = (address: EthAddress | Wildcard, block?: EthBlockHead | Wildcard) => {
 	checkRpcWildcards([address, block]);
 	if (!isHexStringOfLength(address, 20) && !isWildcard(address)) {
 		throw new TypeError("rpc.eth.getBalance: invalid Web3 address format");
@@ -192,27 +164,21 @@ export const getLogs = (filter: {
 		if (!_isBlockHead(filter?.fromBlock)) {
 			throw new TypeError("rpc.eth.getLogs: invalid 'fromBlock' value");
 		} else if (typeof filter?.fromBlock === "number") {
-			filter.fromBlock =
-				`0x${(filter?.fromBlock as number).toString(16)}` as EthBlockHead;
+			filter.fromBlock = `0x${(filter?.fromBlock as number).toString(16)}` as EthBlockHead;
 		}
 	}
 	if (filter?.toBlock) {
 		if (!_isBlockHead(filter?.toBlock)) {
 			throw new TypeError("rpc.eth.getLogs: invalid 'toBlock' value");
 		} else if (typeof filter?.toBlock === "number") {
-			filter.toBlock =
-				`0x${(filter?.toBlock as number).toString(16)}` as EthBlockHead;
+			filter.toBlock = `0x${(filter?.toBlock as number).toString(16)}` as EthBlockHead;
 		}
 	}
-	if (
-		filter?.blockHash &&
-		!isHexStringOfLength(filter.blockHash, 32) &&
-		!isWildcard(filter.blockHash)
-	) {
+	if (filter?.blockHash && !isHexStringOfLength(filter.blockHash, 32) && !isWildcard(filter.blockHash)) {
 		throw new TypeError("rpc.eth.getLogs: invalid 'blockHash' value");
 	}
 	if (filter?.topics) {
-		filter.topics.map((value: Bytes32, index: number) => {
+		filter.topics.forEach((value: Bytes32, index: number) => {
 			if (!isHexStringOfLength(value, 32) && !isWildcard(value)) {
 				throw new TypeError(`rpc.eth.getLogs: topic #${index}: invalid hash`);
 			}
@@ -234,10 +200,7 @@ export const gasPrice = () => ({ method: "eth_gasPrice" });
  * @param address EthAddress of the storage.
  * @param offset Offset within storage address.
  */
-export const getStorageAt = (
-	address: EthAddress | Wildcard,
-	offset: Bytes32 | Wildcard,
-) => {
+export const getStorageAt = (address: EthAddress | Wildcard, offset: Bytes32 | Wildcard) => {
 	checkRpcWildcards([address, offset]);
 	if (!isHexStringOfLength(address, 20) && !isWildcard(address)) {
 		throw new TypeError("rpc.eth.getStorageAt: invalid Web3 address format");
@@ -261,18 +224,10 @@ export const getTransactionByBlockHashAndIndex = (
 ) => {
 	checkRpcWildcards([blockHash, txIndex]);
 	if (!isHexStringOfLength(blockHash, 32) && !isWildcard(blockHash)) {
-		throw new TypeError(
-			"rpc.eth.getTransactionByBlockHashAndIndex: invalid block hash value",
-		);
+		throw new TypeError("rpc.eth.getTransactionByBlockHashAndIndex: invalid block hash value");
 	}
-	if (
-		!Number.isInteger(txIndex) &&
-		!isHexStringOfLength(txIndex, 32) &&
-		!isWildcard(txIndex)
-	) {
-		throw new TypeError(
-			"rpc.eth.getTransactionByBlockHashAndIndex: invalid transaction index value",
-		);
+	if (!Number.isInteger(txIndex) && !isHexStringOfLength(txIndex, 32) && !isWildcard(txIndex)) {
+		throw new TypeError("rpc.eth.getTransactionByBlockHashAndIndex: invalid transaction index value");
 	}
 	return {
 		method: "eth_getTransactionByBlockHashAndIndex",
@@ -290,22 +245,14 @@ export const getTransactionByBlockNumberAndIndex = (
 ) => {
 	checkRpcWildcards([blockNumber, txIndex]);
 	if (!_isBlockHead(blockNumber)) {
-		throw new TypeError(
-			"rpc.eth.getTransactionByBlockNumberAndIndex: invalid block number value",
-		);
+		throw new TypeError("rpc.eth.getTransactionByBlockNumberAndIndex: invalid block number value");
 	} else {
 		if (typeof blockNumber === "number") {
 			blockNumber = `0x${(blockNumber as number).toString(16)}` as EthBlockHead;
 		}
 	}
-	if (
-		!Number.isInteger(txIndex) &&
-		!isHexStringOfLength(txIndex, 32) &&
-		!isWildcard(txIndex)
-	) {
-		throw new TypeError(
-			"rpc.eth.getTransactionByBlockNumberAndIndex: invalid transaction index value",
-		);
+	if (!Number.isInteger(txIndex) && !isHexStringOfLength(txIndex, 32) && !isWildcard(txIndex)) {
+		throw new TypeError("rpc.eth.getTransactionByBlockNumberAndIndex: invalid transaction index value");
 	}
 	return {
 		method: "eth_getTransactionByBlockHashAndIndex",
@@ -320,9 +267,7 @@ export const getTransactionByBlockNumberAndIndex = (
 export const getTransactionByHash = (txHash: Bytes32 | Wildcard) => {
 	checkRpcWildcards(txHash);
 	if (!isHexStringOfLength(txHash, 32) && !isWildcard(txHash)) {
-		throw new TypeError(
-			"rpc.eth.getTransactionByHash: invalid transaction hash value",
-		);
+		throw new TypeError("rpc.eth.getTransactionByHash: invalid transaction hash value");
 	}
 	return {
 		method: "eth_getTransactionByHash",
@@ -337,9 +282,7 @@ export const getTransactionByHash = (txHash: Bytes32 | Wildcard) => {
 export const getTransactionCount = (address: EthAddress | Wildcard) => {
 	checkRpcWildcards(address);
 	if (!isHexStringOfLength(address, 20) && !isWildcard(address)) {
-		throw new TypeError(
-			"rpc.eth.getTransactionCount: invalid Web3 address format",
-		);
+		throw new TypeError("rpc.eth.getTransactionCount: invalid Web3 address format");
 	}
 	return {
 		method: "eth_getTransactionCount",
@@ -354,9 +297,7 @@ export const getTransactionCount = (address: EthAddress | Wildcard) => {
 export const getTransactionReceipt = (txHash: Bytes32 | Wildcard) => {
 	checkRpcWildcards(txHash);
 	if (!isHexStringOfLength(txHash, 32) && !isWildcard(txHash)) {
-		throw new TypeError(
-			"rpc.eth.getTransactionReceipt: invalid transaction hash value",
-		);
+		throw new TypeError("rpc.eth.getTransactionReceipt: invalid transaction hash value");
 	}
 	return {
 		method: "eth_getTransactionReceipt",
@@ -371,9 +312,7 @@ export const getTransactionReceipt = (txHash: Bytes32 | Wildcard) => {
 export const sendRawTransaction = (data: Bytes | Wildcard) => {
 	checkRpcWildcards(data);
 	if (!isHexString(data) && !isWildcard(data)) {
-		throw new TypeError(
-			"rpc.eth.sendRawTransaction: invalid signed transaction data",
-		);
+		throw new TypeError("rpc.eth.sendRawTransaction: invalid signed transaction data");
 	}
 	return {
 		method: "eth_sendRawTransaction",

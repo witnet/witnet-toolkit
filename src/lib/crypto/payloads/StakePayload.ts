@@ -34,11 +34,7 @@ export class StakePayload extends TransactionPayloadMultiSig<StakeDepositParams>
 	}
 
 	public get prepared(): boolean {
-		return (
-			!!this._target &&
-			this._covered >= this._target.value.pedros &&
-			this._inputs.length > 0
-		);
+		return !!this._target && this._covered >= this._target.value.pedros && this._inputs.length > 0;
 	}
 
 	public get value(): Coins {
@@ -46,20 +42,14 @@ export class StakePayload extends TransactionPayloadMultiSig<StakeDepositParams>
 	}
 
 	public get weight(): number {
-		return (
-			TX_WEIGHT_BASE +
-			this._inputs.length * TX_WEIGHT_INPUT_SIZE +
-			this._outputs.length * TX_WEIGHT_OUTPUT_SIZE
-		);
+		return TX_WEIGHT_BASE + this._inputs.length * TX_WEIGHT_INPUT_SIZE + this._outputs.length * TX_WEIGHT_OUTPUT_SIZE;
 	}
 
 	public intoReceipt(target: StakeDepositParams, network?: Network) {
 		return {
 			authorization: target.authorization,
 			withdrawer: target.withdrawer,
-			validator: PublicKeyHash.fromHexString(
-				target.authorization.substring(0, 40),
-			).toBech32(network),
+			validator: PublicKeyHash.fromHexString(target.authorization.substring(0, 40)).toBech32(network),
 		};
 	}
 
@@ -76,9 +66,7 @@ export class StakePayload extends TransactionPayloadMultiSig<StakeDepositParams>
 								PublicKeyHash.fromBech32(this._target.withdrawer).toBytes32(),
 							).toKeyedSignature(),
 							key: {
-								validator: PublicKeyHash.fromHexString(
-									this._target.authorization.substring(0, 40),
-								).toBech32(network),
+								validator: PublicKeyHash.fromHexString(this._target.authorization.substring(0, 40)).toBech32(network),
 								withdrawer: this._target.withdrawer,
 							},
 							value: this._target.value.pedros.toString(),
@@ -119,16 +107,10 @@ export class StakePayload extends TransactionPayloadMultiSig<StakeDepositParams>
 					).toProtobuf(),
 					key: {
 						validator: {
-							hash: Array.from(
-								PublicKeyHash.fromHexString(
-									this._target.authorization.substring(0, 40),
-								).toBytes20(),
-							),
+							hash: Array.from(PublicKeyHash.fromHexString(this._target.authorization.substring(0, 40)).toBytes20()),
 						},
 						withdrawer: {
-							hash: Array.from(
-								PublicKeyHash.fromBech32(this._target.withdrawer).toBytes20(),
-							),
+							hash: Array.from(PublicKeyHash.fromBech32(this._target.withdrawer).toBytes20()),
 						},
 					},
 					value: Long.fromValue(this._target.value.pedros),
@@ -137,9 +119,7 @@ export class StakePayload extends TransactionPayloadMultiSig<StakeDepositParams>
 					? {
 							change: {
 								pkh: {
-									hash: Array.from(
-										PublicKeyHash.fromBech32(this.outputs[0].pkh).toBytes20(),
-									),
+									hash: Array.from(PublicKeyHash.fromBech32(this.outputs[0].pkh).toBytes20()),
 								},
 								value: Long.fromValue(this.outputs[0].value.toString()),
 								// timeLock: 0,
@@ -157,23 +137,18 @@ export class StakePayload extends TransactionPayloadMultiSig<StakeDepositParams>
 				!(
 					target?.authorization &&
 					(!target?.fees ||
-						(target.fees instanceof Coins &&
-							(target.fees as Coins).pedros > 0) ||
+						(target.fees instanceof Coins && (target.fees as Coins).pedros > 0) ||
 						Object.values(TransactionPriority).includes(target.fees)) &&
 					target?.value &&
 					(target.value as Coins).pedros > 0 &&
 					target?.withdrawer
 				)
 			) {
-				throw new TypeError(
-					`${this.constructor.name}: invalid options: ${JSON.stringify(target)}`,
-				);
+				throw new TypeError(`${this.constructor.name}: invalid options: ${JSON.stringify(target)}`);
 			} else {
 				if ((target.value as Coins).pedros < StakePayload.MIN_VALUE) {
 					throw new TypeError(
-						`${this.constructor.name}: value below minimum stake: ${
-							(target.value as Coins).wits
-						} < ${
+						`${this.constructor.name}: value below minimum stake: ${(target.value as Coins).wits} < ${
 							Coins.fromNanowits(BigInt(StakePayload.MIN_VALUE)).wits
 						} $WIT`,
 					);
@@ -182,9 +157,7 @@ export class StakePayload extends TransactionPayloadMultiSig<StakeDepositParams>
 					target.authorization.substring(40),
 					PublicKeyHash.fromBech32(target.withdrawer).toBytes32(),
 				);
-				if (
-					pubKey.hash().toHexString() !== target.authorization.substring(0, 40)
-				) {
+				if (pubKey.hash().toHexString() !== target.authorization.substring(0, 40)) {
 					throw new TypeError(
 						`${this.constructor.name}: authorization code not valid for withdrawer ${target.withdrawer}.`,
 					);
@@ -199,9 +172,7 @@ export class StakePayload extends TransactionPayloadMultiSig<StakeDepositParams>
 	protected _cleanTargetExtras(target?: any): any {
 		if (target) {
 			return Object.fromEntries(
-				Object.entries(target).filter(([key]) =>
-					["authorization", "fees", "value", "withdrawer"].includes(key),
-				),
+				Object.entries(target).filter(([key]) => ["authorization", "fees", "value", "withdrawer"].includes(key)),
 			);
 		}
 	}

@@ -1,12 +1,6 @@
 import * as qrcode from "qrcode-terminal";
 import { Witnet } from "../../../dist/src/index.js";
-import {
-	colors as _colors,
-	commas,
-	prompt,
-	traceChecklists,
-	traceTable,
-} from "../helpers.js";
+import { colors as _colors, commas, prompt, traceChecklists, traceTable } from "../helpers.js";
 
 const {
 	cyan,
@@ -30,8 +24,7 @@ const {
 /// CLI SUBMODULE CONSTANTS ===========================================================================================
 
 export const envars = {
-	WITNET_TOOLKIT_FARM_NODES:
-		"=> URLs to your own nodes' HTTP/JSON private endpoints, if no otherwise specified.",
+	WITNET_TOOLKIT_FARM_NODES: "=> URLs to your own nodes' HTTP/JSON private endpoints, if no otherwise specified.",
 };
 
 export const flags = {
@@ -181,11 +174,7 @@ async function balance(options = {}) {
 						gray(Witnet.Coins.fromNanowits(balance.locked).wits),
 						yellow(Witnet.Coins.fromNanowits(balance.staked).wits),
 						myellow(Witnet.Coins.fromNanowits(balance.unlocked).wits),
-						lyellow(
-							Witnet.Coins.fromNanowits(
-								balance.locked + balance.staked + balance.unlocked,
-							).wits,
-						),
+						lyellow(Witnet.Coins.fromNanowits(balance.locked + balance.staked + balance.unlocked).wits),
 					]),
 		]),
 		{
@@ -244,9 +233,7 @@ async function publicKeys(options = {}) {
 	traceTable(
 		Object.entries(publicKeys).map(([, [pkh, publicKey]]) => [
 			pkh instanceof Error ? red(pkh) : mcyan(pkh),
-			publicKey instanceof Error
-				? mred(publicKey.toString())
-				: cyan(publicKey.toString()),
+			publicKey instanceof Error ? mred(publicKey.toString()) : cyan(publicKey.toString()),
 		]),
 		{
 			headlines: [":Public key hash", "Public key"],
@@ -279,27 +266,15 @@ async function rankings(options = {}) {
 			traceTable(
 				records
 					.filter((record) => validators.includes(record.validator))
-					.map(({ power, ranking, validator, withdrawer }) => [
-						validator,
-						withdrawer,
-						power,
-						ranking,
-					]),
+					.map(({ power, ranking, validator, withdrawer }) => [validator, withdrawer, power, ranking]),
 				{
-					headlines: [
-						"VALIDATORS",
-						"Withdrawer",
-						`${capability} POWER`,
-						"G_RANK",
-					],
+					headlines: ["VALIDATORS", "Withdrawer", `${capability} POWER`, "G_RANK"],
 					humanizers: [undefined, undefined, commas, commas],
 					colors: [lcyan, mmagenta, green, lgreen],
 				},
 			);
 		} else {
-			console.info(
-				`> No ${capability} power is currently treasured on the farm.`,
-			);
+			console.info(`> No ${capability} power is currently treasured on the farm.`);
 		}
 	} else {
 		console.info("> No nodes currently available to interact with.");
@@ -311,9 +286,7 @@ async function rewind(options = {}, args = []) {
 		throw Error("No rewind epoch was provided");
 	}
 	if (!options?.force) {
-		const will = await prompt(
-			"Rewinding will reset some stats. Do you want to proceed anyways? (y/N)",
-		);
+		const will = await prompt("Rewinding will reset some stats. Do you want to proceed anyways? (y/N)");
 		// Abort if not confirmed
 		if (!["y"].includes(will.toLowerCase())) {
 			console.error("Aborted by user.");
@@ -334,25 +307,14 @@ async function stats(options = {}) {
 	traceTable(
 		Object.entries(stats).map(([url, stats]) => [
 			...(stats instanceof Error
-				? [
-						red(url),
-						gray("n/a"),
-						gray("n/a"),
-						gray("n/a"),
-						gray("n/a"),
-						gray("n/a"),
-						gray("n/a"),
-					]
+				? [red(url), gray("n/a"), gray("n/a"), gray("n/a"), gray("n/a"), gray("n/a"), gray("n/a")]
 				: [
 						mcyan(url),
 						stats.block_mined_count,
 						stats.commits_count,
 						(stats.block_mined_count / stats.block_proposed_count).toFixed(3),
 						(stats.commits_count / stats.commits_proposed_count).toFixed(3),
-						(
-							(stats.dr_eligibility_count - stats.commits_proposed_count) /
-							stats.dr_eligibility_count
-						).toFixed(3),
+						((stats.dr_eligibility_count - stats.commits_proposed_count) / stats.dr_eligibility_count).toFixed(3),
 						(stats.slashed_count / stats.commits_count).toFixed(3),
 					]),
 		]),
@@ -380,22 +342,14 @@ async function syncStatus(options) {
 			...(status instanceof Error
 				? [red(status), "", "", ""]
 				: [
-						status.node_state.trim() === "Synced"
-							? mgreen(status.node_state)
-							: myellow(status.node_state),
+						status.node_state.trim() === "Synced" ? mgreen(status.node_state) : myellow(status.node_state),
 						status.current_epoch,
 						status.chain_beacon.checkpoint,
 						status.chain_beacon.hashPrevBlock,
 					]),
 		]),
 		{
-			headlines: [
-				":NODES",
-				":Status",
-				"Current epoch",
-				"Checkpoint epoch",
-				":Checkpoint block hash",
-			],
+			headlines: [":NODES", ":Status", "Current epoch", "Checkpoint epoch", ":Checkpoint block hash"],
 			humanizers: [undefined, undefined, commas, commas],
 			colors: [undefined, undefined, white, undefined, gray], // gray, gray ],
 		},

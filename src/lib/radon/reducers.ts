@@ -24,7 +24,7 @@ export class RadonReducer {
 		Object.defineProperty(this, "toString", {
 			value: () => {
 				let filters = "";
-				this.filters?.map((filter) => {
+				this.filters?.forEach((filter) => {
 					filters = `${filter.toString()}${filters ? `.${filters}` : ""}`;
 				});
 				if (filters) filters = `${filters}.`;

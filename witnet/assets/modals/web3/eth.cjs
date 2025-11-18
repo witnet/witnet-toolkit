@@ -1,9 +1,4 @@
-const {
-	RadonModal,
-	RadonScript,
-	retrievals,
-	types,
-} = require("../../../../dist/src/lib/radon/index.js");
+const { RadonModal, RadonScript, retrievals, types } = require("../../../../dist/src/lib/radon/index.js");
 
 module.exports = {
 	WitOracleEthBlockNumber: new RadonModal({

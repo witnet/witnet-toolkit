@@ -14,8 +14,7 @@ import { utils, Witnet } from "../../../dist/src/index.js";
 import { default as legacy } from "../../../witnet/assets/index.cjs";
 import * as helpers from "../helpers.js";
 
-const WITNET_ASSETS_PATH =
-	process.env.WITNET_SDK_RADON_ASSETS_PATH || "../../../../../witnet/assets";
+const WITNET_ASSETS_PATH = process.env.WITNET_SDK_RADON_ASSETS_PATH || "../../../../../witnet/assets";
 
 /// ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /// CLI SUBMODULE CONSTANTS ===========================================================================================
@@ -175,32 +174,18 @@ async function init() {
 		fs.cpSync("node_modules/@witnet/sdk/.env_witnet", ".env_witnet");
 	}
 	if (!fs.existsSync("./witnet/assets/index.js")) {
-		fs.cpSync(
-			"node_modules/@witnet/sdk/witnet/assets/_index.js",
-			"./witnet/assets/index.js",
-		);
+		fs.cpSync("node_modules/@witnet/sdk/witnet/assets/_index.js", "./witnet/assets/index.js");
 	}
 	if (!fs.existsSync("./witnet/assets/requests.js")) {
-		fs.cpSync(
-			"node_modules/@witnet/sdk/witnet/assets/_requests.js",
-			"./witnet/assets/requests.js",
-		);
+		fs.cpSync("node_modules/@witnet/sdk/witnet/assets/_requests.js", "./witnet/assets/requests.js");
 	}
 	if (!fs.existsSync("./witnet/assets/sources.js")) {
-		fs.cpSync(
-			"node_modules/@witnet/sdk/witnet/assets/_sources.js",
-			"./witnet/assets/sources.js",
-		);
+		fs.cpSync("node_modules/@witnet/sdk/witnet/assets/_sources.js", "./witnet/assets/sources.js");
 	}
 	if (!fs.existsSync("./witnet/assets/templates.js")) {
-		fs.cpSync(
-			"node_modules/@witnet/sdk/witnet/assets/_templates.js",
-			"./witnet/assets/templates.js",
-		);
+		fs.cpSync("node_modules/@witnet/sdk/witnet/assets/_templates.js", "./witnet/assets/templates.js");
 	}
-	console.info(
-		`Initialized Witnet Radon workspace at folder ${process.cwd()}/witnet/assets`,
-	);
+	console.info(`Initialized Witnet Radon workspace at folder ${process.cwd()}/witnet/assets`);
 }
 
 async function assets(options = {}, [...patterns]) {
@@ -266,10 +251,7 @@ async function decode(options = {}, args = []) {
 			traceWitnetRadonRequest(request, options);
 		} catch (err) {
 			console.error(err);
-			if (
-				(asset.startsWith("0x") && asset.length === 66) ||
-				(!asset.startsWith("0x") && asset.length === 64)
-			) {
+			if ((asset.startsWith("0x") && asset.length === 66) || (!asset.startsWith("0x") && asset.length === 64)) {
 				// TODO: assume it's a DR_TX_HASH
 				// TODO: assume it's a RAD_HASH
 			}
@@ -277,9 +259,7 @@ async function decode(options = {}, args = []) {
 	} else {
 		args = args.slice(1);
 
-		const assets = options?.module
-			? require(`${options.module}/assets`)
-			: loadAssets(options);
+		const assets = options?.module ? require(`${options.module}/assets`) : loadAssets(options);
 		const headline = options?.headline;
 		const crafts = flattenRadonArtifacts(assets).filter(
 			(craft) => craft.key.toLowerCase().indexOf(asset.toLowerCase()) >= 0,
@@ -309,10 +289,7 @@ async function decode(options = {}, args = []) {
 				prefix = "RadonTemplate::";
 			} else if (artifact instanceof Witnet.Radon.RadonRetrieval) {
 				if (artifact.argsCount > 0) {
-					const retrievalArgs = Array.from(
-						{ length: artifact.argsCount },
-						(_, i) => `{:${i + 1}}`,
-					);
+					const retrievalArgs = Array.from({ length: artifact.argsCount }, (_, i) => `{:${i + 1}}`);
 					artifact = artifact.foldArgs(retrievalArgs);
 				}
 				artifact = new Witnet.Radon.RadonRequest({ sources: artifact });
@@ -341,18 +318,13 @@ async function dryrun(options = {}, args = []) {
 			const request = Witnet.Radon.RadonRequest.fromBytecode(asset);
 			await traceWitnetRadonRequestDryRun(request, options);
 		} catch {
-			if (
-				(asset.startsWith("0x") && asset.length === 66) ||
-				(!asset.startsWith("0x") && asset.length === 64)
-			) {
+			if ((asset.startsWith("0x") && asset.length === 66) || (!asset.startsWith("0x") && asset.length === 64)) {
 				// TODO: assume it's a RAD_HASH, and try to retrieve the BYTECODE from the Witnet network
 			}
 		}
 	} else {
 		args = args.slice(1);
-		const assets = options?.module
-			? require(`${options.module}/assets`)
-			: loadAssets(options);
+		const assets = options?.module ? require(`${options.module}/assets`) : loadAssets(options);
 		const headline = options?.headline;
 		const crafts = flattenRadonArtifacts(assets).filter(
 			(craft) => craft.key.toLowerCase().indexOf(asset.toLowerCase()) >= 0,
@@ -379,11 +351,7 @@ async function dryrun(options = {}, args = []) {
 					}
 					artifact = artifact.homogeneous
 						? artifact.buildRadonRequest(modalArgs)
-						: artifact.buildRadonRequest([
-								...artifact.sources.map((source) =>
-									modalArgs.slice(0, source.argsCount),
-								),
-							]);
+						: artifact.buildRadonRequest([...artifact.sources.map((source) => modalArgs.slice(0, source.argsCount))]);
 					prefix = "RadonModal::";
 				} else {
 					if (!artifact?.samples) {
@@ -443,9 +411,7 @@ const extractTypeName = (str) =>
 
 const stringifyFilter = (x, c) => {
 	const color = c || helpers.colors.mcyan;
-	return color(
-		`${Witnet.Radon.filters.Opcodes[x.opcode]}(${x.args ? JSON.stringify(x.args) : ""})`,
-	);
+	return color(`${Witnet.Radon.filters.Opcodes[x.opcode]}(${x.args ? JSON.stringify(x.args) : ""})`);
 };
 
 const stringifyReducer = (x, c) => {
@@ -455,9 +421,7 @@ const stringifyReducer = (x, c) => {
 
 export function loadAssets(options) {
 	const assets = options?.legacy ? {} : legacy;
-	return isModuleInitialized
-		? merge(assets, require(`${WITNET_ASSETS_PATH}/index.cjs`))
-		: assets;
+	return isModuleInitialized ? merge(assets, require(`${WITNET_ASSETS_PATH}/index.cjs`)) : assets;
 }
 
 function flattenRadonArtifacts(tree, headers) {
@@ -489,14 +453,7 @@ function countWitnetArtifacts(assets, args, options) {
 			(options?.templates && value instanceof Witnet.Radon.RadonTemplate) ||
 			(options?.retrievals && value instanceof Witnet.Radon.RadonRetrieval) ||
 			(options?.requests && value instanceof Witnet.Radon.RadonRequest);
-		if (
-			!(
-				options?.modals ||
-				options?.templates ||
-				options?.retrievals ||
-				options?.requests
-			)
-		) {
+		if (!(options?.modals || options?.templates || options?.retrievals || options?.requests)) {
 			include =
 				value instanceof Witnet.Radon.RadonModal ||
 				value instanceof Witnet.Radon.RadonRequest ||
@@ -525,32 +482,17 @@ function clearEmptyBranches(node, args, options) {
 				.map(([key, value]) => {
 					let include =
 						(options?.modals && value instanceof Witnet.Radon.RadonModal) ||
-						(options?.templates &&
-							value instanceof Witnet.Radon.RadonTemplate) ||
-						(options?.retrievals &&
-							value instanceof Witnet.Radon.RadonRetrieval) ||
+						(options?.templates && value instanceof Witnet.Radon.RadonTemplate) ||
+						(options?.retrievals && value instanceof Witnet.Radon.RadonRetrieval) ||
 						(options?.requests && value instanceof Witnet.Radon.RadonRequest);
-					if (
-						!(
-							options?.modals ||
-							options?.templates ||
-							options?.retrievals ||
-							options?.requests
-						)
-					) {
+					if (!(options?.modals || options?.templates || options?.retrievals || options?.requests)) {
 						include =
 							value instanceof Witnet.Radon.RadonModal ||
 							value instanceof Witnet.Radon.RadonRequest ||
 							value instanceof Witnet.Radon.RadonTemplate ||
 							value instanceof Witnet.Radon.RadonRetrieval;
 					}
-					if (
-						include &&
-						(!options?.filter ||
-							args.find(
-								(arg) => key.toLowerCase().indexOf(arg.toLowerCase()) >= 0,
-							))
-					) {
+					if (include && (!options?.filter || args.find((arg) => key.toLowerCase().indexOf(arg.toLowerCase()) >= 0))) {
 						return [key, value];
 					} else if (typeof value === "object") {
 						if (countWitnetArtifacts(value, args, options) > 0) {
@@ -576,9 +518,7 @@ function traceWitnetArtifacts(assets, args, indent = "", options) {
 	const prefix = `${indent}`;
 	Object.keys(assets).forEach((key, index) => {
 		const isLast = index === Object.keys(assets).length - 1;
-		const found = args.find(
-			(arg) => key.toLowerCase().indexOf(arg.toLowerCase()) >= 0,
-		);
+		const found = args.find((arg) => key.toLowerCase().indexOf(arg.toLowerCase()) >= 0);
 		const color = found ? helpers.colors.mcyan : helpers.colors.cyan;
 		if (assets[key] instanceof Witnet.Radon.RadonRequest) {
 			if (!options?.filter || found) {
@@ -589,15 +529,10 @@ function traceWitnetArtifacts(assets, args, indent = "", options) {
 					console.info(`${prefix}`);
 				}
 			}
-		} else if (
-			assets[key] instanceof Witnet.Radon.RadonTemplate ||
-			assets[key] instanceof Witnet.Radon.RadonModal
-		) {
+		} else if (assets[key] instanceof Witnet.Radon.RadonTemplate || assets[key] instanceof Witnet.Radon.RadonModal) {
 			const argsCount = assets[key].argsCount;
 			if (!options?.filter || found) {
-				console.info(
-					`${prefix}${color(key)} ${argsCount > 0 ? helpers.colors.green(`(${argsCount} args)`) : ""}`,
-				);
+				console.info(`${prefix}${color(key)} ${argsCount > 0 ? helpers.colors.green(`(${argsCount} args)`) : ""}`);
 				if (isLast) {
 					console.info(`${prefix}`);
 				}
@@ -605,24 +540,14 @@ function traceWitnetArtifacts(assets, args, indent = "", options) {
 		} else if (assets[key] instanceof Witnet.Radon.RadonRetrieval) {
 			const argsCount = assets[key].argsCount;
 			if (!options?.filter || found) {
-				console.info(
-					`${prefix}${color(key)} ${argsCount > 0 ? helpers.colors.green(`(${argsCount} args)`) : ""}`,
-				);
+				console.info(`${prefix}${color(key)} ${argsCount > 0 ? helpers.colors.green(`(${argsCount} args)`) : ""}`);
 				if (isLast) {
 					console.info(`${prefix}`);
 				}
 			}
-		} else if (
-			typeof assets[key] === "object" &&
-			countWitnetArtifacts(assets[key], args, options) > 0
-		) {
+		} else if (typeof assets[key] === "object" && countWitnetArtifacts(assets[key], args, options) > 0) {
 			console.info(`${indent}${isLast ? "└─ " : "├─ "}${key}`);
-			traceWitnetArtifacts(
-				assets[key],
-				args,
-				!isLast ? `${indent}│  ` : `${indent}   `,
-				options,
-			);
+			traceWitnetArtifacts(assets[key], args, !isLast ? `${indent}│  ` : `${indent}   `, options);
 		}
 	});
 }
@@ -631,24 +556,12 @@ function traceWitnetRadonReportHeadline(request, options) {
 	const trait = (str) => `${str}${" ".repeat(66 - str.length)}`;
 	const indent = options?.indent ? " ".repeat(options.indent) : "";
 	const resultDataType = `Result<${extractTypeName(request.sources[0]?.script?.outputType.constructor.name)}, RadonError>`;
-	console.info(
-		`${indent}╔══════════════════════════════════════════════════════════════════════════════╗`,
-	);
-	console.info(
-		`${indent}║ ${helpers.colors.white(options?.headline)}${" ".repeat(77 - options?.headline.length)}║`,
-	);
-	console.info(
-		`${indent}╠══════════════════════════════════════════════════════════════════════════════╣`,
-	);
-	console.info(
-		`${indent}║ ${helpers.colors.white("RAD hash")}: ${helpers.colors.lgreen(request.radHash)}   ║`,
-	);
-	console.info(
-		`${indent}║ RAD size: ${helpers.colors.green(trait(`${helpers.commas(request.weight())} bytes`))} ║`,
-	);
-	console.info(
-		`${indent}║ RAD type: ${helpers.colors.yellow(trait(resultDataType))} ║`,
-	);
+	console.info(`${indent}╔══════════════════════════════════════════════════════════════════════════════╗`);
+	console.info(`${indent}║ ${helpers.colors.white(options?.headline)}${" ".repeat(77 - options?.headline.length)}║`);
+	console.info(`${indent}╠══════════════════════════════════════════════════════════════════════════════╣`);
+	console.info(`${indent}║ ${helpers.colors.white("RAD hash")}: ${helpers.colors.lgreen(request.radHash)}   ║`);
+	console.info(`${indent}║ RAD size: ${helpers.colors.green(trait(`${helpers.commas(request.weight())} bytes`))} ║`);
+	console.info(`${indent}║ RAD type: ${helpers.colors.yellow(trait(resultDataType))} ║`);
 	// if (!options.verbose) {
 	//   console.info(`${indent}║ > Radon operators:  ${white(trait(commas(request.opsCount())))} ║`)
 	// }
@@ -666,19 +579,13 @@ function traceWitnetRadonReportHeadline(request, options) {
 }
 
 function traceWitnetRadonRequest(request, options) {
-	const indent = options?.indent
-		? " ".repeat(parseInt(options.indent, 10))
-		: "";
+	const indent = options?.indent ? " ".repeat(parseInt(options.indent, 10)) : "";
 	if (options?.json) {
-		console.info(
-			JSON.stringify(request.toProtobuf(), null, options?.indent || 0),
-		);
+		console.info(JSON.stringify(request.toProtobuf(), null, options?.indent || 0));
 	} else {
 		if (!options.headline) options.headline = "WITNET DATA REQUEST DISASSEMBLE";
 		traceWitnetRadonReportHeadline(request, options);
-		console.info(
-			`${indent}╚══╤═══════════════════════════════════════════════════════════════════════════╝`,
-		);
+		console.info(`${indent}╚══╤═══════════════════════════════════════════════════════════════════════════╝`);
 		if (options?.bytecode) {
 			console.info(request.toBytecode());
 			return;
@@ -689,9 +596,7 @@ function traceWitnetRadonRequest(request, options) {
 		request.sources.forEach((source, sourceIndex) => {
 			const authority =
 				source.authority?.toUpperCase().split(".").slice(-2).join(".") ||
-				(source.method === Witnet.Radon.retrievals.Methods.RNG
-					? "WIT/RNG"
-					: "");
+				(source.method === Witnet.Radon.retrievals.Methods.RNG ? "WIT/RNG" : "");
 			const corner = sourceIndex === request.sources.length - 1 ? "└" : "├";
 			const sep = sourceIndex === request.sources.length - 1 ? " " : "│";
 			console.info(
@@ -708,18 +613,14 @@ function traceWitnetRadonRequest(request, options) {
 							.toUpperCase(),
 					)}`,
 				);
-				console.info(
-					`${indent}   │ ${sep}    > URL query:      ${helpers.colors.green(source.url)}`,
-				);
+				console.info(`${indent}   │ ${sep}    > URL query:      ${helpers.colors.green(source.url)}`);
 				if (source?.headers && Object.keys(source.headers).length > 0) {
 					console.info(
 						`${indent}   │ ${sep}    > HTTP headers:   ${helpers.colors.green(JSON.stringify(source.headers))}`,
 					);
 				}
 				if (source?.body) {
-					console.info(
-						`${indent}   │ ${sep}    > HTTP body:      ${helpers.colors.green(source.body)}`,
-					);
+					console.info(`${indent}   │ ${sep}    > HTTP body:      ${helpers.colors.green(source.body)}`);
 				}
 				if (source?.script) {
 					// console.log(source.script.toBytecode())
@@ -727,9 +628,7 @@ function traceWitnetRadonRequest(request, options) {
 					console.info(
 						`${indent}   │ ${sep}    > Radon script:   ${helpers.colors.lyellow(
 							"[ ",
-						)}${helpers.colors.yellow(steps[0][1])}${" ".repeat(
-							12 - steps[0][1].length,
-						)}${helpers.colors.lyellow(
+						)}${helpers.colors.yellow(steps[0][1])}${" ".repeat(12 - steps[0][1].length)}${helpers.colors.lyellow(
 							" ]",
 						)} ${helpers.colors.mcyan(steps[0][2])}`,
 					);
@@ -737,21 +636,16 @@ function traceWitnetRadonRequest(request, options) {
 						console.info(
 							`${indent}   │ ${sep}                      ${helpers.colors.lyellow(
 								"[ ",
-							)}${helpers.colors.yellow(step[1])}${" ".repeat(
-								12 - step[1].length,
-							)}${helpers.colors.lyellow(
+							)}${helpers.colors.yellow(step[1])}${" ".repeat(12 - step[1].length)}${helpers.colors.lyellow(
 								" ]",
 							)} ${" ".repeat(2 * step[0])}${helpers.colors.mcyan(step[2])}`,
 						);
 					});
-					const outputType =
-						source.script.outputType.constructor.name || "RadonAny";
+					const outputType = source.script.outputType.constructor.name || "RadonAny";
 					console.info(
 						`${indent}   │ ${sep}                      ${helpers.colors.lyellow(
 							"[ ",
-						)}${helpers.colors.yellow(outputType)}${" ".repeat(
-							12 - outputType.length,
-						)}${helpers.colors.lyellow(" ]")}`,
+						)}${helpers.colors.yellow(outputType)}${" ".repeat(12 - outputType.length)}${helpers.colors.lyellow(" ]")}`,
 					);
 				}
 			}
@@ -762,36 +656,24 @@ function traceWitnetRadonRequest(request, options) {
 		console.info(`${indent}┌──┴──────────────────┐`);
 		console.info(`${indent}│  ${helpers.colors.white("AGGREGATE SOURCES")}  │`);
 		console.info(`${indent}└──┬──────────────────┘`); // ┬
-		request.sourcesReducer?.filters.forEach((filter) =>
-			console.info(
-				`${indent}   │      > Radon filter:   ${stringifyFilter(filter)}`,
-			),
-		);
-		console.info(
-			`${indent}   │      > Radon reducer:  ${stringifyReducer(request.sourcesReducer)}`,
-		);
+		request.sourcesReducer?.filters.forEach((filter) => {
+			console.info(`${indent}   │      > Radon filter:   ${stringifyFilter(filter)}`);
+		});
+		console.info(`${indent}   │      > Radon reducer:  ${stringifyReducer(request.sourcesReducer)}`);
 		console.info(`${indent}┌──┴──────────────────┐`);
 		console.info(`${indent}│  ${helpers.colors.white("WITNESSING TALLY")}   │`);
 		console.info(`${indent}└─────────────────────┘`); // ┬
-		request.witnessReducer?.filters.forEach((filter) =>
-			console.info(
-				`${indent}          > Radon filter:   ${stringifyFilter(filter)}`,
-			),
-		);
-		console.info(
-			`${indent}          > Radon reducer:  ${stringifyReducer(request.witnessReducer)}`,
-		);
+		request.witnessReducer?.filters.forEach((filter) => {
+			console.info(`${indent}          > Radon filter:   ${stringifyFilter(filter)}`);
+		});
+		console.info(`${indent}          > Radon reducer:  ${stringifyReducer(request.witnessReducer)}`);
 	}
 }
 
 async function traceWitnetRadonRequestDryRun(request, options) {
 	const bytecode = request.toBytecode();
 	let report = await helpers
-		.toolkitRun(options, [
-			"try-data-request",
-			"--hex",
-			bytecode.startsWith("0x") ? bytecode.slice(2) : bytecode,
-		])
+		.toolkitRun(options, ["try-data-request", "--hex", bytecode.startsWith("0x") ? bytecode.slice(2) : bytecode])
 		.catch((err) => {
 			let errorMessage = err.message.split("\n").slice(1).join("\n").trim();
 			const errorRegex = /.*^error: (?<message>.*)$.*/gm;
@@ -825,8 +707,7 @@ async function traceWitnetRadonRequestDryRun(request, options) {
 			resultSize = 1;
 			break;
 		case "RadonBytes":
-			resultSize =
-				utils.cbor.encode(Uint8Array.from(resultValue)).byteLength - 2;
+			resultSize = utils.cbor.encode(Uint8Array.from(resultValue)).byteLength - 2;
 			break;
 		case "RadonInteger":
 		case "RadonFloat":
@@ -841,46 +722,25 @@ async function traceWitnetRadonRequestDryRun(request, options) {
 	}
 	if (options?.json) {
 		if (options?.verbose) {
-			console.info(
-				JSON.stringify(
-					report,
-					null,
-					options?.indent ? " ".repeat(options.indent) : "",
-				),
-			);
+			console.info(JSON.stringify(report, null, options?.indent ? " ".repeat(options.indent) : ""));
 		} else {
 			result[resultType] = resultValue;
-			console.info(
-				JSON.stringify(
-					result,
-					null,
-					options?.indent ? " ".repeat(options.indent) : "",
-				),
-			);
+			console.info(JSON.stringify(result, null, options?.indent ? " ".repeat(options.indent) : ""));
 		}
 		return;
 	}
-	if (!options.headline)
-		options.headline = "WITNET DATA REQUEST DRY-RUN REPORT";
+	if (!options.headline) options.headline = "WITNET DATA REQUEST DRY-RUN REPORT";
 	traceWitnetRadonReportHeadline(request, options);
 	const indent = options?.indent ? " ".repeat(options.indent) : "";
-	console.info(
-		`${indent}╚══╤═══════════════════════════════════════════════════════════════════════════╝`,
-	);
+	console.info(`${indent}╚══╤═══════════════════════════════════════════════════════════════════════════╝`);
 	let execTimeMs = report.retrieve
-		?.map(
-			(retrieval) =>
-				(retrieval?.running_time.secs || 0) +
-				(retrieval?.running_time.nanos || 0) / 1000,
-		)
+		?.map((retrieval) => (retrieval?.running_time.secs || 0) + (retrieval?.running_time.nanos || 0) / 1000)
 		.reduce((sum, secs) => sum + secs);
 	execTimeMs = `${Math.round(execTimeMs)} ms`;
 	let flexbar = "─".repeat(17);
 	let flexspc = " ".repeat(flexbar.length + 12);
 	console.info(`${indent}┌──┴─────────────────────────────${flexbar}──────┐`);
-	console.info(
-		`${indent}│ ${helpers.colors.white("Data providers")}     ${flexspc}      │`,
-	); // ├ ┤
+	console.info(`${indent}│ ${helpers.colors.white("Data providers")}     ${flexspc}      │`); // ├ ┤
 	console.info(`${indent}├────────────────────────────────${flexbar}──────┤`);
 	console.info(
 		`${indent}│ Execution time: ${helpers.colors.green(execTimeMs)} ${" ".repeat(flexbar.length + 19 - execTimeMs.length)} │`,
@@ -901,21 +761,14 @@ async function traceWitnetRadonRequestDryRun(request, options) {
 				: helpers.colors.green;
 		if (options?.verbose) {
 			console.info(
-				`${indent}   │ ${corner}─ ${helpers.colors.white(
-					"[ ",
-				)}${helpers.colors.white(
+				`${indent}   │ ${corner}─ ${helpers.colors.white("[ ")}${helpers.colors.white(
 					`Data Source #${sourceIndex + 1}`,
-				)}  ${" ".repeat(3 - sourceIndex.toString().length)}${color(
-					authority,
-				)} ${helpers.colors.white("]")}`,
+				)}  ${" ".repeat(3 - sourceIndex.toString().length)}${color(authority)} ${helpers.colors.white("]")}`,
 			);
 		} else {
 			console.info(`${indent}   │ ${corner}─ [ ${color(authority)} ]`);
 		}
-		if (
-			source.method !== Witnet.Radon.retrievals.Methods.RNG &&
-			options?.verbose
-		) {
+		if (source.method !== Witnet.Radon.retrievals.Methods.RNG && options?.verbose) {
 			console.info(
 				`${indent}   │ ${sep}    > Request:        ${helpers.colors.mgreen(
 					Witnet.Radon.retrievals.Methods[source.method]
@@ -924,31 +777,24 @@ async function traceWitnetRadonRequestDryRun(request, options) {
 						.toUpperCase(),
 				)}`,
 			);
-			console.info(
-				`${indent}   │ ${sep}    > URL query:      ${helpers.colors.green(source.url)}`,
-			);
+			console.info(`${indent}   │ ${sep}    > URL query:      ${helpers.colors.green(source.url)}`);
 			if (source?.headers && Object.keys(source.headers).length > 0) {
 				console.info(
 					`${indent}   │ ${sep}    > HTTP headers:   ${helpers.colors.green(JSON.stringify(source.headers))}`,
 				);
 			}
 			if (source?.body) {
-				console.info(
-					`${indent}   │ ${sep}    > HTTP body:      ${helpers.colors.green(source.body)}`,
-				);
+				console.info(`${indent}   │ ${sep}    > HTTP body:      ${helpers.colors.green(source.body)}`);
 			}
 			const printData = (headline, data, color) => {
 				const type = Object.keys(data)[0];
 				data =
-					(typeof data[type] === "object" ||
-					typeof data[type] === "boolean" ||
-					Array.isArray(data[type])
+					(typeof data[type] === "object" || typeof data[type] === "boolean" || Array.isArray(data[type])
 						? JSON.stringify(data[type])
 						: data[type]) || "";
 				const lines = data.match(/.{1,96}/g)?.slice(0, 256) || [""];
 				if (lines.length === 256) lines[255] += "...";
-				const typeColor =
-					type === "RadonError" ? helpers.colors.red : helpers.colors.yellow;
+				const typeColor = type === "RadonError" ? helpers.colors.red : helpers.colors.yellow;
 				const lineColor = type === "RadonError" ? helpers.colors.gray : color;
 				console.info(
 					`${indent}   │ ${sep}    > ${headline}${" ".repeat(15 - headline.length)} \x1b[1;m${typeColor(
@@ -958,23 +804,13 @@ async function traceWitnetRadonRequestDryRun(request, options) {
 					)}\x1b[1;m${typeColor(" ]")}\x1b[0m ${lineColor(lines[0])}`,
 				);
 				lines.slice(1).forEach((line) => {
-					console.info(
-						`${indent}   │ ${sep}                                       ${lineColor(line)}`,
-					);
+					console.info(`${indent}   │ ${sep}                                       ${lineColor(line)}`);
 				});
 			};
 			if (report?.retrieve[sourceIndex]?.partial_results) {
-				printData(
-					"HTTP response:",
-					report?.retrieve[sourceIndex]?.partial_results[0],
-					helpers.colors.cyan,
-				);
+				printData("HTTP response:", report?.retrieve[sourceIndex]?.partial_results[0], helpers.colors.cyan);
 			}
-			printData(
-				"Radon result:",
-				report?.retrieve[sourceIndex]?.result,
-				helpers.colors.mcyan,
-			);
+			printData("Radon result:", report?.retrieve[sourceIndex]?.result, helpers.colors.mcyan);
 		}
 		if (options?.verbose && sourceIndex < request.sources.length - 1) {
 			console.info(`${indent}   │ │`);
@@ -983,17 +819,13 @@ async function traceWitnetRadonRequestDryRun(request, options) {
 	flexbar = "─".repeat(24);
 	flexspc = " ".repeat(36);
 	console.info(`${indent}┌──┴───────────────────────────${flexbar}─┐`);
-	console.info(
-		`${indent}│ ${helpers.colors.white("Aggregated result")}${flexspc} │`,
-	); // ├ ┤
+	console.info(`${indent}│ ${helpers.colors.white("Aggregated result")}${flexspc} │`); // ├ ┤
 	console.info(`${indent}├──────────────────────────────${flexbar}─┤`);
 	if (options?.verbose) {
 		let partial_index = 0;
 		const partial_results = report.sourcesReducer?.partial_results;
 		request.sourcesReducer?.filters.forEach((filter) => {
-			const color = partial_results?.[partial_index]?.RadonArray
-				? helpers.colors.mcyan
-				: helpers.colors.gray;
+			const color = partial_results?.[partial_index]?.RadonArray ? helpers.colors.mcyan : helpers.colors.gray;
 			const items = partial_results?.[partial_index]?.RadonArray
 				? ` over ${partial_results[partial_index]?.RadonArray.length} sources`
 				: "";
@@ -1005,9 +837,7 @@ async function traceWitnetRadonRequestDryRun(request, options) {
 				)}${" ".repeat(flexbar.length + 22 - filter.length - items.length)} │`,
 			);
 		});
-		const color = partial_results?.[partial_index]?.RadonArray
-			? helpers.colors.mcyan
-			: helpers.colors.gray;
+		const color = partial_results?.[partial_index]?.RadonArray ? helpers.colors.mcyan : helpers.colors.gray;
 		const items = partial_results?.[partial_index]?.RadonArray
 			? ` over ${partial_results[partial_index]?.RadonArray.length} sources`
 			: "";
@@ -1042,20 +872,12 @@ async function traceWitnetRadonRequestDryRun(request, options) {
 				console.info(
 					`${indent}        ${helpers.colors.myellow(
 						`[ ${type}${" ".repeat(7 - type.length)} ]`,
-					)} ${helpers.colors.green(key)}${" ".repeat(
-						width - 12 - key.length,
-					)}`,
+					)} ${helpers.colors.green(key)}${" ".repeat(width - 12 - key.length)}`,
 				);
 			}
-			Object.entries(value).forEach(([key, value]) =>
-				printMapItem(
-					indent,
-					width,
-					type === "Map" ? key : null,
-					helpers.unescapeSlashes(value),
-					`${indent2} `,
-				),
-			);
+			Object.entries(value).forEach(([key, value]) => {
+				printMapItem(indent, width, type === "Map" ? key : null, helpers.unescapeSlashes(value), `${indent2} `);
+			});
 		} else {
 			if (key.length > width - 12) {
 				console.info(
@@ -1084,17 +906,15 @@ async function traceWitnetRadonRequestDryRun(request, options) {
 	const printResult = (indent, width, resultType, resultValue) => {
 		resultType = extractTypeName(resultType);
 		resultValue =
-			typeof resultValue === "object" || Array.isArray(resultValue)
-				? JSON.stringify(resultValue)
-				: resultValue;
+			typeof resultValue === "object" || Array.isArray(resultValue) ? JSON.stringify(resultValue) : resultValue;
 		if (["Map", "Array"].includes(resultType)) {
 			console.info(
 				`${indent}     └─ ${helpers.colors.lyellow(`[ ${resultType}${" ".repeat(7 - resultType.length)} ]`)}`,
 			);
 			const obj = JSON.parse(resultValue);
-			Object.entries(obj).forEach(([key, value]) =>
-				printMapItem(indent, width, resultType === "Map" ? key : null, value),
-			);
+			Object.entries(obj).forEach(([key, value]) => {
+				printMapItem(indent, width, resultType === "Map" ? key : null, value);
+			});
 		} else {
 			if (resultType === "Bytes") {
 				resultValue = JSON.parse(resultValue)
@@ -1103,10 +923,7 @@ async function traceWitnetRadonRequestDryRun(request, options) {
 			} else if (resultType === "Boolean") {
 				resultValue = JSON.stringify(resultValue);
 			}
-			const color =
-				resultType.indexOf("Error") > -1
-					? helpers.colors.gray
-					: helpers.colors.lcyan;
+			const color = resultType.indexOf("Error") > -1 ? helpers.colors.gray : helpers.colors.lcyan;
 			const typeText =
 				resultType.indexOf("Error") > -1
 					? "\x1b[1;98;41m  Error  \x1b[0m"
@@ -1114,9 +931,7 @@ async function traceWitnetRadonRequestDryRun(request, options) {
 			const lines = resultValue.match(/.{1,96}/g)?.slice(0, 256) || [""];
 			console.info(`${indent}     └─ ${typeText} ${color(lines[0])}`);
 			lines.slice(1).forEach((line) => {
-				console.info(
-					`${indent}             ${" ".repeat(resultType.length)}${color(line)}`,
-				);
+				console.info(`${indent}             ${" ".repeat(resultType.length)}${color(line)}`);
 			});
 		}
 	};

@@ -16,14 +16,7 @@ import {
 } from "../types.js";
 import { Account } from "./account.js";
 import { Coinbase } from "./coinbase.js";
-import type {
-	IAccount,
-	IBIP32,
-	ICoinbase,
-	IJsonRpcProvider,
-	ISigner,
-	IWallet,
-} from "./interfaces.js";
+import type { IAccount, IBIP32, ICoinbase, IJsonRpcProvider, ISigner, IWallet } from "./interfaces.js";
 import {
 	type Coins,
 	type PublicKey,
@@ -75,11 +68,9 @@ export class Wallet implements IWallet {
 		onlyWithFunds?: boolean;
 	}): Promise<Wallet> {
 		const xprv = process.env.WITNET_SDK_WALLET_MASTER_KEY;
-		if (!xprv)
-			throw Error(`WITNET_SDK_WALLET_MASTER_KEY must be set on environment.`);
+		if (!xprv) throw Error(`WITNET_SDK_WALLET_MASTER_KEY must be set on environment.`);
 		if (xprv.length > 117) {
-			if (!options.passwd)
-				throw Error(`Missing password for WITNET_SDK_WALLET_MASTER_KEY.`);
+			if (!options.passwd) throw Error(`Missing password for WITNET_SDK_WALLET_MASTER_KEY.`);
 			return Wallet.fromEncryptedXprv(xprv, options?.passwd, options);
 		} else {
 			return Wallet.fromXprv(xprv, options);
@@ -117,10 +108,7 @@ export class Wallet implements IWallet {
 		},
 	): Promise<Wallet> {
 		const { chainCode, privateKey } = utils.parseXprv(xprv);
-		const root = bip32.fromPrivateKey(
-			Buffer.from(privateKey),
-			Buffer.from(chainCode),
-		);
+		const root = bip32.fromPrivateKey(Buffer.from(privateKey), Buffer.from(chainCode));
 		const provider = options?.provider || (await JsonRpcProvider.fromEnv());
 		await provider.constants();
 		const wallet = new Wallet(root, provider, options?.strategy);
@@ -169,11 +157,7 @@ export class Wallet implements IWallet {
 		return Wallet.fromXprv(utils.decipherXprv(xprv, passwd), options);
 	}
 
-	constructor(
-		root: IBIP32,
-		provider: IJsonRpcProvider,
-		strategy?: UtxoSelectionStrategy,
-	) {
+	constructor(root: IBIP32, provider: IJsonRpcProvider, strategy?: UtxoSelectionStrategy) {
 		this.provider = provider;
 		this.coinbase = new Coinbase(root, provider, strategy);
 		this.root = root;
@@ -204,9 +188,7 @@ export class Wallet implements IWallet {
 	}
 
 	public get changePkh(): PublicKeyHashString {
-		return this.accounts.length > 0
-			? this.accounts[0].changePkh
-			: this.coinbase.pkh;
+		return this.accounts.length > 0 ? this.accounts[0].changePkh : this.coinbase.pkh;
 	}
 
 	public get network(): Network | undefined {
@@ -218,15 +200,11 @@ export class Wallet implements IWallet {
 	}
 
 	public get publicKey(): PublicKey {
-		return this.accounts.length > 0
-			? this.accounts[0].publicKey
-			: this.coinbase.publicKey;
+		return this.accounts.length > 0 ? this.accounts[0].publicKey : this.coinbase.publicKey;
 	}
 
 	public get privateKey(): HexString {
-		return this.accounts.length > 0
-			? this.accounts[0].privateKey
-			: this.coinbase.privateKey;
+		return this.accounts.length > 0 ? this.accounts[0].privateKey : this.coinbase.privateKey;
 	}
 
 	public authorizeEvmAddress(evmAddress: HexString): any {
@@ -282,17 +260,12 @@ export class Wallet implements IWallet {
 		}
 	}
 
-	public async getDelegatees(
-		order?: QueryStakesOrder,
-		leftJoin = true,
-	): Promise<Array<StakeEntry>> {
+	public async getDelegatees(order?: QueryStakesOrder, leftJoin = true): Promise<Array<StakeEntry>> {
 		const records: Array<StakeEntry> = [];
 		records.push(...(await this.coinbase.getDelegatees(order)));
 		await Promise.all(
 			this._accounts.map((account) =>
-				account
-					.getDelegatees(order, leftJoin)
-					.then((entries) => records.push(...entries)),
+				account.getDelegatees(order, leftJoin).then((entries) => records.push(...entries)),
 			),
 		);
 		if (order) {
@@ -300,20 +273,12 @@ export class Wallet implements IWallet {
 			return records.sort((a, b) => {
 				switch (order.by) {
 					case StakesOrderBy.Coins:
-						return (
-							(a.value.coins < b.value.coins
-								? 1
-								: a.value.coins > b.value.coins
-									? -1
-									: 0) * reverse
-						);
+						return (a.value.coins < b.value.coins ? 1 : a.value.coins > b.value.coins ? -1 : 0) * reverse;
 					case StakesOrderBy.Mining:
 						return (b.value.epochs.mining - a.value.epochs.mining) * reverse;
 					case StakesOrderBy.Witnessing:
-						return (
-							(b.value.epochs.witnessing - a.value.epochs.witnessing) * reverse
-						);
-					case StakesOrderBy.Nonce:
+						return (b.value.epochs.witnessing - a.value.epochs.witnessing) * reverse;
+					default:
 						return (b.value.nonce - a.value.nonce) * reverse;
 				}
 			});
@@ -322,12 +287,12 @@ export class Wallet implements IWallet {
 	}
 
 	public async getUtxos(reload?: boolean): Promise<Array<Utxo>> {
-		return Promise.all(
-			this.accounts.map((account) => account.getUtxos(reload)),
-		).then(async (utxoss: Array<Array<Utxo>>) => {
-			// utxoss.push(await this.coinbase.getUtxos(reload))
-			return utxoss.flat();
-		});
+		return Promise.all(this.accounts.map((account) => account.getUtxos(reload))).then(
+			async (utxoss: Array<Array<Utxo>>) => {
+				// utxoss.push(await this.coinbase.getUtxos(reload))
+				return utxoss.flat();
+			},
+		);
 	}
 
 	public async selectUtxos(specs?: {
@@ -349,39 +314,21 @@ export class Wallet implements IWallet {
 
 	public deriveAccounts(limit: number): Array<IAccount> {
 		if (limit > this._accounts.length) {
-			const startIndex =
-				this._accounts.length > 0
-					? this.accounts[this.accounts.length - 1].index + 1
-					: 0;
+			const startIndex = this._accounts.length > 0 ? this.accounts[this.accounts.length - 1].index + 1 : 0;
 			limit = limit - this._accounts.length;
 			for (let ix = 0; ix < limit; ix++) {
-				this._accounts.push(
-					new Account(this.root, this.provider, startIndex + ix, this.strategy),
-				);
+				this._accounts.push(new Account(this.root, this.provider, startIndex + ix, this.strategy));
 			}
 		}
 		return this._accounts;
 	}
 
-	public async exploreAccounts(
-		limit = 1,
-		gap = DEFAULT_GAP,
-	): Promise<Array<IAccount>> {
+	public async exploreAccounts(limit = 1, gap = DEFAULT_GAP): Promise<Array<IAccount>> {
 		if (limit === 0 || limit > this.accounts.length) {
-			const lastIndex = (x: Array<IAccount>) =>
-				Number(x.length > 0 ? x[x.length - 1].index + 1 : 0);
+			const lastIndex = (x: Array<IAccount>) => Number(x.length > 0 ? x[x.length - 1].index + 1 : 0);
 			const startIndex = lastIndex(this.accounts);
-			for (
-				let index = startIndex;
-				index < lastIndex(this.accounts) + Number(gap);
-				index++
-			) {
-				const account = new Account(
-					this.root,
-					this.provider,
-					index,
-					this.strategy,
-				);
+			for (let index = startIndex; index < lastIndex(this.accounts) + Number(gap); index++) {
+				const account = new Account(this.root, this.provider, index, this.strategy);
 				if (utils.totalCoins(await account.getBalance()).pedros > 0n) {
 					this.accounts.push(account);
 					if (limit && this.accounts.length >= limit) break;
@@ -391,13 +338,8 @@ export class Wallet implements IWallet {
 		return this._accounts;
 	}
 
-	public getAccount(
-		pkh: PublicKeyHashString,
-		gap?: number,
-	): IAccount | undefined {
-		let account = this._accounts.find(
-			(account) => account.internal.pkh === pkh || account.pkh === pkh,
-		);
+	public getAccount(pkh: PublicKeyHashString, gap?: number): IAccount | undefined {
+		let account = this._accounts.find((account) => account.internal.pkh === pkh || account.pkh === pkh);
 		if (!account) {
 			for (let index = 0; index < (gap || DEFAULT_GAP); index++) {
 				account = new Account(this.root, this.provider, index, this.strategy);
@@ -412,12 +354,8 @@ export class Wallet implements IWallet {
 		}
 	}
 
-	public getSigner(
-		pkh?: PublicKeyHashString,
-		gap?: number,
-	): ISigner | undefined {
-		if (!pkh)
-			return this.accounts[0]?.getSigner() || this.coinbase.getSigner(pkh);
+	public getSigner(pkh?: PublicKeyHashString, gap?: number): ISigner | undefined {
+		if (!pkh) return this.accounts[0]?.getSigner() || this.coinbase.getSigner(pkh);
 		const account = this.getAccount(pkh, gap);
 		return account?.getSigner(pkh) || this.coinbase.getSigner(pkh);
 	}

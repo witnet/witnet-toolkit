@@ -1,8 +1,4 @@
-import {
-	checkRpcWildcards,
-	isHexStringOfLength,
-	isWildcard,
-} from "../../../bin/helpers.js";
+import { checkRpcWildcards, isHexStringOfLength, isWildcard } from "../../../bin/helpers.js";
 import type { Bytes32, Wildcard } from "./index.js";
 
 export type WitAddress = string & {
@@ -17,10 +13,7 @@ export const getBalance = (address: WitAddress | Wildcard) => {
 	checkRpcWildcards(address);
 	if (
 		!isWildcard(address) &&
-		(!address ||
-			typeof address !== "string" ||
-			address.length !== 43 ||
-			!address.startsWith("wit"))
+		(!address || typeof address !== "string" || address.length !== 43 || !address.startsWith("wit"))
 	) {
 		throw new EvalError("rpc.wit.getBalance: invalid address");
 	}
@@ -37,9 +30,7 @@ export const getBalance = (address: WitAddress | Wildcard) => {
 export const getTransaction = (txHash: Bytes32 | Wildcard) => {
 	checkRpcWildcards(txHash);
 	if (!isHexStringOfLength(txHash, 32) && !isWildcard(txHash)) {
-		throw new EvalError(
-			"rpc.wit.getTransaction: invalid transaction hash value",
-		);
+		throw new EvalError("rpc.wit.getTransaction: invalid transaction hash value");
 	}
 	return {
 		method: "getTransaction",
@@ -51,15 +42,10 @@ export const getTransaction = (txHash: Bytes32 | Wildcard) => {
  * Retrieve detailed informatinon about a mined transaction in the Witnet blockchain.
  * @param txHash The hash of the transaction to retrieve.
  */
-export const getValueTransfer = (
-	hash: Bytes32 | Wildcard,
-	mode: "ethereal" | "simple" | "full",
-) => {
+export const getValueTransfer = (hash: Bytes32 | Wildcard, mode: "ethereal" | "simple" | "full") => {
 	checkRpcWildcards(hash);
 	if (!isHexStringOfLength(hash, 32) && !isWildcard(hash)) {
-		throw new EvalError(
-			"rpc.wit.getValueTransfer: invalid transaction hash value",
-		);
+		throw new EvalError("rpc.wit.getValueTransfer: invalid transaction hash value");
 	}
 	return {
 		method: "getValueTransfer",

@@ -33,15 +33,13 @@ const toolkitDownloadUrlBase = `https://github.com/witnet/witnet-rust/releases/d
 const toolkitDownloadNames = {
 	win32: (arch) => `witnet_toolkit-${arch}-pc-windows-msvc.exe`,
 	// TODO: detect armv7
-	linux: (arch) =>
-		`witnet_toolkit-${arch}-unknown-linux-gnu${arch === "arm" ? "eabihf" : ""}`,
+	linux: (arch) => `witnet_toolkit-${arch}-unknown-linux-gnu${arch === "arm" ? "eabihf" : ""}`,
 	darwin: (_arch) => `witnet_toolkit-x86_64-apple-darwin`,
 };
 const toolkitFileNames = {
 	win32: (arch) => `witnet_toolkit-${version}-${arch}-pc-windows-msvc.exe`,
 	// TODO: detect armv7
-	linux: (arch) =>
-		`witnet_toolkit-${version}-${arch}-unknown-linux-gnu${arch === "arm" ? "eabihf" : ""}`,
+	linux: (arch) => `witnet_toolkit-${version}-${arch}-unknown-linux-gnu${arch === "arm" ? "eabihf" : ""}`,
 	darwin: (_arch) => `witnet_toolkit-${version}-x86_64-apple-darwin`,
 };
 const archsMap = {
@@ -89,13 +87,7 @@ function checkToolkitIsDownloaded(toolkitBinPath) {
 
 /// HELPER FUNCTIONS ================================================================================================
 
-async function downloadToolkit(
-	toolkitDownloadName,
-	_toolkitFileName,
-	toolkitBinPath,
-	platform,
-	arch,
-) {
+async function downloadToolkit(toolkitDownloadName, _toolkitFileName, toolkitBinPath, platform, arch) {
 	const downloadUrl = guessDownloadUrl(toolkitDownloadName);
 	console.info("Downloading", downloadUrl, "into", toolkitBinPath);
 
@@ -136,9 +128,7 @@ async function installCommand(settings) {
 	if (!settings.checks.toolkitIsDownloaded) {
 		// Skip confirmation if install is forced
 		if (!settings.force) {
-			console.info(
-				`The witnet_toolkit ${version} native binary hasn't been downloaded yet (this is a requirement).`,
-			);
+			console.info(`The witnet_toolkit ${version} native binary hasn't been downloaded yet (this is a requirement).`);
 			const will = await prompt("Do you want to download it now? (Y/n)");
 			// Abort if not confirmed
 			if (!["", "y"].includes(will.toLowerCase())) {
@@ -171,17 +161,15 @@ async function versionCommand(settings) {
 }
 
 async function fallbackBinaryCommand(settings, args) {
-	const toolkitOutput = await toolkitRun(settings, args.slice(1)).catch(
-		(err) => {
-			let errorMessage = err.message.split("\n").slice(1).join("\n").trim();
-			const errorRegex = /.*^error: (?<message>.*)$.*/gm;
-			const matched = errorRegex.exec(err.message);
-			if (matched) {
-				errorMessage = matched.groups.message;
-			}
-			console.error(errorMessage || err);
-		},
-	);
+	const toolkitOutput = await toolkitRun(settings, args.slice(1)).catch((err) => {
+		let errorMessage = err.message.split("\n").slice(1).join("\n").trim();
+		const errorRegex = /.*^error: (?<message>.*)$.*/gm;
+		const matched = errorRegex.exec(err.message);
+		if (matched) {
+			errorMessage = matched.groups.message;
+		}
+		console.error(errorMessage || err);
+	});
 	if (toolkitOutput) console.info(toolkitOutput);
 }
 
@@ -254,10 +242,7 @@ async function main() {
 			if (!args[index].startsWith("--")) {
 				try {
 					await import(`./cli/${args[index]}.js`);
-					args = [
-						args[index],
-						...args.slice(0, index).concat(args.slice(index + 1)),
-					];
+					args = [args[index], ...args.slice(0, index).concat(args.slice(index + 1))];
 					break;
 				} catch {}
 			}
@@ -283,10 +268,7 @@ async function main() {
 						...module.router[subcmd]?.options,
 					});
 					args = deleteExtraFlags(args);
-					await module.subcommands[subcmd](
-						{ ...settings, ...flags, ...options },
-						args,
-					).catch((err) => {
+					await module.subcommands[subcmd]({ ...settings, ...flags, ...options }, args).catch((err) => {
 						showUsageError(cmd, subcmd, module, err, settings);
 					});
 				}
@@ -305,25 +287,13 @@ async function main() {
 	console.info("    --force     Avoids asking the user to confirm operation.");
 	console.info("    --help      Describes command or subcommand usage.");
 	console.info("    --update    Forces update of underlying binaries.");
-	console.info(
-		"    --version   Prints toolkit name and version as first line.",
-	);
+	console.info("    --version   Prints toolkit name and version as first line.");
 	console.info("\nMODULES:");
-	console.info(
-		"    inspect     Inspect public data from the Wit/Oracle blockchain.",
-	);
-	console.info(
-		"    network     Dynamic information from the Wit/Oracle P2P network.",
-	);
-	console.info(
-		"    nodes       Interact with your private Wit/Oracle nodes, if reachable.",
-	);
-	console.info(
-		"    radon       Manage Radon requests and templates within your project.",
-	);
-	console.info(
-		"    wallet      Simple CLI wallet for spending and staking your Wits.",
-	);
+	console.info("    inspect     Inspect public data from the Wit/Oracle blockchain.");
+	console.info("    network     Dynamic information from the Wit/Oracle P2P network.");
+	console.info("    nodes       Interact with your private Wit/Oracle nodes, if reachable.");
+	console.info("    radon       Manage Radon requests and templates within your project.");
+	console.info("    wallet      Simple CLI wallet for spending and staking your Wits.");
 }
 
 main();

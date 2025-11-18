@@ -29,25 +29,14 @@ export class ValueTransferPayload extends TransactionPayloadMultiSig<ValueTransf
 	}
 
 	public get value(): Coins {
-		return Coins.fromPedros(
-			this._target?.recipients.reduce(
-				(prev, [, curr]) => prev + curr.pedros,
-				0n,
-			) || 0n,
-		);
+		return Coins.fromPedros(this._target?.recipients.reduce((prev, [, curr]) => prev + curr.pedros, 0n) || 0n);
 	}
 
 	public get weight(): number {
-		return (
-			this._inputs.length * TX_WEIGHT_INPUT_SIZE +
-			this._outputs.length * TX_WEIGHT_OUTPUT_SIZE * TX_WEIGHT_GAMMA
-		);
+		return this._inputs.length * TX_WEIGHT_INPUT_SIZE + this._outputs.length * TX_WEIGHT_OUTPUT_SIZE * TX_WEIGHT_GAMMA;
 	}
 
-	public prepareOutputs(change?: {
-		value: bigint;
-		pkh: PublicKeyHashString;
-	}): any {
+	public prepareOutputs(change?: { value: bigint; pkh: PublicKeyHashString }): any {
 		if (this._target && this._outputs.length === 0) {
 			this._outputs.push(
 				...this._target.recipients.map(([pkh, value]) => ({
@@ -63,9 +52,7 @@ export class ValueTransferPayload extends TransactionPayloadMultiSig<ValueTransf
 	public intoReceipt(target: ValueTransferParams): any {
 		return {
 			outputLock: target.timelock,
-			recipients: target.recipients
-				.map(([pkh]) => pkh)
-				.filter((pkh, index, array) => index === array.indexOf(pkh)),
+			recipients: target.recipients.map(([pkh]) => pkh).filter((pkh, index, array) => index === array.indexOf(pkh)),
 		};
 	}
 
@@ -120,27 +107,19 @@ export class ValueTransferPayload extends TransactionPayloadMultiSig<ValueTransf
 					Object.values(TransactionPriority).includes(target.fees)
 				)
 			) {
-				throw new TypeError(
-					`${this.constructor.name}: invalid fees: ${target.fees}`,
-				);
+				throw new TypeError(`${this.constructor.name}: invalid fees: ${target.fees}`);
 			} else if (!target?.recipients) {
 				throw new TypeError(`${this.constructor.name}: no recipients.`);
 			} else if (
 				!(
 					Array.isArray(target.recipients) &&
 					target.recipients.length > 0 &&
-					(target.recipients as [[PublicKeyHashString, Coins]]).filter(
-						([, value]) => value instanceof Coins,
-					)
+					(target.recipients as [[PublicKeyHashString, Coins]]).filter(([, value]) => value instanceof Coins)
 				)
 			) {
-				throw new TypeError(
-					`${this.constructor.name}: invalid recipients: ${target.recipients}`,
-				);
+				throw new TypeError(`${this.constructor.name}: invalid recipients: ${target.recipients}`);
 			} else if (!(!target?.timelock || target.timelock >= 0)) {
-				throw new TypeError(
-					`${this.constructor.name}: invalid timelock: ${target.timelock}`,
-				);
+				throw new TypeError(`${this.constructor.name}: invalid timelock: ${target.timelock}`);
 			} else {
 				return target as ValueTransferParams;
 			}
@@ -152,9 +131,7 @@ export class ValueTransferPayload extends TransactionPayloadMultiSig<ValueTransf
 	protected _cleanTargetExtras(target?: any): any {
 		if (target) {
 			return Object.fromEntries(
-				Object.entries(target).filter(([key]) =>
-					["fees", "recipients", "timelock"].includes(key),
-				),
+				Object.entries(target).filter(([key]) => ["fees", "recipients", "timelock"].includes(key)),
 			);
 		}
 	}
@@ -175,9 +152,7 @@ export class ValueTransferPayload extends TransactionPayloadMultiSig<ValueTransf
 							// estimate one more input as to cover for network fees
 							TX_WEIGHT_INPUT_SIZE +
 							// estimate as many outputs as recipients plus one, as to cover for eventual change output
-							TX_WEIGHT_OUTPUT_SIZE *
-								(this._target?.recipients.length || 1 + 1) *
-								TX_WEIGHT_GAMMA),
+							TX_WEIGHT_OUTPUT_SIZE * (this._target?.recipients.length || 1 + 1) * TX_WEIGHT_GAMMA),
 			),
 		);
 	}
