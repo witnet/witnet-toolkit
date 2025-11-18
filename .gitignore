@@ -9,4 +9,7 @@ dist/
 
 # Environmental configuration files
 **/.env
-*.tgz
+**/*.tgz
+.bak
+
+# Slant, Serifcap, Stforek, Poison, 

@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: "The version tag to publish (as settled in package.json)"
+        description: "The version tag to publish"
         required: true
 
 jobs:
@@ -39,7 +39,8 @@ jobs:
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
-          context: ./docker/watcher
+          context: .
+          file: ./docker/watcher/Dockerfile
           push: true
           platforms: linux/amd64,linux/arm64
           tags: ${{ env.IMAGE_NAME }}:${{ inputs.version }}
