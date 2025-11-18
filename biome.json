@@ -1,0 +1,35 @@
+{
+  "formatter": {
+    "lineWidth": 100
+  },
+  "javascript": {
+    "formatter": {
+      "lineWidth": 120
+    }
+  },
+  "json": {
+    "formatter": {
+      "enabled": false
+    }
+  },
+  "files": {
+    "includes": [
+      "src/**/*.cjs",
+      "src/**/*.js",  
+      "src/**/*.ts", 
+      "scripts/*.cjs", 
+      "witnet/**/*.cjs",
+      "!witnet/**/_*.cjs"
+    ]
+  },
+  "linter": {
+    "includes": [
+      "src/**/*.cjs",
+      "src/**/*.js",  
+      "src/**/*.ts", 
+      "scripts/*.cjs", 
+      "witnet/**/*.cjs",
+      "!witnet/**/_*.cjs"
+    ]
+  }
+}
