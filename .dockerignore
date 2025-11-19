@@ -1,6 +1,5 @@
 .bak
 .dockerignore
-.eslintrc.json
 .gitignore
 .npmignore
 biome.json
@@ -9,4 +8,5 @@ docs/
 docker/
 node_modules/
 **/.env
-**/.tgz
+**/*.md
+**/*.tgz

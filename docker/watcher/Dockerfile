@@ -1,17 +1,16 @@
-FROM node:24-alpine AS base
+FROM node:24-bookworm AS base
+
+RUN apt update && apt upgrade -y
+RUN apt install build-essential;
+RUN npm install -g pnpm
+RUN npm install -g node-gyp
 
 WORKDIR /app
-
-RUN npm install -g pnpm 
-
-COPY scripts/ /app/scripts
-COPY src/ /app/src
-COPY witnet/ /app/witnet
-COPY .no-postinstall /app
-COPY package.json /app
-COPY tsconfig.json /app
-COPY pnpm-lock.yaml /app
+COPY . /app
 
 RUN pnpm install --frozen-lockfile 
+
+RUN chmod +x src/bin/index.js
+RUN chmod +x src/bin/bots/*
 
 CMD ["node", "/app/src/bin/bots/watcher.cjs"] 

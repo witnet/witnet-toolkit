@@ -1,10 +1,10 @@
-name: "Publish Witnet Watcher bot in Docker"
+name: "Dockerize Witnet-Watcher bot"
 
 on:
   workflow_dispatch:
     inputs:
       version:
-        description: "The version tag to publish"
+        description: "The version tag to publish:"
         required: true
 
 jobs:
