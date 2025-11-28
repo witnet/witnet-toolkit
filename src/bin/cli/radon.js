@@ -538,7 +538,8 @@ function traceWitnetRadonRequest(request, options) {
 		traceWitnetRadonReportHeadline(request, options);
 		console.info(`${indent}╚══╤═══════════════════════════════════════════════════════════════════════════╝`);
 		if (options?.bytecode) {
-			console.info(request.toBytecode());
+			console.info(`${indent}   v`)
+			console.info(helpers.colors.gray(request.toBytecode()));
 			return;
 		}
 		console.info(`${indent}┌──┴─────────────────┐`);
@@ -574,16 +575,11 @@ function traceWitnetRadonRequest(request, options) {
 					console.info(`${indent}   │ ${sep}    > HTTP body:      ${helpers.colors.green(source.body)}`);
 				}
 				if (source?.script) {
-					// console.log(source.script.toBytecode())
 					const steps = source.script.disect();
 					console.info(
-						`${indent}   │ ${sep}    > Radon script:   ${helpers.colors.lyellow(
-							"[ ",
-						)}${helpers.colors.yellow(steps[0][1])}${" ".repeat(12 - steps[0][1].length)}${helpers.colors.lyellow(
-							" ]",
-						)} ${helpers.colors.mcyan(steps[0][2])}`,
+						`${indent}   │ ${sep}    > Radon script:   [ ${helpers.colors.gray(source.script.toBytecode())} ]`
 					);
-					steps.slice(1).forEach((step) => {
+					steps.forEach((step) => {
 						console.info(
 							`${indent}   │ ${sep}                      ${helpers.colors.lyellow(
 								"[ ",
@@ -801,7 +797,7 @@ async function traceWitnetRadonRequestDryRun(request, options) {
 	}
 	if (resultSize) {
 		console.info(
-			`${indent}│ CBOR size:      ${helpers.colors.cyan(
+			`${indent}│ Encoded size:   ${helpers.colors.cyan(
 				`${resultSize} bytes`,
 			)}${" ".repeat(flexbar.length + 7 - resultSize.toString().length)} │`,
 		);
