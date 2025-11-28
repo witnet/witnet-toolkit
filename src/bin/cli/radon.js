@@ -17,8 +17,8 @@ import * as helpers from "../helpers.js";
 /// ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /// CLI SUBMODULE CONSTANTS ===========================================================================================
 
-const __dirname = helpers.searchWorkspace()
-const isModuleInitialized = __dirname !== path.dirname(__dirname) && fs.existsSync(`${__dirname}/package.json`)
+const __dirname = helpers.searchWorkspace();
+const isModuleInitialized = __dirname !== path.dirname(__dirname) && fs.existsSync(`${__dirname}/package.json`);
 const WITNET_ASSETS_PATH = process.env.WITNET_SDK_RADON_ASSETS_PATH || `${__dirname}/witnet/assets`;
 
 export const flags = {
@@ -93,17 +93,19 @@ export const router = {
 			},
 		},
 	},
-	...(isModuleInitialized ? {
-		check: {
-			hint: "Check correctness of Witnet Radon artifacts declared in witnet/assets folder.",
-			params: [],
-			options: {},
-		},
-	} : {
-		init: {
-			hint: "Initialize a Witnet Radon workspace within the current folder.",
-		},
-	})
+	...(isModuleInitialized
+		? {
+				check: {
+					hint: "Check correctness of Witnet Radon artifacts declared in witnet/assets folder.",
+					params: [],
+					options: {},
+				},
+			}
+		: {
+				init: {
+					hint: "Initialize a Witnet Radon workspace within the current folder.",
+				},
+			}),
 };
 
 export const subcommands = {
@@ -159,8 +161,8 @@ async function assets(options = {}, [...patterns]) {
 
 async function check() {
 	if (!isModuleInitialized) {
-		console.error(`Sorry, no Witnet workspace was initialized yet.`)
-		return
+		console.error(`Sorry, no Witnet workspace was initialized yet.`);
+		return;
 	}
 	try {
 		const assets = loadAssets({ legacy: true });
@@ -371,7 +373,9 @@ const stringifyReducer = (x, c) => {
 
 export function loadAssets(options) {
 	const assets = options?.legacy ? {} : legacy;
-	return fs.existsSync(`${WITNET_ASSETS_PATH}/index.cjs`) ? merge(assets, require(`${WITNET_ASSETS_PATH}/index.cjs`)) : assets;
+	return fs.existsSync(`${WITNET_ASSETS_PATH}/index.cjs`)
+		? merge(assets, require(`${WITNET_ASSETS_PATH}/index.cjs`))
+		: assets;
 }
 
 function flattenRadonArtifacts(tree, headers) {
@@ -537,7 +541,7 @@ function traceWitnetRadonRequest(request, options) {
 		traceWitnetRadonReportHeadline(request, options);
 		console.info(`${indent}╚══╤═══════════════════════════════════════════════════════════════════════════╝`);
 		if (options?.bytecode) {
-			console.info(`${indent}   v`)
+			console.info(`${indent}   v`);
 			console.info(helpers.colors.gray(request.toBytecode()));
 			return;
 		}
@@ -576,7 +580,7 @@ function traceWitnetRadonRequest(request, options) {
 				if (source?.script) {
 					const steps = source.script.disect();
 					console.info(
-						`${indent}   │ ${sep}    > Radon script:   [ ${helpers.colors.gray(source.script.toBytecode())} ]`
+						`${indent}   │ ${sep}    > Radon script:   [ ${helpers.colors.gray(source.script.toBytecode())} ]`,
 					);
 					steps.forEach((step) => {
 						console.info(

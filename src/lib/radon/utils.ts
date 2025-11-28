@@ -1,7 +1,7 @@
+import fs from "node:fs";
 import { createRequire } from "node:module";
 import cbor from "cbor";
 import dotenv from "dotenv";
-import fs from "node:fs";
 
 dotenv.config({ quiet: true });
 
@@ -23,7 +23,7 @@ import {
 	RadonString,
 } from "./types.js";
 
-const __dirname = searchWorkspace()
+const __dirname = searchWorkspace();
 const WITNET_ASSETS_PATH = process.env.WITNET_SDK_RADON_ASSETS_PATH || `${__dirname}/witnet/assets`;
 
 export { execRadonBytecode } from "../../bin/helpers.js";

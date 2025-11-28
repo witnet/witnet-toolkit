@@ -598,11 +598,11 @@ export function prompter(promise) {
 }
 
 export function searchWorkspace() {
-	let workspace = path.normalize(process.cwd())
+	let workspace = path.normalize(process.cwd());
 	while (!fs.existsSync(`${workspace}/witnet/assets`) && path.dirname(workspace) !== workspace) {
-		workspace = path.dirname(workspace)
+		workspace = path.dirname(workspace);
 	}
-	return workspace
+	return workspace;
 }
 
 export function traceChecklists(checklists) {
