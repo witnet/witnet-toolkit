@@ -274,10 +274,11 @@ async function main() {
 				}
 			} else {
 				showUsage(cmd, module);
+				if (args?.[0]) console.error(colors.red(`\nInvalid subcommand: ${colors.mred(args[0])}`));
 			}
 			process.exit(0);
 		} catch (e) {
-			console.error(`EXCEPTION:\n${e}\n`);
+			console.error(colors.red(`EXCEPTION:\n${e}\n`));
 		}
 	}
 	console.info("USAGE:");
