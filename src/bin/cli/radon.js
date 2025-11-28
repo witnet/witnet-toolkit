@@ -14,146 +14,97 @@ import { utils, Witnet } from "../../../dist/src/index.js";
 import { default as legacy } from "../../../witnet/assets/index.cjs";
 import * as helpers from "../helpers.js";
 
-const WITNET_ASSETS_PATH = process.env.WITNET_SDK_RADON_ASSETS_PATH || "../../../../../witnet/assets";
-
 /// ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /// CLI SUBMODULE CONSTANTS ===========================================================================================
 
-const isModuleInitialized = fs.existsSync("./witnet/assets/index.cjs");
+const __dirname = helpers.searchWorkspace()
+const isModuleInitialized = __dirname !== path.dirname(__dirname) && fs.existsSync(`${__dirname}/package.json`)
+const WITNET_ASSETS_PATH = process.env.WITNET_SDK_RADON_ASSETS_PATH || `${__dirname}/witnet/assets`;
 
 export const flags = {
-	module: {
-		hint: "Package where to fetch Radon assets from (supersedes --legacy).",
+	package: {
+		hint: "Imported package where to fetch Radon assets from (supersedes --legacy).",
 		param: "NPM_PACKAGE",
 	},
 };
 
-export const router = isModuleInitialized
-	? {
-			assets: {
-				hint: "List available Witnet Radon assets.",
-				params: "[RADON_ASSETS ...]",
-				options: {
-					filter: {
-						hint: "Restrict output to name-matching assets.",
-					},
-					legacy: {
-						hint: "List only those declared in witnet/assets folder.",
-					},
-					modals: {
-						hint: "Restrict output to Radon modals.",
-					},
-					requests: {
-						hint: "Restrict output to Radon requests.",
-					},
-					templates: {
-						hint: "Restrict output to Radon templates.",
-					},
-				},
+export const router = {
+	assets: {
+		hint: "List available Witnet Radon assets.",
+		params: "[RADON_ASSETS ...]",
+		options: {
+			filter: {
+				hint: "Restrict output to name-matching assets.",
 			},
-			check: {
-				hint: "Check correctness of Witnet Radon artifacts declared in witnet/assets folder.",
-				params: [],
-				options: {},
+			legacy: {
+				hint: "List only those declared within the ./witnet/assets subfolder.",
 			},
-			decode: {
-				hint: "Break down specs of one or more Radon assets.",
-				params: ["RAD_BYTECODE | RAD_HASH | RADON_ASSET"],
-				options: {
-					bytecode: {
-						hint: "Outputs RAD bytecode as hex string (supersedes --json).",
-					},
-					json: {
-						hint: "Outputs data in JSON format.",
-					},
-					headline: {
-						hint: "Settles output report headline.",
-						param: ":string",
-					},
-					indent: {
-						hint: "Prefixes given number of white spaces for every output line.",
-						param: ":number",
-					},
-				},
+			modals: {
+				hint: "Restrict output to Radon modals.",
 			},
-			"dry-run": {
-				hint: "Simulate resolution of one or more Radon assets, as if solved by the Wit/Oracle.",
-				params: ["RAD_BYTECODE | RAD_HASH | RADON_ASSET"],
-				options: {
-					default: {
-						hint: "Use default sample parameters on parametrized Radon assets.",
-					},
-					json: {
-						hint: "Outputs data in JSON format.",
-					},
-					headline: {
-						hint: "Settles output report headline.",
-						param: ":string",
-					},
-					indent: {
-						hint: "Prefixes given number of white spaces for every output line.",
-						param: ":number",
-					},
-					verbose: {
-						hint: "Outputs detailed dry-run report.",
-					},
-				},
+			requests: {
+				hint: "Restrict output to Radon requests.",
 			},
-		}
-	: {
-			assets: {
-				hint: "List available Witnet Radon assets.",
-				params: "[RADON_ASSETS ...]",
-				options: {
-					filter: {
-						hint: "Restrict output to name-matching assets.",
-					},
-					legacy: {
-						hint: "List only those declared in witnet/assets folder.",
-					},
-				},
+			templates: {
+				hint: "Restrict output to Radon templates.",
 			},
-			decode: {
-				hint: "Break down specs of one or more Radon assets.",
-				params: ["RAD_BYTECODE | RAD_HASH | RADON_ASSET"],
-				options: {
-					json: {
-						hint: "Outputs data in JSON format.",
-					},
-					headline: {
-						hint: "Settles output report headline.",
-						param: ":string",
-					},
-					indent: {
-						hint: "Prefixes given number of white spaces for every output line.",
-						param: ":number",
-					},
-				},
+		},
+	},
+	decode: {
+		hint: "Break down specs of one or more Radon assets.",
+		params: ["RAD_BYTECODE | RAD_HASH | RADON_ASSET"],
+		options: {
+			bytecode: {
+				hint: "Outputs RAD bytecode as hex string (supersedes --json).",
 			},
-			"dry-run": {
-				hint: "Simulate resolution of one or more Radon assets, as if solved by the Wit/Oracle.",
-				params: ["RAD_BYTECODE | RAD_HASH | RADON_ASSET"],
-				options: {
-					json: {
-						hint: "Outputs data in JSON format.",
-					},
-					headline: {
-						hint: "Settles output report headline.",
-						param: ":string",
-					},
-					indent: {
-						hint: "Prefixes given number of white spaces for every output line.",
-						param: ":number",
-					},
-					verbose: {
-						hint: "Outputs detailed dry-run report.",
-					},
-				},
+			json: {
+				hint: "Outputs data in JSON format.",
 			},
-			init: {
-				hint: "Initialize a Witnet Radon workspace in this project.",
+			headline: {
+				hint: "Settles output report headline.",
+				param: ":string",
 			},
-		};
+			indent: {
+				hint: "Prefixes given number of white spaces for every output line.",
+				param: ":number",
+			},
+		},
+	},
+	"dry-run": {
+		hint: "Simulate resolution of one or more Radon assets, as if solved by the Wit/Oracle.",
+		params: ["RAD_BYTECODE | RAD_HASH | RADON_ASSET"],
+		options: {
+			default: {
+				hint: "Use default sample parameters on parametrized Radon assets.",
+			},
+			json: {
+				hint: "Outputs data in JSON format.",
+			},
+			headline: {
+				hint: "Settles output report headline.",
+				param: ":string",
+			},
+			indent: {
+				hint: "Prefixes given number of white spaces for every output line.",
+				param: ":number",
+			},
+			verbose: {
+				hint: "Outputs detailed dry-run report.",
+			},
+		},
+	},
+	...(isModuleInitialized ? {
+		check: {
+			hint: "Check correctness of Witnet Radon artifacts declared in witnet/assets folder.",
+			params: [],
+			options: {},
+		},
+	} : {
+		init: {
+			hint: "Initialize a Witnet Radon workspace within the current folder.",
+		},
+	})
+};
 
 export const subcommands = {
 	assets,
@@ -421,7 +372,7 @@ const stringifyReducer = (x, c) => {
 
 export function loadAssets(options) {
 	const assets = options?.legacy ? {} : legacy;
-	return isModuleInitialized ? merge(assets, require(`${WITNET_ASSETS_PATH}/index.cjs`)) : assets;
+	return fs.existsSync(`${WITNET_ASSETS_PATH}/index.cjs`) ? merge(assets, require(`${WITNET_ASSETS_PATH}/index.cjs`)) : assets;
 }
 
 function flattenRadonArtifacts(tree, headers) {

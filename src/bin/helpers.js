@@ -1,7 +1,9 @@
 import { exec } from "node:child_process";
+import fs from "node:fs";
 import { createRequire } from "node:module";
 import * as net from "node:net";
 import * as os from "node:os";
+import path from "node:path";
 import * as readline from "node:readline";
 import moment from "moment";
 
@@ -593,6 +595,14 @@ export function prompter(promise) {
 		process.stdout.write("\b\b");
 		return result;
 	});
+}
+
+export function searchWorkspace() {
+	let workspace = path.normalize(process.cwd())
+	while (!fs.existsSync(`${workspace}/witnet/assets`) && path.dirname(workspace) !== workspace) {
+		workspace = path.dirname(workspace)
+	}
+	return workspace
 }
 
 export function traceChecklists(checklists) {

@@ -1,12 +1,13 @@
 import { createRequire } from "node:module";
 import cbor from "cbor";
 import dotenv from "dotenv";
+import fs from "node:fs";
 
 dotenv.config({ quiet: true });
 
 const require = createRequire(import.meta.url);
 
-import { fromHexString, isHexString } from "../../bin/helpers.js";
+import { fromHexString, isHexString, searchWorkspace } from "../../bin/helpers.js";
 
 import { RadonModal, RadonRequest, RadonRetrieval, RadonTemplate } from "./index.js";
 
@@ -22,7 +23,8 @@ import {
 	RadonString,
 } from "./types.js";
 
-const WITNET_ASSETS_PATH = process.env.WITNET_SDK_RADON_ASSETS_PATH || "../../../../../witnet/assets";
+const __dirname = searchWorkspace()
+const WITNET_ASSETS_PATH = process.env.WITNET_SDK_RADON_ASSETS_PATH || `${__dirname}/witnet/assets`;
 
 export { execRadonBytecode } from "../../bin/helpers.js";
 
@@ -140,7 +142,7 @@ function loadModuleAssets<T extends RadonRequest | RadonTemplate | RadonModal | 
 	flattened?: boolean;
 	type?: { new (specs: any): T };
 }): any {
-	const stuff = require(`${WITNET_ASSETS_PATH}/index.cjs`);
+	const stuff = fs.existsSync(`${WITNET_ASSETS_PATH}/index.cjs`) ? require(`${WITNET_ASSETS_PATH}/index.cjs`) : {};
 	return options?.flattened ? flattenRadonAssets(stuff, options?.type) : stuff;
 }
 
