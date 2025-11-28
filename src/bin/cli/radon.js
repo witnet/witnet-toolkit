@@ -125,16 +125,16 @@ async function init() {
 		fs.cpSync("node_modules/@witnet/sdk/.env_witnet", ".env_witnet");
 	}
 	if (!fs.existsSync("./witnet/assets/index.js")) {
-		fs.cpSync("node_modules/@witnet/sdk/witnet/assets/_index.js", "./witnet/assets/index.js");
+		fs.cpSync("node_modules/@witnet/sdk/witnet/assets/_index.cjs", "./witnet/assets/index.cjs");
 	}
 	if (!fs.existsSync("./witnet/assets/requests.js")) {
-		fs.cpSync("node_modules/@witnet/sdk/witnet/assets/_requests.js", "./witnet/assets/requests.js");
+		fs.cpSync("node_modules/@witnet/sdk/witnet/assets/_requests.cjs", "./witnet/assets/requests.cjs");
 	}
 	if (!fs.existsSync("./witnet/assets/sources.js")) {
-		fs.cpSync("node_modules/@witnet/sdk/witnet/assets/_sources.js", "./witnet/assets/sources.js");
+		fs.cpSync("node_modules/@witnet/sdk/witnet/assets/_sources.cjs", "./witnet/assets/sources.cjs");
 	}
 	if (!fs.existsSync("./witnet/assets/templates.js")) {
-		fs.cpSync("node_modules/@witnet/sdk/witnet/assets/_templates.js", "./witnet/assets/templates.js");
+		fs.cpSync("node_modules/@witnet/sdk/witnet/assets/_templates.cjs", "./witnet/assets/templates.cjs");
 	}
 	console.info(`Initialized Witnet Radon workspace at folder ${process.cwd()}/witnet/assets`);
 }
@@ -159,9 +159,8 @@ async function assets(options = {}, [...patterns]) {
 
 async function check() {
 	if (!isModuleInitialized) {
-		throw new Error(
-			`No Witnet Radon workspace has been initialized. Please, run ${white("npx witsdk radon init")} if willing to declare your own Radon assets.`,
-		);
+		console.error(`Sorry, no Witnet workspace was initialized yet.`)
+		return
 	}
 	try {
 		const assets = loadAssets({ legacy: true });
