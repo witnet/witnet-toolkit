@@ -41,7 +41,7 @@ export class Wallet implements IWallet {
 	 * Create a Wallet by reading the XPRV master key from the WITNET_SDK_WALLET_MASTER_KEY environment variable.
 	 * @param specs Wallet creation parameters.
 	 */
-	static async fromEnv(options: {
+	static async fromEnv(options?: {
 		/**
 		 * Password to decrypt the XPRV master key read from environment, in case it's encrypted.
 		 */
@@ -70,7 +70,7 @@ export class Wallet implements IWallet {
 		const xprv = process.env.WITNET_SDK_WALLET_MASTER_KEY;
 		if (!xprv) throw Error(`WITNET_SDK_WALLET_MASTER_KEY must be set on environment.`);
 		if (xprv.length > 117) {
-			if (!options.passwd) throw Error(`Missing password for WITNET_SDK_WALLET_MASTER_KEY.`);
+			if (!options?.passwd) throw Error(`Missing password for WITNET_SDK_WALLET_MASTER_KEY.`);
 			return Wallet.fromEncryptedXprv(xprv, options?.passwd, options);
 		} else {
 			return Wallet.fromXprv(xprv, options);
