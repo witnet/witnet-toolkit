@@ -246,7 +246,7 @@ async function dataRequests(options = {}, [arg]) {
 				record.query.witnesses,
 				Witnet.Coins.fromPedros(record.query.unitary_reward).toString(2),
 				dataType === "RadonError" ? helpers.colors.mred("RadonError") : helpers.colors.mgreen(dataType),
-				...(options?.verbose 
+				...(options?.verbose
 					? [
 							dataType === "RadonError"
 								? helpers.colors.red(result)
