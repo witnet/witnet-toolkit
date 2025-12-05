@@ -30,6 +30,8 @@ export class RadonFilter {
 		};
 		if (this.args) {
 			json.args = humanize ? this.args : Array.from(cbor.encode(this.args));
+		} else if (!humanize) {
+			json.args = Array.from(cbor.encode([]))
 		}
 		return json;
 	}
@@ -40,6 +42,8 @@ export class RadonFilter {
 		};
 		if (this.args) {
 			protobuf.args = Array.from(cbor.encode(this.args));
+		} else {
+			protobuf.args = Array.from(cbor.encode([]));
 		}
 		return protobuf;
 	}
