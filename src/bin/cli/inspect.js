@@ -52,7 +52,7 @@ export const router = {
 		hint: "Search for in-flight or recently solved data request transactions.",
 		params: "RAD_BYTECODE | RAD_HASH",
 		options: {
-			limit: { hint: "Limit output records (default: 100).", param: "LIMIT" },
+			limit: { hint: "Limit output records (default: 10).", param: "LIMIT" },
 			offset: {
 				hint: "Skips first records as found on server side (default: 0).",
 				param: "SKIP",
@@ -226,7 +226,7 @@ async function dataRequests(options = {}, [arg]) {
 	// )
 	const results = await helpers.prompter(
 		provider.searchDataRequests(radHash, {
-			limit: options?.limit ? parseInt(options.limit, 10) : undefined,
+			limit: options?.limit ? parseInt(options.limit, 10) : 10,
 			offset: options?.offset ? parseInt(options.offset, 10) : undefined,
 			mode: options?.mode,
 			reverse: options?.reverse,
@@ -236,10 +236,10 @@ async function dataRequests(options = {}, [arg]) {
 		results.map((record) => {
 			let result = record?.result.cbor_bytes ? utils.cbor.decode(record?.result.cbor_bytes, { encoding: "hex" }) : "";
 			const request = Witnet.Radon.RadonRequest.fromBytecode(record.query.rad_bytecode);
-			const dataType = result.constructor.name === "Tagged" ? "RadonError" : request.dataType;
-			if (dataType !== "RadonError")
+			const dataType = result !== "" && result.constructor.name === "Tagged" ? "RadonError" : request.dataType;
+			if (result !== "" && !["RadonError", "RadonInteger", "RadonFloat"].includes(dataType))
 				result = Buffer.from(utils.fromHexString(record?.result.cbor_bytes)).toString("base64");
-			else if (result.constructor.name === "Buffer") result = result.toString("base64");
+			else if (result?.constructor.name === "Buffer") result = result.toString("base64");
 			return [
 				record.block_epoch,
 				record.hash,
@@ -255,8 +255,8 @@ async function dataRequests(options = {}, [arg]) {
 									: helpers.colors.cyan(result),
 						]
 					: [
-							record?.result ? `${record.result.cbor_bytes.length / 2} bytes` : "",
-							record?.result.timestamp ? moment.unix(record.result.timestamp).fromNow() : "",
+							result !== "" && record?.result ? `${record.result.cbor_bytes.length / 2} bytes` : "",
+							result !== "" && record?.result.timestamp ? moment.unix(record.result.timestamp).fromNow() : "",
 						]),
 			];
 		}),

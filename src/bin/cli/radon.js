@@ -683,10 +683,12 @@ async function traceWitnetRadonRequestDryRun(request, options) {
 	traceWitnetRadonReportHeadline(request, options);
 	const indent = options?.indent ? " ".repeat(options.indent) : "";
 	console.info(`${indent}╚══╤═══════════════════════════════════════════════════════════════════════════╝`);
-	let execTimeMs = report.retrieve
-		?.map((retrieval) => (retrieval?.running_time.secs || 0) + (retrieval?.running_time.nanos || 0) / 1000)
-		.reduce((sum, secs) => sum + secs);
-	execTimeMs = `${Math.round(execTimeMs)} ms`;
+	let execTimeMs = Math.max(
+		...(report.retrieve?.map(
+			(retrieval) => (retrieval?.running_time.secs || 0) * 1e3 + (retrieval?.running_time.nanos || 0) / 1e6,
+		) ?? 0),
+	);
+	execTimeMs = `${helpers.commas(Math.round(execTimeMs))} ms`;
 	let flexbar = "─".repeat(17);
 	let flexspc = " ".repeat(flexbar.length + 12);
 	console.info(`${indent}┌──┴─────────────────────────────${flexbar}──────┐`);
